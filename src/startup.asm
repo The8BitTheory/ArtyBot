@@ -26,6 +26,8 @@ start
         +copy $D800, CHARSET, $0800
         ; Custom icons stay in inverse character codes $E0-$F7.
         +copy gfx_icons, CHARSET + ICON_CHAR_BASE*8, ICON_CHAR_BYTES
+        ; Robot directions occupy inverse charset characters $80-$83.
+        +copy gfx_robot, CHARSET + ROBOT_CHAR_BASE*8, ROBOT_CHAR_BYTES
         +copy gfx_sprites, SPRITES, SPRITE_BYTES
 
         ; Ab jetzt: alle ROMs aus, nur I/O (eigene Vektoren in $FFFA-$FFFF)

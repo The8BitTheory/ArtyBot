@@ -5,6 +5,8 @@ ui_row   = $2A
 ui_save  = $2B
 ui_count = $2C
 ui_col   = $2D
+; $2E is mouse_raw_x in zp.inc; keep this state in an unused zero-page slot.
+exit_confirm = $43
 PALETTE_NUM = 18
 AVAILABLE_COMMANDS = 7
 PROGRAM_ROWS = 18
@@ -31,6 +33,7 @@ editor_init
         sta scroll_offset
         sta selection_active
         sta delete_pending
+        sta exit_confirm
         lda #$FF
         sta hover_command
         lda #0
@@ -42,12 +45,55 @@ editor_init
         bne .clear_program
         rts
 
+!zone editor_clear_program
+editor_clear_program
+        lda #0
+        sta exit_confirm
+        jsr editor_clear_palette_interior
+        jsr draw_palette_panel
+        lda #0
+        ldx #0
+.clear  sta program,x
+        inx
+        cpx #PROGRAM_MAX
+        bne .clear
+        lda #0
+        sta editor_count
+        sta insert_pos
+        sta scroll_offset
+        sta selection_active
+        sta delete_pending
+        lda #$FF
+        sta hover_command
+        jsr editor_update_view
+        lda #$FF
+        jsr editor_draw_info
+        rts
 ; Mouse clicks and palette letters share the same insert path. Up/down move
 ; the insertion point; letter auto-repeat is ignored so one press inserts once.
 !zone editor_handle_input
 editor_handle_input
+        lda exit_confirm
+        beq .normal_input
+        jmp editor_handle_exit_confirm
+.normal_input
         lda mouse_click
         beq .keyboard
+        ; Bottom-line X: Exit command at columns 12..18, screen row 24.
+        lda mouse_y
+        cmp #192
+        bcc .palette_click
+        cmp #200
+        bcs .palette_click
+        lda mouse_x_hi
+        bne .palette_click
+        lda mouse_x_lo
+        cmp #96
+        bcc .palette_click
+        cmp #152
+        bcs .palette_click
+        jmp editor_request_exit
+.palette_click
         jsr palette_hit_test
         bcc .list_click
         cmp #AVAILABLE_COMMANDS
@@ -93,6 +139,18 @@ editor_handle_input
         bne .has_key
         rts
 .has_key
+        cmp #23                 ; X key
+        bne .not_exit_key
+        jmp editor_request_exit
+.not_exit_key
+        cmp #KEY_CLR_HOME
+        bne .not_clear_program
+        lda key_shift
+        beq .not_clear_program
+        lda key_repeat
+        bne .not_clear_program
+        jmp editor_request_clear
+.not_clear_program
         cmp #57                 ; physical left-arrow key, immediately left of 1
         bne .not_left_cancel
         jmp .cancel             ; cancel is handled before any cursor movement
@@ -181,7 +239,7 @@ editor_handle_input
         lda insert_pos
         beq .done
         dec insert_pos
-        jsr editor_update_view
+        jsr editor_move_insert_marker
         rts
 .selected_up
         jsr editor_move_selected_up
@@ -197,7 +255,7 @@ editor_handle_input
         cmp editor_count
         bcs .done
         inc insert_pos
-        jsr editor_update_view
+        jsr editor_move_insert_marker
         rts
 .selected_down
         jsr editor_move_selected_down
@@ -230,15 +288,158 @@ editor_handle_input
         jsr editor_cancel_selection
 .done   rts
 
+!zone editor_request_exit
+editor_request_exit
+        lda key_repeat
+        bne .finish
+        lda #1
+        sta exit_confirm
+        jsr editor_clear_palette_interior
+        ldx #4
+        ldy #16
+        jsr set_cursor
+        lda #<str_quit_confirm
+        ldx #>str_quit_confirm
+        jsr put_str
+        lda #COL_YELLOW
+        sta cur_col
+        ldx #3
+        ldy #18
+        jsr set_cursor
+        lda #<str_quit_yes
+        ldx #>str_quit_yes
+        jsr put_str
+        ldx #12
+        ldy #18
+        jsr set_cursor
+        lda #<str_quit_no
+        ldx #>str_quit_no
+        jsr put_str
+.finish rts
+
+!zone editor_request_clear
+editor_request_clear
+        lda key_repeat
+        bne .finish
+        lda #2
+        sta exit_confirm
+        jsr editor_clear_palette_interior
+        ldx #4
+        ldy #16
+        jsr set_cursor
+        lda #<str_clear_confirm
+        ldx #>str_clear_confirm
+        jsr put_str
+        ldx #4
+        ldy #17
+        jsr set_cursor
+        lda #<str_clear_confirm2
+        ldx #>str_clear_confirm2
+        jsr put_str
+        lda #COL_YELLOW
+        sta cur_col
+        ldx #3
+        ldy #18
+        jsr set_cursor
+        lda #<str_quit_yes
+        ldx #>str_quit_yes
+        jsr put_str
+        ldx #12
+        ldy #18
+        jsr set_cursor
+        lda #<str_quit_no
+        ldx #>str_quit_no
+        jsr put_str
+.finish rts
+
+!zone editor_handle_exit_confirm
+editor_handle_exit_confirm
+        lda mouse_click
+        beq .keyboard
+        jsr palette_hit_test
+        bcc .check_buttons
+        cmp #9
+        bcc .check_buttons
+        cmp #18
+        bcs .check_buttons
+        cmp #13
+        bcc .yes
+        jmp .no
+.check_buttons
+        lda mouse_y
+        cmp #144
+        bcc .keyboard
+        cmp #160
+        bcs .keyboard
+        lda mouse_x_hi
+        bne .keyboard
+        lda mouse_x_lo
+        cmp #48
+        bcc .keyboard
+        cmp #104
+        bcc .yes
+        cmp #160
+        bcc .no
+.keyboard
+        lda key_new
+        cmp #$FF
+        beq .finish
+        cmp #1                  ; Return selects Yes
+        beq .yes
+        cmp #57                 ; Left-arrow cancels
+        beq .no
+.finish rts
+.yes
+        lda exit_confirm
+        cmp #2
+        bne .exit_yes
+        jmp editor_clear_program
+.exit_yes
+        sei
+        lda #$37                ; BASIC + KERNAL + I/O visible again
+        sta CPU_PORT
+        jmp $FCE2               ; KERNAL reset entry (soft reset)
+.no
+        lda #0
+        sta exit_confirm
+        jsr editor_clear_palette_interior
+        jsr draw_palette_panel
+        lda #$FF
+        jsr editor_draw_info
+        rts
+
+!zone editor_clear_palette_interior
+editor_clear_palette_interior
+        lda #COL_WHITE
+        sta cur_col
+        lda #14
+        sta ui_row
+.clear_rows
+        ldx #1
+        ldy ui_row
+        jsr set_cursor
+        lda #19
+        sta ui_count
+.clear_row
+        lda #$20
+        jsr put_char
+        dec ui_count
+        bne .clear_row
+        inc ui_row
+        lda ui_row
+        cmp #20
+        bne .clear_rows
+        rts
+
 ; Return palette index in A and carry set when the pointer is over an entry.
 !zone palette_hit_test
 palette_hit_test
         lda mouse_y
-        cmp #104                ; first palette row starts at screen row 13
+        cmp #112                ; first palette row starts at screen row 14
         bcc .miss
-        cmp #152                ; include the label row under both icon rows
+        cmp #160                ; include the label row under both icon rows
         bcs .miss
-        cmp #128
+        cmp #136
         bcc .top_row
         lda #9
         bne .row_ready
@@ -345,21 +546,57 @@ editor_insert                  ; A = command index (0..6)
         jsr editor_draw_info
 .done   rts
 
+!zone editor_move_insert_marker
+editor_move_insert_marker
+        ; The VIC sprite follows insert_pos each frame. Redraw the list only
+        ; when the marker leaves the visible window and the list must scroll.
+        jsr editor_calc_scroll
+        cmp scroll_offset
+        beq .done
+        sta scroll_offset
+        jsr draw_program_list
+        jsr draw_scrollbar
+.done   rts
+
 !zone editor_update_view
 editor_update_view
         ; Keep the insertion marker in the visible list rows (2..19).
-        lda insert_pos
-        cmp #18
-        bcc .top
-        sec
-        sbc #17
+        jsr editor_calc_scroll
         sta scroll_offset
-        jmp .redraw
-.top    lda #0
-        sta scroll_offset
-.redraw jsr draw_program_list
+        jsr draw_program_list
         jsr draw_program_counts
         jsr draw_scrollbar
+        rts
+
+; Return in A the scroll offset that keeps the insertion marker visible
+; (marker row = insert_pos - scroll_offset, valid 0..PROGRAM_ROWS-1) while
+; moving the window as little as possible. Clamped so the window does not
+; scroll past the end of the list after deletions.
+!zone editor_calc_scroll
+editor_calc_scroll
+        lda insert_pos
+        cmp scroll_offset
+        bcc .clamp              ; marker above window: scroll up to it
+        sec
+        sbc scroll_offset
+        cmp #PROGRAM_ROWS
+        bcc .keep               ; marker inside window: no scrolling
+        lda insert_pos
+        sec
+        sbc #PROGRAM_ROWS-1     ; marker below window: put it on last row
+        jmp .clamp
+.keep   lda scroll_offset
+.clamp  sta tmp2
+        lda editor_count
+        sec
+        sbc #PROGRAM_ROWS-1     ; max offset = editor_count - 17, at least 0
+        bcs .max_ok
+        lda #0
+.max_ok cmp tmp2
+        bcs .use_wanted
+        rts                     ; wanted offset too large: use maximum
+.use_wanted
+        lda tmp2
         rts
 
 !zone editor_select_item
@@ -393,6 +630,7 @@ editor_update_selection_view
         sbc #17                 ; keep selected row at bottom of viewport
         sta scroll_offset
 .redraw jsr draw_program_list
+        jsr draw_program_counts
         jsr draw_scrollbar
         rts
 
@@ -538,18 +776,7 @@ draw_title_and_counters
         lda #<str_title
         ldx #>str_title
         jsr put_str
-        ldx #0
-        ldy #1
-        jsr set_cursor
-        lda #<str_commands_count
-        ldx #>str_commands_count
-        jsr put_str
-        ldx #24
-        ldy #1
-        jsr set_cursor
-        lda #<str_program_count
-        ldx #>str_program_count
-        jsr put_str
+
         rts
 
 !zone draw_map_panel
@@ -559,33 +786,33 @@ draw_map_panel
         ldx #0
         ldy #2
         lda #$2D
-        jsr draw_hline10
+        jsr draw_hline11
         ldx #0
-        ldy #11
+        ldy #12
         lda #$2D
-        jsr draw_hline10
+        jsr draw_hline11
         ; Corners
         ldx #0
         ldy #2
         jsr set_cursor
         lda #$2B
         jsr put_char
-        ldx #9
+        ldx #10
         ldy #2
         jsr set_cursor
         lda #$2B
         jsr put_char
         ldx #0
-        ldy #11
+        ldy #12
         jsr set_cursor
         lda #$2B
         jsr put_char
-        ldx #9
-        ldy #11
+        ldx #10
+        ldy #12
         jsr set_cursor
         lda #$2B
         jsr put_char
-        ; Empty 8x8 field, one character per tile.
+        ; Empty 9x9 field, one character per tile.
         lda #3
         sta ui_row
 .map_row
@@ -597,26 +824,32 @@ draw_map_panel
         ldx #1
         ldy ui_row
         jsr set_cursor
-        lda #$2E
-        jsr repeat8
-        ldx #9
+        lda #FLOOR_CHAR
+        jsr repeat9
+        ldx #10
         ldy ui_row
         jsr set_cursor
         lda #$7C
         jsr put_char
         inc ui_row
         lda ui_row
-        cmp #11
+        cmp #12
         bne .map_row
+        ; Start the planning field with the robot in its top-left tile, facing right.
+        ldx #1
+        ldy #3
+        jsr set_cursor
+        lda #ROBOT_CHAR_BASE
+        jsr put_char
         rts
 
-; X/Y/A start coordinate and character; repeat ten positions.
-!zone draw_hline10
-draw_hline10
+; X/Y/A start coordinate and character; repeat eleven positions.
+!zone draw_hline11
+draw_hline11
         stx cur_x
         sty cur_y
         sta ui_save
-        ldx #10
+        ldx #11
         stx ui_count
 .h     lda ui_save
         jsr put_char
@@ -624,11 +857,11 @@ draw_hline10
         bne .h
         rts
 
-; X/Y/A start coordinate and character; repeat eight positions.
-!zone repeat8
-repeat8
+; X/Y/A start coordinate and character; repeat nine positions.
+!zone repeat9
+repeat9
         sta ui_save
-        ldx #8
+        ldx #9
         stx ui_count
 .r     lda ui_save
         jsr put_char
@@ -641,35 +874,35 @@ draw_palette_panel
         lda #COL_CYAN
         sta cur_col
         ldx #0
-        ldy #12
+        ldy #13
         lda #$2D
         jsr draw_hline21
         ldx #0
-        ldy #19
+        ldy #20
         lda #$2D
         jsr draw_hline21
         ; Corners
         ldx #0
-        ldy #12
+        ldy #13
         jsr set_cursor
         lda #$2B
         jsr put_char
         ldx #20
-        ldy #12
+        ldy #13
         jsr set_cursor
         lda #$2B
         jsr put_char
         ldx #0
-        ldy #19
+        ldy #20
         jsr set_cursor
         lda #$2B
         jsr put_char
         ldx #20
-        ldy #19
+        ldy #20
         jsr set_cursor
         lda #$2B
         jsr put_char
-        lda #13
+        lda #14
         sta ui_row
 .side  ldx #0
         ldy ui_row
@@ -683,7 +916,7 @@ draw_palette_panel
         jsr put_char
         inc ui_row
         lda ui_row
-        cmp #19
+        cmp #20
         bne .side
         ldx #0
         stx ui_index
@@ -722,11 +955,11 @@ draw_palette_icon
         sec
         sbc #9
         sta ui_col
-        lda #16
+        lda #17
         sta ui_row
         jmp .position
 .first sta ui_col
-        lda #13
+        lda #14
         sta ui_row
 .position
         lda ui_col
@@ -840,7 +1073,7 @@ draw_program_panel
         lda ui_row
         cmp #20
         bne .sides
-        ; Header and integrated scrollbar arrows.
+        ; Keep the scrollbar arrows in the list header.
         lda #COL_WHITE
         sta cur_col
         ldx #24
@@ -849,6 +1082,7 @@ draw_program_panel
         lda #<str_program_count
         ldx #>str_program_count
         jsr put_str
+
         ldx #38
         ldy #1
         jsr set_cursor
@@ -950,22 +1184,17 @@ draw_program_list
         bne .row
         rts
 
+
 !zone draw_program_counts
 draw_program_counts
         lda #COL_WHITE
         sta cur_col
-        ldx #9
-        ldy #1
-        jsr set_cursor
-        lda editor_count
-        jsr draw_decimal2
-        ldx #32
+        ldx #33
         ldy #1
         jsr set_cursor
         lda editor_count
         jsr draw_decimal2
         rts
-
 !zone draw_decimal2
 draw_decimal2                   ; A = 0..99, writes two decimal digits
         sta tmp1
@@ -986,7 +1215,6 @@ draw_decimal2                   ; A = 0..99, writes two decimal digits
         clc
         adc #$30
         jmp put_char
-
 !zone draw_scrollbar
 draw_scrollbar
         lda #COL_CYAN
@@ -1002,29 +1230,7 @@ draw_scrollbar
         lda ui_row
         cmp #20
         bne .track
-        ; Thumb position follows the first visible command. It spans two rows.
-        lda scroll_offset
-        ldx #0
-.divide cmp #5
-        bcc .thumb
-        sec
-        sbc #5
-        inx
-        jmp .divide
-.thumb  txa
-        clc
-        adc #2
-        tay
-        lda #COL_YELLOW
-        sta cur_col
-        ldx #38
-        jsr set_cursor
-        lda #$23
-        jsr put_char
-        iny
-        jsr set_cursor
-        lda #$23
-        jsr put_char
+
         rts
 
 !zone draw_help_areas
@@ -1049,6 +1255,14 @@ draw_help_areas
         jsr set_cursor
         lda #$7C
         jsr put_char
+        lda #COL_WHITE
+        sta cur_col
+        ldx #0
+        ldy #24
+        jsr set_cursor
+        lda #<str_bottom_commands
+        ldx #>str_bottom_commands
+        jsr put_str
         lda #$FF
         jsr editor_draw_info
         rts

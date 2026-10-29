@@ -55,6 +55,10 @@ CODE_LIMIT  = $C000
 ICON_CHAR_BASE  = $E0
 ICON_CHAR_COUNT = 30            ; 24 command glyphs, Turn 180, and scrollbar arrows
 ICON_CHAR_BYTES = ICON_CHAR_COUNT * 8
+ROBOT_CHAR_BASE  = $80
+ROBOT_CHAR_COUNT = 5            ; 4 robot directions + empty map floor
+FLOOR_CHAR       = ROBOT_CHAR_BASE + 4
+ROBOT_CHAR_BYTES = ROBOT_CHAR_COUNT * 8
 
 ; --- Farben
 COL_BLACK   = 0
@@ -86,6 +90,7 @@ SPRITE_BYTES= 128           ; mouse pointer plus insertion marker
 PROGRAM_MAX = 99
 
 ; --- Eingabe
+KEY_CLR_HOME = 51          ; CLR/HOME matrix position; Shift clears the list
 JOY_UP      = $01
 JOY_DOWN    = $02
 JOY_LEFT    = $04

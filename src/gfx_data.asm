@@ -122,3 +122,21 @@ gfx_icons_end
 !if gfx_icons_end - gfx_icons != ICON_CHAR_BYTES {
     !error "ICON_CHAR_BYTES does not match icon charset data"
 }
+
+; Robot: inverse charset characters $80-$83, right/left/up/down; $84 = floor.
+; Each byte is one row; bit 7 is the leftmost pixel (x = foreground).
+gfx_robot
+; $80 - right: ........ / ......x. / ..x..x.. / ..xxx... / ..xxx... / ..x..x.. / ......x. / ........
+        !byte $00,$02,$24,$38,$38,$24,$02,$00
+; $81 - left, rotated 180 degrees
+        !byte $00,$40,$24,$1C,$1C,$24,$40,$00
+; $82 - up, rotated 90 degrees left
+        !byte $00,$42,$24,$18,$18,$3C,$00,$00
+; $83 - down, rotated 90 degrees right
+        !byte $00,$00,$3C,$18,$18,$24,$42,$00
+; $84 - empty map floor: single pixel at the top-right pixel of the ROM '.'
+        !byte $00,$00,$00,$00,$00,$08,$00,$00
+gfx_robot_end
+!if gfx_robot_end - gfx_robot != ROBOT_CHAR_BYTES {
+    !error "ROBOT_CHAR_BYTES does not match robot charset data"
+}
