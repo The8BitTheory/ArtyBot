@@ -20,7 +20,10 @@
 !source "src/input.asm"
 !source "src/sprites.asm"
 !source "src/editor.asm"
+!source "src/run.asm"
+!source "src/mapdata.asm"
 !source "src/gfx_data.asm"
+!source "src/gfx_run.asm"
 
 ; --- Daten
 !source "src/text.asm"

@@ -28,7 +28,9 @@ start
         +copy gfx_icons, CHARSET + ICON_CHAR_BASE*8, ICON_CHAR_BYTES
         ; Robot directions occupy inverse charset characters $80-$83.
         +copy gfx_robot, CHARSET + ROBOT_CHAR_BASE*8, ROBOT_CHAR_BYTES
+        +copy gfx_run, CHARSET + RUN_CHAR_BASE*8, RUN_CHAR_BYTES
         +copy gfx_sprites, SPRITES, SPRITE_BYTES
+        +copy gfx_run_sprites, SPRITES + SPRITE_BYTES, RUN_SPR_BYTES
 
         ; Ab jetzt: alle ROMs aus, nur I/O (eigene Vektoren in $FFFA-$FFFF)
         lda #$35

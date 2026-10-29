@@ -1,0 +1,446 @@
+; gfx_run.asm - run screen graphics (generated).
+; Cell characters: four 16x16 px cells, each 2x2 characters (top-left, top-right,
+; bottom-left, bottom-right) from screen code RUN_CHAR_BASE on, in tile-id order:
+; floor, blocker, package, goal (T_FLOOR, T_WALL, T_BOX, T_GOAL).
+gfx_run
+; --- floor
+;   ................
+;   ................
+;   ................
+;   ...x.......x....
+;   ................
+;   ................
+;   ................
+;   ................
+;   ................
+;   ................
+;   ................
+;   ...x.......x....
+;   ................
+;   ................
+;   ................
+;   ................
+        !byte $00,$00,$00,$10,$00,$00,$00,$00
+        !byte $00,$00,$00,$10,$00,$00,$00,$00
+        !byte $00,$00,$00,$10,$00,$00,$00,$00
+        !byte $00,$00,$00,$10,$00,$00,$00,$00
+; --- blocker (wall)
+;   xxxxxxx.xxxxxxx.
+;   xxxxxxx.xxxxxxx.
+;   xxxxxxx.xxxxxxx.
+;   ................
+;   xxx.xxxxxxx.xxxx
+;   xxx.xxxxxxx.xxxx
+;   xxx.xxxxxxx.xxxx
+;   ................
+;   xxxxxxx.xxxxxxx.
+;   xxxxxxx.xxxxxxx.
+;   xxxxxxx.xxxxxxx.
+;   ................
+;   xxx.xxxxxxx.xxxx
+;   xxx.xxxxxxx.xxxx
+;   xxx.xxxxxxx.xxxx
+;   ................
+        !byte $FE,$FE,$FE,$00,$EF,$EF,$EF,$00
+        !byte $FE,$FE,$FE,$00,$EF,$EF,$EF,$00
+        !byte $FE,$FE,$FE,$00,$EF,$EF,$EF,$00
+        !byte $FE,$FE,$FE,$00,$EF,$EF,$EF,$00
+; --- package
+;   ................
+;   .xxxxxxxxxxxxxx.
+;   .xxxxxxxxxxxxxx.
+;   .xxx........xxx.
+;   .xx.x......x.xx.
+;   .xx..x....x..xx.
+;   .xx...x..x...xx.
+;   .xx....xx....xx.
+;   .xx....xx....xx.
+;   .xx...x..x...xx.
+;   .xx..x....x..xx.
+;   .xx.x......x.xx.
+;   .xxx........xxx.
+;   .xxxxxxxxxxxxxx.
+;   .xxxxxxxxxxxxxx.
+;   ................
+        !byte $00,$7F,$7F,$70,$68,$64,$62,$61
+        !byte $00,$FE,$FE,$0E,$16,$26,$46,$86
+        !byte $61,$62,$64,$68,$70,$7F,$7F,$00
+        !byte $86,$46,$26,$16,$0E,$FE,$FE,$00
+; --- goal
+;   .......xx.......
+;   ....xxxxxxxx....
+;   ...xxx....xxx...
+;   ..xx........xx..
+;   .xx..xxxxxx..xx.
+;   .xx.xx....xx.xx.
+;   .x..x..xx..x..x.
+;   xx..x.xxxx.x..xx
+;   xx..x.xxxx.x..xx
+;   .x..x..xx..x..x.
+;   .xx.xx....xx.xx.
+;   .xx..xxxxxx..xx.
+;   ..xx........xx..
+;   ...xxx....xxx...
+;   ....xxxxxxxx....
+;   .......xx.......
+        !byte $01,$0F,$1C,$30,$67,$6C,$49,$CB
+        !byte $80,$F0,$38,$0C,$E6,$36,$92,$D3
+        !byte $CB,$49,$6C,$67,$30,$1C,$0F,$01
+        !byte $D3,$92,$36,$E6,$0C,$38,$F0,$80
+gfx_run_end
+!if gfx_run_end - gfx_run != RUN_CHAR_BYTES {
+    !error "RUN_CHAR_BYTES passt nicht zu den Run-Zellendaten"
+}
+
+; Sprites (24x21 hires, art in the top-left corner): robot right/left/up/down,
+; robot holding the package right/left/up/down, then the 10x10 package.
+gfx_run_sprites
+; --- robot right
+;   ................
+;   ................
+;   ..xxxxxxxxxxx...
+;   ..xxxxxxxxxxx...
+;   ................
+;   ...xxxxxxxxx....
+;   ...x.......xxxxx
+;   ...x..xx...xx...
+;   ...x..xx...xx...
+;   ...x.......xxxxx
+;   ...xxxxxxxxx....
+;   ................
+;   ..xxxxxxxxxxx...
+;   ..xxxxxxxxxxx...
+;   ................
+;   ................
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $3F,$F8,$00
+        !byte $3F,$F8,$00
+        !byte $00,$00,$00
+        !byte $1F,$F0,$00
+        !byte $10,$1F,$00
+        !byte $13,$18,$00
+        !byte $13,$18,$00
+        !byte $10,$1F,$00
+        !byte $1F,$F0,$00
+        !byte $00,$00,$00
+        !byte $3F,$F8,$00
+        !byte $3F,$F8,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00
+; --- robot left
+;   ................
+;   ................
+;   ...xxxxxxxxxxx..
+;   ...xxxxxxxxxxx..
+;   ................
+;   ....xxxxxxxxx...
+;   xxxxx.......x...
+;   ...xx...xx..x...
+;   ...xx...xx..x...
+;   xxxxx.......x...
+;   ....xxxxxxxxx...
+;   ................
+;   ...xxxxxxxxxxx..
+;   ...xxxxxxxxxxx..
+;   ................
+;   ................
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $1F,$FC,$00
+        !byte $1F,$FC,$00
+        !byte $00,$00,$00
+        !byte $0F,$F8,$00
+        !byte $F8,$08,$00
+        !byte $18,$C8,$00
+        !byte $18,$C8,$00
+        !byte $F8,$08,$00
+        !byte $0F,$F8,$00
+        !byte $00,$00,$00
+        !byte $1F,$FC,$00
+        !byte $1F,$FC,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00
+; --- robot up
+;   ......x..x......
+;   ......x..x......
+;   ......x..x......
+;   ..xx..xxxx..xx..
+;   ..xx.xxxxxx.xx..
+;   ..xx.x....x.xx..
+;   ..xx.x....x.xx..
+;   ..xx.x....x.xx..
+;   ..xx.x.xx.x.xx..
+;   ..xx.x.xx.x.xx..
+;   ..xx.x....x.xx..
+;   ..xx.x....x.xx..
+;   ..xx.xxxxxx.xx..
+;   ..xx........xx..
+;   ................
+;   ................
+        !byte $02,$40,$00
+        !byte $02,$40,$00
+        !byte $02,$40,$00
+        !byte $33,$CC,$00
+        !byte $37,$EC,$00
+        !byte $34,$2C,$00
+        !byte $34,$2C,$00
+        !byte $34,$2C,$00
+        !byte $35,$AC,$00
+        !byte $35,$AC,$00
+        !byte $34,$2C,$00
+        !byte $34,$2C,$00
+        !byte $37,$EC,$00
+        !byte $30,$0C,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00
+; --- robot down
+;   ................
+;   ................
+;   ..xx........xx..
+;   ..xx.xxxxxx.xx..
+;   ..xx.x....x.xx..
+;   ..xx.x....x.xx..
+;   ..xx.x.xx.x.xx..
+;   ..xx.x.xx.x.xx..
+;   ..xx.x....x.xx..
+;   ..xx.x....x.xx..
+;   ..xx.x....x.xx..
+;   ..xx.xxxxxx.xx..
+;   ..xx..xxxx..xx..
+;   ......x..x......
+;   ......x..x......
+;   ......x..x......
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $30,$0C,$00
+        !byte $37,$EC,$00
+        !byte $34,$2C,$00
+        !byte $34,$2C,$00
+        !byte $35,$AC,$00
+        !byte $35,$AC,$00
+        !byte $34,$2C,$00
+        !byte $34,$2C,$00
+        !byte $34,$2C,$00
+        !byte $37,$EC,$00
+        !byte $33,$CC,$00
+        !byte $02,$40,$00
+        !byte $02,$40,$00
+        !byte $02,$40,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00
+; --- robot holding, right
+;   ................
+;   ................
+;   ..xxxxxxxxxxx...
+;   ..xxxxxxxxxxx...
+;   ................
+;   ...xxxxxxxxx....
+;   ...xxxxxxxxxxxxx
+;   ...xxx..xxxxxxxx
+;   ...xxx..xxxxxxxx
+;   ...xxxxxxxxxxxxx
+;   ...xxxxxxxxx....
+;   ................
+;   ..xxxxxxxxxxx...
+;   ..xxxxxxxxxxx...
+;   ................
+;   ................
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $3F,$F8,$00
+        !byte $3F,$F8,$00
+        !byte $00,$00,$00
+        !byte $1F,$F0,$00
+        !byte $1F,$FF,$00
+        !byte $1C,$FF,$00
+        !byte $1C,$FF,$00
+        !byte $1F,$FF,$00
+        !byte $1F,$F0,$00
+        !byte $00,$00,$00
+        !byte $3F,$F8,$00
+        !byte $3F,$F8,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00
+; --- robot holding, left
+;   ................
+;   ................
+;   ...xxxxxxxxxxx..
+;   ...xxxxxxxxxxx..
+;   ................
+;   ....xxxxxxxxx...
+;   xxxxxxxxxxxxx...
+;   xxxxxxxx..xxx...
+;   xxxxxxxx..xxx...
+;   xxxxxxxxxxxxx...
+;   ....xxxxxxxxx...
+;   ................
+;   ...xxxxxxxxxxx..
+;   ...xxxxxxxxxxx..
+;   ................
+;   ................
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $1F,$FC,$00
+        !byte $1F,$FC,$00
+        !byte $00,$00,$00
+        !byte $0F,$F8,$00
+        !byte $FF,$F8,$00
+        !byte $FF,$38,$00
+        !byte $FF,$38,$00
+        !byte $FF,$F8,$00
+        !byte $0F,$F8,$00
+        !byte $00,$00,$00
+        !byte $1F,$FC,$00
+        !byte $1F,$FC,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00
+; --- robot holding, up
+;   ......xxxx......
+;   ......xxxx......
+;   ......xxxx......
+;   ..xx..xxxx..xx..
+;   ..xx.xxxxxx.xx..
+;   ..xx.xxxxxx.xx..
+;   ..xx.xxxxxx.xx..
+;   ..xx.xxxxxx.xx..
+;   ..xx.xx..xx.xx..
+;   ..xx.xx..xx.xx..
+;   ..xx.xxxxxx.xx..
+;   ..xx.xxxxxx.xx..
+;   ..xx.xxxxxx.xx..
+;   ..xx........xx..
+;   ................
+;   ................
+        !byte $03,$C0,$00
+        !byte $03,$C0,$00
+        !byte $03,$C0,$00
+        !byte $33,$CC,$00
+        !byte $37,$EC,$00
+        !byte $37,$EC,$00
+        !byte $37,$EC,$00
+        !byte $37,$EC,$00
+        !byte $36,$6C,$00
+        !byte $36,$6C,$00
+        !byte $37,$EC,$00
+        !byte $37,$EC,$00
+        !byte $37,$EC,$00
+        !byte $30,$0C,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00
+; --- robot holding, down
+;   ................
+;   ................
+;   ..xx........xx..
+;   ..xx.xxxxxx.xx..
+;   ..xx.xxxxxx.xx..
+;   ..xx.xxxxxx.xx..
+;   ..xx.xx..xx.xx..
+;   ..xx.xx..xx.xx..
+;   ..xx.xxxxxx.xx..
+;   ..xx.xxxxxx.xx..
+;   ..xx.xxxxxx.xx..
+;   ..xx.xxxxxx.xx..
+;   ..xx..xxxx..xx..
+;   ......xxxx......
+;   ......xxxx......
+;   ......xxxx......
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $30,$0C,$00
+        !byte $37,$EC,$00
+        !byte $37,$EC,$00
+        !byte $37,$EC,$00
+        !byte $36,$6C,$00
+        !byte $36,$6C,$00
+        !byte $37,$EC,$00
+        !byte $37,$EC,$00
+        !byte $37,$EC,$00
+        !byte $37,$EC,$00
+        !byte $33,$CC,$00
+        !byte $03,$C0,$00
+        !byte $03,$C0,$00
+        !byte $03,$C0,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00
+; --- package
+;   xxxxxxxxxx
+;   xx......xx
+;   x.x....x.x
+;   x..x..x..x
+;   x...xx...x
+;   x...xx...x
+;   x..x..x..x
+;   x.x....x.x
+;   xx......xx
+;   xxxxxxxxxx
+        !byte $FF,$C0,$00
+        !byte $C0,$C0,$00
+        !byte $A1,$40,$00
+        !byte $92,$40,$00
+        !byte $8C,$40,$00
+        !byte $8C,$40,$00
+        !byte $92,$40,$00
+        !byte $A1,$40,$00
+        !byte $C0,$C0,$00
+        !byte $FF,$C0,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00
+gfx_run_sprites_end
+!if gfx_run_sprites_end - gfx_run_sprites != RUN_SPR_BYTES {
+    !error "RUN_SPR_BYTES passt nicht zu den Run-Spritedaten"
+}

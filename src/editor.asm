@@ -9,12 +9,14 @@ ui_col   = $2D
 exit_confirm = $43
 PALETTE_NUM = 18
 AVAILABLE_COMMANDS = 7
-PROGRAM_ROWS = 18
+PROGRAM_ROWS = 17
 
 !zone game_main
 game_main
         jsr input_init
         jsr editor_init
+        lda #0                  ; default level; others are loaded the same way
+        jsr load_plan_level
         jsr draw_planning_screen
         jsr draw_program_list
         jsr spr_init
@@ -79,7 +81,7 @@ editor_handle_input
 .normal_input
         lda mouse_click
         beq .keyboard
-        ; Bottom-line X: Exit command at columns 12..18, screen row 24.
+        ; Bottom line (screen row 24): Run at columns 0..11, X: Exit at columns 12..18.
         lda mouse_y
         cmp #192
         bcc .palette_click
@@ -89,10 +91,12 @@ editor_handle_input
         bne .palette_click
         lda mouse_x_lo
         cmp #96
-        bcc .palette_click
+        bcc .run_click          ; columns 0..11: "R: Run plan"
         cmp #152
         bcs .palette_click
         jmp editor_request_exit
+.run_click
+        jmp editor_run_plan
 .palette_click
         jsr palette_hit_test
         bcc .list_click
@@ -143,6 +147,12 @@ editor_handle_input
         bne .not_exit_key
         jmp editor_request_exit
 .not_exit_key
+        cmp #17                 ; R key (with or without Shift): run plan
+        bne .not_run_key
+        ldx key_repeat
+        bne .not_run_key
+        jmp editor_run_plan
+.not_run_key
         cmp #KEY_CLR_HOME
         bne .not_clear_program
         lda key_shift
@@ -278,7 +288,7 @@ editor_handle_input
         lda #0
         sta selection_active
         sta delete_pending
-        jsr editor_update_view
+        jsr editor_refresh_after_leave
         lda #$FF
         jsr editor_draw_info
         rts
@@ -288,12 +298,32 @@ editor_handle_input
         jsr editor_cancel_selection
 .done   rts
 
+; R: switch to the run screen. Ignored while a list move/delete is pending
+; (Return confirms, left arrow cancels). Comes back here after P.
+!zone editor_run_plan
+editor_run_plan
+        lda selection_active
+        bne .done
+        jsr run_mode
+        lda #$FF
+        sta hover_command
+        jsr editor_calc_scroll  ; keep the insertion marker in view
+        sta scroll_offset
+        jsr draw_planning_screen
+        jsr draw_program_list
+        jsr draw_program_counts
+        jsr spr_init            ; clear_screen wiped the sprite pointers
+.done   rts
+
 !zone editor_request_exit
 editor_request_exit
         lda key_repeat
         bne .finish
         lda #1
         sta exit_confirm
+        lda #$FF                ; drop any palette hover help
+        sta hover_command
+        jsr editor_draw_info
         jsr editor_clear_palette_interior
         ldx #4
         ldy #16
@@ -323,6 +353,9 @@ editor_request_clear
         bne .finish
         lda #2
         sta exit_confirm
+        lda #$FF                ; drop any palette hover help
+        sta hover_command
+        jsr editor_draw_info
         jsr editor_clear_palette_interior
         ldx #4
         ldy #16
@@ -395,10 +428,7 @@ editor_handle_exit_confirm
         bne .exit_yes
         jmp editor_clear_program
 .exit_yes
-        sei
-        lda #$37                ; BASIC + KERNAL + I/O visible again
-        sta CPU_PORT
-        jmp $FCE2               ; KERNAL reset entry (soft reset)
+        jmp system_reset
 .no
         lda #0
         sta exit_confirm
@@ -486,7 +516,7 @@ list_hit_test
         lda mouse_y
         cmp #16                 ; first program row, screen row 2
         bcc .miss
-        cmp #160                ; last program row ends at screen row 19
+        cmp #152                ; last program row ends at screen row 18
         bcs .miss
         sec
         sbc #16
@@ -609,12 +639,16 @@ editor_select_item              ; A = absolute program index
         sta selection_active
         lda #0
         sta delete_pending
+        ldx #$FF
         jsr editor_update_selection_view
         jsr editor_show_selection_help
 .done   rts
 
+; X = second absolute row that changed (swap partner), or $FF. Redraws the
+; whole list only when the window has to scroll; otherwise just those rows.
 !zone editor_update_selection_view
 editor_update_selection_view
+        stx refresh_other
         lda selected_index
         cmp scroll_offset
         bcs .check_bottom
@@ -624,15 +658,34 @@ editor_update_selection_view
         sec
         sbc scroll_offset
         cmp #PROGRAM_ROWS
-        bcc .redraw
+        bcc .rows_only
         lda selected_index
         sec
-        sbc #17                 ; keep selected row at bottom of viewport
+        sbc #PROGRAM_ROWS-1     ; keep selected row at bottom of viewport
         sta scroll_offset
 .redraw jsr draw_program_list
         jsr draw_program_counts
         jsr draw_scrollbar
         rts
+.rows_only
+        lda selected_index
+        jsr draw_program_row
+        lda refresh_other
+        cmp #$FF
+        beq .done
+        jsr draw_program_row
+.done   rts
+
+; After leaving selection mode (selection_active already 0): redraw only the
+; formerly selected row, unless the insertion marker forces a scroll.
+!zone editor_refresh_after_leave
+editor_refresh_after_leave
+        jsr editor_calc_scroll
+        cmp scroll_offset
+        bne .full
+        lda selected_index
+        jmp draw_program_row
+.full   jmp editor_update_view
 
 !zone editor_show_selection_help
 editor_show_selection_help
@@ -651,6 +704,8 @@ editor_move_selected_up
         lda selected_index
         beq .done
         jsr editor_swap_selected_up
+        ldx selected_index
+        inx                     ; swap partner is the row below
         jsr editor_update_selection_view
         jsr editor_show_selection_help
 .done   rts
@@ -662,6 +717,8 @@ editor_move_selected_down
         cpx editor_count
         bcs .done
         jsr editor_swap_selected_down
+        ldx selected_index
+        dex                     ; swap partner is the row above
         jsr editor_update_selection_view
         jsr editor_show_selection_help
 .done   rts
@@ -702,6 +759,8 @@ editor_swap_selected_down
 editor_cancel_selection
         lda selection_active
         beq .done
+        lda selected_index
+        sta refresh_other       ; position before rolling back
 .rollback
         lda selected_index
         cmp selection_origin
@@ -716,8 +775,13 @@ editor_cancel_selection
         lda #0
         sta selection_active
         sta delete_pending
-        jsr editor_update_view
-        lda #$FF
+        lda selected_index
+        cmp refresh_other
+        beq .single
+        jsr editor_update_view  ; rows between were reordered
+        jmp .info
+.single jsr editor_refresh_after_leave
+.info   lda #$FF
         jsr editor_draw_info
 .done   rts
 
@@ -781,39 +845,40 @@ draw_title_and_counters
 
 !zone draw_map_panel
 draw_map_panel
+        ; Frame: columns 0..MAP_COLS+1, rows 1..MAP_ROWS+2 around the field.
         lda #COL_CYAN
         sta cur_col
         ldx #0
-        ldy #2
+        ldy #MAP_SCR_Y-1
         lda #$2D
-        jsr draw_hline11
+        jsr draw_hline12
         ldx #0
-        ldy #12
+        ldy #MAP_SCR_Y+MAP_ROWS
         lda #$2D
-        jsr draw_hline11
+        jsr draw_hline12
         ; Corners
         ldx #0
-        ldy #2
+        ldy #MAP_SCR_Y-1
         jsr set_cursor
         lda #$2B
         jsr put_char
-        ldx #10
-        ldy #2
+        ldx #MAP_COLS+1
+        ldy #MAP_SCR_Y-1
         jsr set_cursor
         lda #$2B
         jsr put_char
         ldx #0
-        ldy #12
+        ldy #MAP_SCR_Y+MAP_ROWS
         jsr set_cursor
         lda #$2B
         jsr put_char
-        ldx #10
-        ldy #12
+        ldx #MAP_COLS+1
+        ldy #MAP_SCR_Y+MAP_ROWS
         jsr set_cursor
         lda #$2B
         jsr put_char
-        ; Empty 9x9 field, one character per tile.
-        lda #3
+        ; Side borders; the field itself is drawn by draw_map_objects.
+        lda #MAP_SCR_Y
         sta ui_row
 .map_row
         ldx #0
@@ -821,52 +886,30 @@ draw_map_panel
         jsr set_cursor
         lda #$7C
         jsr put_char
-        ldx #1
-        ldy ui_row
-        jsr set_cursor
-        lda #FLOOR_CHAR
-        jsr repeat9
-        ldx #10
+        ldx #MAP_COLS+1
         ldy ui_row
         jsr set_cursor
         lda #$7C
         jsr put_char
         inc ui_row
         lda ui_row
-        cmp #12
+        cmp #MAP_SCR_Y+MAP_ROWS
         bne .map_row
-        ; Start the planning field with the robot in its top-left tile, facing right.
-        ldx #1
-        ldy #3
-        jsr set_cursor
-        lda #ROBOT_CHAR_BASE
-        jsr put_char
-        rts
+        ; Level layer, goal, package, blockers and robot.
+        jmp draw_map_objects
 
-; X/Y/A start coordinate and character; repeat eleven positions.
-!zone draw_hline11
-draw_hline11
+; X/Y/A start coordinate and character; repeat twelve positions.
+!zone draw_hline12
+draw_hline12
         stx cur_x
         sty cur_y
         sta ui_save
-        ldx #11
+        ldx #12
         stx ui_count
 .h     lda ui_save
         jsr put_char
         dec ui_count
         bne .h
-        rts
-
-; X/Y/A start coordinate and character; repeat nine positions.
-!zone repeat9
-repeat9
-        sta ui_save
-        ldx #9
-        stx ui_count
-.r     lda ui_save
-        jsr put_char
-        dec ui_count
-        bne .r
         rts
 
 !zone draw_palette_panel
@@ -1034,7 +1077,7 @@ draw_program_panel
         lda #$2D
         jsr draw_hline18
         ldx #22
-        ldy #20
+        ldy #19
         lda #$2D
         jsr draw_hline18
         ldx #22
@@ -1048,12 +1091,12 @@ draw_program_panel
         lda #$2B
         jsr put_char
         ldx #22
-        ldy #20
+        ldy #19
         jsr set_cursor
         lda #$2B
         jsr put_char
         ldx #39
-        ldy #20
+        ldy #19
         jsr set_cursor
         lda #$2B
         jsr put_char
@@ -1071,7 +1114,7 @@ draw_program_panel
         jsr put_char
         inc ui_row
         lda ui_row
-        cmp #20
+        cmp #19
         bne .sides
         ; Keep the scrollbar arrows in the list header.
         lda #COL_WHITE
@@ -1089,7 +1132,7 @@ draw_program_panel
         lda #ICON_CHAR_BASE+28   ; custom scrollbar up arrow ($FC)
         jsr put_char
         ldx #38
-        ldy #20
+        ldy #19
         jsr set_cursor
         lda #ICON_CHAR_BASE+29   ; custom scrollbar down arrow ($FD)
         jsr put_char
@@ -1120,17 +1163,39 @@ draw_short_name
         lda tmp0
         jmp put_str
 
-; Redraw 18 visible rows as "A 01 Text". Letters select visible rows; numbers
+; Redraw 17 visible rows as "A 01 Text". Letters select visible rows; numbers
 ; are absolute command positions (01-99).
 !zone draw_program_list
 draw_program_list
-        lda #COL_WHITE
-        sta cur_col
         lda #0
         sta ui_index
-        lda #2
+.all    jsr draw_list_row
+        inc ui_index
+        lda ui_index
+        cmp #PROGRAM_ROWS
+        bne .all
+        rts
+
+; A = absolute command index: redraw just that row if it is visible.
+!zone draw_program_row
+draw_program_row
+        sec
+        sbc scroll_offset
+        bcc .hidden
+        cmp #PROGRAM_ROWS
+        bcs .hidden
+        sta ui_index
+        jmp draw_list_row
+.hidden rts
+
+; Draw visible list row ui_index (0..PROGRAM_ROWS-1).
+!zone draw_list_row
+draw_list_row
+        lda ui_index
+        clc
+        adc #2
         sta ui_row
-.row    lda #COL_WHITE
+        lda #COL_WHITE
         sta cur_col
         ldx #23
         ldy ui_row
@@ -1177,12 +1242,7 @@ draw_program_list
         ldx tmp0
         lda program,x
         jsr draw_short_name
-.next   inc ui_index
-        inc ui_row
-        lda ui_index
-        cmp #PROGRAM_ROWS
-        bne .row
-        rts
+.next   rts
 
 
 !zone draw_program_counts
@@ -1228,13 +1288,66 @@ draw_scrollbar
         jsr put_char
         inc ui_row
         lda ui_row
-        cmp #20
+        cmp #19
         bne .track
 
+        ; Thumb: row = scroll_offset * 16 / (editor_count - 17), 0..16.
+        ; With nothing to scroll the thumb rests on the top row.
+        ldx #0
+        lda editor_count
+        sec
+        sbc #PROGRAM_ROWS
+        bcc .place
+        beq .place
+        sta tmp3                ; divisor = maximum scroll offset
+        lda scroll_offset
+        sta tmp1
+        lda #0
+        sta tmp2
+        asl tmp1                ; * 16
+        rol tmp2
+        asl tmp1
+        rol tmp2
+        asl tmp1
+        rol tmp2
+        asl tmp1
+        rol tmp2
+.div    lda tmp2
+        bne .sub
+        lda tmp1
+        cmp tmp3
+        bcc .place
+.sub    lda tmp1
+        sec
+        sbc tmp3
+        sta tmp1
+        lda tmp2
+        sbc #0
+        sta tmp2
+        inx
+        jmp .div
+.place  txa
+        cmp #PROGRAM_ROWS-1
+        bcc .row_ok
+        lda #PROGRAM_ROWS-1
+.row_ok clc
+        adc #2
+        tay
+        lda #COL_WHITE
+        sta cur_col
+        ldx #38
+        jsr set_cursor
+        lda #$A0                ; solid block
+        jsr put_char
         rts
 
 !zone draw_help_areas
 draw_help_areas
+        lda #<str_bottom_commands
+        ldx #>str_bottom_commands
+draw_help_areas_str             ; A/X = text for the bottom line (row 24)
+        sta ptr1
+        stx ptr1+1
         lda #COL_CYAN
         sta cur_col
         ldx #0
@@ -1260,8 +1373,8 @@ draw_help_areas
         ldx #0
         ldy #24
         jsr set_cursor
-        lda #<str_bottom_commands
-        ldx #>str_bottom_commands
+        lda ptr1
+        ldx ptr1+1
         jsr put_str
         lda #$FF
         jsr editor_draw_info
@@ -1284,20 +1397,18 @@ draw_hline40
 editor_update_hover
         lda selection_active
         bne .done
+        lda exit_confirm        ; palette hidden by quit/clear confirmation
+        bne .done
         jsr palette_hit_test
-        bcc .no_command
+        bcc .map
         cmp #AVAILABLE_COMMANDS
-        bcs .no_command
+        bcc .changed
+        lda #$FF
+        bne .changed
+.map    jsr map_hover_code      ; $FF or field object code
+.changed
         cmp hover_command
         beq .done
-        sta hover_command
-        jsr editor_draw_info
-        rts
-.no_command
-        lda hover_command
-        cmp #$FF
-        beq .done
-        lda #$FF
         sta hover_command
         jsr editor_draw_info
 .done   rts
@@ -1307,6 +1418,12 @@ editor_draw_info                ; A = command index, or $FF to clear
         sta selected_command
         jsr editor_clear_info
         lda selected_command
+        cmp #$50
+        bcc .palette_text
+        cmp #$FF
+        beq .done
+        jmp draw_map_info
+.palette_text
         cmp #AVAILABLE_COMMANDS
         bcs .done
         ldx #1

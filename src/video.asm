@@ -117,91 +117,6 @@ print_nibble
         lda hexdigits,x
         jmp put_char
 
-; ---- Tiles ------------------------------------------------------------
-; draw_tile: A = Tile-ID, tile_x/tile_y = Feldkoordinate
-!zone draw_tile
-draw_tile
-        sta tmp2
-        lda tile_y
-        asl
-        clc
-        adc #FIELD_ROW
-        tax
-        lda tile_x
-        asl
-        clc
-        adc #FIELD_COL
-        clc
-        adc row_lo,x
-        sta ptr0
-        lda row_hi,x
-        adc #0
-        sta ptr0+1
-        lda ptr0                ; ptr1 = Farb-RAM-Adresse
-        sta ptr1
-        lda ptr0+1
-        clc
-        adc #>(COLORRAM - SCREEN)
-        sta ptr1+1
-
-        lda tmp2                ; Zeichencode = $80 + id*4
-        asl
-        asl
-        clc
-        adc #CHAR_TILE_BASE
-        sta tmp3
-        ldy #0
-        sta (ptr0),y
-        inc tmp3
-        iny
-        lda tmp3
-        sta (ptr0),y
-        inc tmp3
-        ldy #40
-        lda tmp3
-        sta (ptr0),y
-        inc tmp3
-        iny
-        lda tmp3
-        sta (ptr0),y
-
-        ldx tmp2                ; Farbe (Bit 3 = Multicolor)
-        lda tile_color,x
-        ora #$08
-        sta (ptr1),y            ; Y = 41
-        ldy #40
-        sta (ptr1),y
-        ldy #1
-        sta (ptr1),y
-        ldy #0
-        sta (ptr1),y
-        rts
-
-!zone draw_map
-draw_map
-        lda #0
-        sta tile_y
-.row    lda #0
-        sta tile_x
-.col    lda tile_y
-        asl
-        asl
-        asl
-        asl
-        ora tile_x
-        tax
-        lda map_work,x
-        jsr draw_tile
-        inc tile_x
-        lda tile_x
-        cmp #MAP_W
-        bne .col
-        inc tile_y
-        lda tile_y
-        cmp #MAP_H
-        bne .row
-        rts
-
 ; ---- Tabellen -----------------------------------------------------------
 row_lo
         !for i, 26 {
@@ -213,5 +128,3 @@ row_hi
         }
 hexdigits
         !byte $30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$41,$42,$43,$44,$45,$46
-tile_color                      ; Farbe "11" je Tile: Boden, Wand, Kiste, Ziel
-        !byte COL_WHITE, COL_RED, COL_YELLOW, COL_GREEN

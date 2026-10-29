@@ -123,7 +123,8 @@ gfx_icons_end
     !error "ICON_CHAR_BYTES does not match icon charset data"
 }
 
-; Robot: inverse charset characters $80-$83, right/left/up/down; $84 = floor.
+; Robot: inverse charset characters $80-$83, right/left/up/down; $84 = floor, $85 = goal,
+; $86 = package, $87 = blocker.
 ; Each byte is one row; bit 7 is the leftmost pixel (x = foreground).
 gfx_robot
 ; $80 - right: ........ / ......x. / ..x..x.. / ..xxx... / ..xxx... / ..x..x.. / ......x. / ........
@@ -134,8 +135,15 @@ gfx_robot
         !byte $00,$42,$24,$18,$18,$3C,$00,$00
 ; $83 - down, rotated 90 degrees right
         !byte $00,$00,$3C,$18,$18,$24,$42,$00
-; $84 - empty map floor: single pixel at the top-right pixel of the ROM '.'
-        !byte $00,$00,$00,$00,$00,$08,$00,$00
+; $84 - empty map floor: pixels at (x,y) 2,2 5,2 2,5 5,5 (x = 0 is leftmost)
+        !byte $00,$00,$24,$00,$00,$24,$00,$00
+; $85 - goal field:
+;   x......x / .x.xx.x. / ..x..x.. / .x.xx.x. / .x.xx.x. / ..x..x.. / .x.xx.x. / x......x
+        !byte $81,$5A,$24,$5A,$5A,$24,$5A,$81
+; $86 - package: crate with a cross
+        !byte $FF,$C3,$A5,$99,$99,$A5,$C3,$FF
+; $87 - blocker: solid checkerboard
+        !byte $AA,$55,$AA,$55,$AA,$55,$AA,$55
 gfx_robot_end
 !if gfx_robot_end - gfx_robot != ROBOT_CHAR_BYTES {
     !error "ROBOT_CHAR_BYTES does not match robot charset data"
