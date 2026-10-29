@@ -50,6 +50,10 @@ move_temp   = $41
 selection_target = $42
 refresh_other = $45          ; second list row to redraw ($FF = none)
 robot_dir   = $44            ; ROBOT_DIR_*: 0 right, 1 left, 2 up, 3 down
+win_x       = $5D            ; draw_window (run.asm): outer frame position/size
+win_y       = $5E
+win_w       = $5F
+win_h       = $60
 program     = $0300
 
 map_work    = $0200

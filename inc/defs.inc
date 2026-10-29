@@ -25,6 +25,8 @@ VIC_BORDER  = $D020
 VIC_BG0     = $D021
 VIC_BG1     = $D022
 VIC_BG2     = $D023
+VIC_SPR_MC0 = $D025         ; shared sprite multicolour 1 (%01)
+VIC_SPR_MC1 = $D026         ; shared sprite multicolour 2 (%11)
 VIC_SPR0COL = $D027
 
 ; --- SID / CIA
@@ -101,10 +103,34 @@ REPEAT_RATE = 4
 RASTER_LINE = 250
 COL_BLUE    = 6
 
-; --- Run screen: 2x2-character cells (4 types x 4 chars in $C0-$CF) and sprites
+; --- Run screen (RPG look): multicolour 2x2-character field cells, NES-style
+; window frame characters and the pointing hand, all from $C0 on; sprites.
 RUN_CHAR_BASE  = $C0
-RUN_CHAR_COUNT = 16
+RUN_CELL_TYPES = 5              ; grass, tree, chest, goal, grass with flowers
+RUN_UI_BASE    = RUN_CHAR_BASE + RUN_CELL_TYPES*4
+UI_TL          = RUN_UI_BASE+0  ; window frame: rounded corners and edges
+UI_TOP         = RUN_UI_BASE+1
+UI_TR          = RUN_UI_BASE+2
+UI_LEFT        = RUN_UI_BASE+3
+UI_RIGHT       = RUN_UI_BASE+4
+UI_BL          = RUN_UI_BASE+5
+UI_BOTTOM      = RUN_UI_BASE+6
+UI_BR          = RUN_UI_BASE+7
+UI_HAND        = RUN_UI_BASE+8  ; Final-Fantasy style pointing hand
+RUN_CHAR_COUNT = RUN_CELL_TYPES*4 + 9
 RUN_CHAR_BYTES = RUN_CHAR_COUNT * 8
-RUN_SPR_COUNT  = 9              ; robot x4, robot holding x4, package
+!if RUN_CHAR_BASE + RUN_CHAR_COUNT > ICON_CHAR_BASE {
+    !error "Run-Zeichen ueberlappen die Icon-Zeichen"
+}
+RUN_SPR_COUNT  = 17             ; robot 4 dirs x (normal, carrying) x 2 walk frames, chest
 RUN_SPR_BYTES  = RUN_SPR_COUNT * 64
 RUN_SPR_BLOCK  = SPRITE_BLOCK + 2   ; stored behind the pointer/marker sprites
+RUN_SPR_CHEST  = RUN_SPR_BLOCK + 16
+
+; Run screen colours. Multicolour: $D021 black, $D022/$D023 the two grass greens.
+COL_LGREEN     = 13
+COL_LGREY      = 15
+RUN_BG1        = COL_GREEN
+RUN_BG2        = COL_LGREEN
+ROBOT_COLOR    = COL_LGREY      ; sprite colour (%10), $D025 black, $D026 white
+CHEST_COLOR    = COL_RED        ; brownish red, also the chest cell colour

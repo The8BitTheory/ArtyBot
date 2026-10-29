@@ -845,122 +845,30 @@ draw_title_and_counters
 
 !zone draw_map_panel
 draw_map_panel
-        ; Frame: columns 0..MAP_COLS+1, rows 1..MAP_ROWS+2 around the field.
-        lda #COL_CYAN
+        ; Window: columns 0..MAP_COLS+1, rows 1..MAP_ROWS+2 around the field
+        ; (same rounded frame as the run screen, see draw_window in run.asm).
+        lda #COL_WHITE
         sta cur_col
+        lda #MAP_COLS+2
+        sta win_w
         ldx #0
         ldy #MAP_SCR_Y-1
-        lda #$2D
-        jsr draw_hline12
-        ldx #0
-        ldy #MAP_SCR_Y+MAP_ROWS
-        lda #$2D
-        jsr draw_hline12
-        ; Corners
-        ldx #0
-        ldy #MAP_SCR_Y-1
-        jsr set_cursor
-        lda #$2B
-        jsr put_char
-        ldx #MAP_COLS+1
-        ldy #MAP_SCR_Y-1
-        jsr set_cursor
-        lda #$2B
-        jsr put_char
-        ldx #0
-        ldy #MAP_SCR_Y+MAP_ROWS
-        jsr set_cursor
-        lda #$2B
-        jsr put_char
-        ldx #MAP_COLS+1
-        ldy #MAP_SCR_Y+MAP_ROWS
-        jsr set_cursor
-        lda #$2B
-        jsr put_char
-        ; Side borders; the field itself is drawn by draw_map_objects.
-        lda #MAP_SCR_Y
-        sta ui_row
-.map_row
-        ldx #0
-        ldy ui_row
-        jsr set_cursor
-        lda #$7C
-        jsr put_char
-        ldx #MAP_COLS+1
-        ldy ui_row
-        jsr set_cursor
-        lda #$7C
-        jsr put_char
-        inc ui_row
-        lda ui_row
-        cmp #MAP_SCR_Y+MAP_ROWS
-        bne .map_row
+        lda #MAP_ROWS+2
+        jsr draw_window
         ; Level layer, goal, package, blockers and robot.
         jmp draw_map_objects
 
-; X/Y/A start coordinate and character; repeat twelve positions.
-!zone draw_hline12
-draw_hline12
-        stx cur_x
-        sty cur_y
-        sta ui_save
-        ldx #12
-        stx ui_count
-.h     lda ui_save
-        jsr put_char
-        dec ui_count
-        bne .h
-        rts
-
 !zone draw_palette_panel
 draw_palette_panel
-        lda #COL_CYAN
+        ; Window: columns 0..20, rows 13..20.
+        lda #COL_WHITE
         sta cur_col
+        lda #21
+        sta win_w
         ldx #0
         ldy #13
-        lda #$2D
-        jsr draw_hline21
-        ldx #0
-        ldy #20
-        lda #$2D
-        jsr draw_hline21
-        ; Corners
-        ldx #0
-        ldy #13
-        jsr set_cursor
-        lda #$2B
-        jsr put_char
-        ldx #20
-        ldy #13
-        jsr set_cursor
-        lda #$2B
-        jsr put_char
-        ldx #0
-        ldy #20
-        jsr set_cursor
-        lda #$2B
-        jsr put_char
-        ldx #20
-        ldy #20
-        jsr set_cursor
-        lda #$2B
-        jsr put_char
-        lda #14
-        sta ui_row
-.side  ldx #0
-        ldy ui_row
-        jsr set_cursor
-        lda #$7C
-        jsr put_char
-        ldx #20
-        ldy ui_row
-        jsr set_cursor
-        lda #$7C
-        jsr put_char
-        inc ui_row
-        lda ui_row
-        cmp #20
-        bne .side
+        lda #8
+        jsr draw_window
         ldx #0
         stx ui_index
 .icons jsr draw_palette_icon
@@ -968,20 +876,6 @@ draw_palette_panel
         lda ui_index
         cmp #PALETTE_NUM
         bne .icons
-        rts
-
-; X/Y/A start coordinate and character; repeat 21 positions.
-!zone draw_hline21
-draw_hline21
-        stx cur_x
-        sty cur_y
-        sta ui_save
-        ldx #21
-        stx ui_count
-.h     lda ui_save
-        jsr put_char
-        dec ui_count
-        bne .h
         rts
 
 !zone draw_palette_icon
@@ -1069,57 +963,19 @@ draw_palette_icon
 
 !zone draw_program_panel
 draw_program_panel
-        lda #COL_CYAN
+        ; Window: columns 22..39, rows 1..19 (header and arrows sit in its edges).
+        lda #COL_WHITE
         sta cur_col
-        ; Outer frame.
+        lda #18
+        sta win_w
         ldx #22
         ldy #1
-        lda #$2D
-        jsr draw_hline18
-        ldx #22
-        ldy #19
-        lda #$2D
-        jsr draw_hline18
-        ldx #22
-        ldy #1
-        jsr set_cursor
-        lda #$2B
-        jsr put_char
-        ldx #39
-        ldy #1
-        jsr set_cursor
-        lda #$2B
-        jsr put_char
-        ldx #22
-        ldy #19
-        jsr set_cursor
-        lda #$2B
-        jsr put_char
-        ldx #39
-        ldy #19
-        jsr set_cursor
-        lda #$2B
-        jsr put_char
-        lda #2
-        sta ui_row
-.sides ldx #22
-        ldy ui_row
-        jsr set_cursor
-        lda #$7C
-        jsr put_char
-        ldx #39
-        ldy ui_row
-        jsr set_cursor
-        lda #$7C
-        jsr put_char
-        inc ui_row
-        lda ui_row
-        cmp #19
-        bne .sides
+        lda #19
+        jsr draw_window
         ; Keep the scrollbar arrows in the list header.
         lda #COL_WHITE
         sta cur_col
-        ldx #24
+        ldx #23
         ldy #1
         jsr set_cursor
         lda #<str_program_count
@@ -1137,19 +993,6 @@ draw_program_panel
         lda #ICON_CHAR_BASE+29   ; custom scrollbar down arrow ($FD)
         jsr put_char
         jsr draw_scrollbar
-        rts
-
-!zone draw_hline18
-draw_hline18
-        stx cur_x
-        sty cur_y
-        sta ui_save
-        ldx #18
-        stx ui_count
-.h     lda ui_save
-        jsr put_char
-        dec ui_count
-        bne .h
         rts
 
 !zone draw_short_name
@@ -1348,26 +1191,15 @@ draw_help_areas
 draw_help_areas_str             ; A/X = text for the bottom line (row 24)
         sta ptr1
         stx ptr1+1
-        lda #COL_CYAN
+        ; Info window: rows 21..23, text in row 22 (editor_draw_message).
+        lda #COL_WHITE
         sta cur_col
+        lda #40
+        sta win_w
         ldx #0
         ldy #21
-        lda #$2D
-        jsr draw_hline40
-        ldx #0
-        ldy #23
-        lda #$2D
-        jsr draw_hline40
-        ldx #0
-        ldy #22
-        jsr set_cursor
-        lda #$7C
-        jsr put_char
-        ldx #39
-        ldy #22
-        jsr set_cursor
-        lda #$7C
-        jsr put_char
+        lda #3
+        jsr draw_window
         lda #COL_WHITE
         sta cur_col
         ldx #0
@@ -1378,19 +1210,6 @@ draw_help_areas_str             ; A/X = text for the bottom line (row 24)
         jsr put_str
         lda #$FF
         jsr editor_draw_info
-        rts
-
-!zone draw_hline40
-draw_hline40
-        stx cur_x
-        sty cur_y
-        sta ui_save
-        lda #40
-        sta ui_count
-.line   lda ui_save
-        jsr put_char
-        dec ui_count
-        bne .line
         rts
 
 !zone editor_update_hover

@@ -1,5 +1,5 @@
 str_title !text "ArtyBot - Plan - Level 1: Factory",0
-str_program_count !text "PROGRAM: 00/99",0
+str_program_count !text " PROGRAM: 00/99",0
 str_select_help !text "Cur:move Del:remove Ret:OK "
                 !byte $1F
                 !text ":cancel",0
@@ -24,8 +24,9 @@ str_quit_no !text "< No >",0
 ; now uses its framed command-description row instead.
 str_help !byte 0
 str_status !text "STATUS",0
-str_title_run !text "ArtyBot - Run - Level 1: Factory",0
-str_bottom_run !text "P: Plan Space: Run X: Exit Artybot",0
+str_run_field !text " Level 1: Factory ",0
+str_run_list !text " ArtyBot Run ",0
+str_bottom_run !text " Space:Run  P:Plan  X:Exit ",0
 str_run_quit !text "Really quit? Return:yes "
              !byte $1F
              !text ":no",0

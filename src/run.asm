@@ -1,6 +1,9 @@
-; run.asm - Run screen (own game mode): 20x20 field with 2x2-tile cells on the
-; left, read-only command list on the right. Space plays the plan: the robot is
-; a hardware sprite (sprite 3) that walks/turns; a carried package is sprite 2.
+; run.asm - Run screen (own game mode) in an RPG look (Lykia / NES & SNES
+; Final Fantasy): multicolour 10x10 field of 2x2-character cells on the left,
+; read-only command list on the right with a pointing-hand cursor, message box
+; at the bottom, all in rounded NES-style window frames. Space plays the plan:
+; the robot is a multicolour sprite (sprite 3) with a two-frame walk cycle; a
+; carried package (chest) is sprite 2, held above the robot's head.
 ; Keys: Space = run, P = back to planning mode, X = quit (confirmed).
 ; The mouse is ignored (pointer and insertion marker sprites are off).
 
@@ -23,9 +26,15 @@ run_ty        = $55
 run_cmd       = $56
 run_mdir      = $57
 run_msg       = $58             ; address of the text shown in the info row
+run_walk      = $5A             ; 0 or 8: walk-cycle frame added to the robot image
+run_gtimer    = $5B             ; frame counter for the shimmering goal
+run_gphase    = $5C             ; colour index of the goal shimmer
 
 RUN_FIELD_X = 1                 ; screen column of the first cell
 RUN_FIELD_Y = 1                 ; screen row of the first cell
+RUN_MSG_ROW = 23                ; text row inside the message box
+RUN_ROBOT_DY = 2                ; robot art starts 2 lines above its cell
+RUN_CHEST_DY = 3                ; chest sprite sits this far above the robot
 RUN_MOVE_FRAMES = 8             ; 2 pixels per frame = one 16 pixel cell
 KEY_P       = 41                ; C64 keyboard matrix codes
 KEY_X       = 23
@@ -45,6 +54,12 @@ KEY_LEFTARROW = 57
 run_mode
         lda #0
         sta run_confirm
+        sta run_gtimer
+        sta run_gphase
+        lda #RUN_BG1            ; multicolour grass greens for the field cells
+        sta VIC_BG1
+        lda #RUN_BG2
+        sta VIC_BG2
         jsr run_reset
         jsr draw_run_screen
         jsr run_init_sprites
@@ -61,6 +76,7 @@ run_mode
         jsr run_tick
 .sprites
         jsr run_update_sprites
+        jsr run_goal_anim
         lda key_new
         cmp #$FF
         beq .loop
@@ -78,7 +94,7 @@ run_mode
         sta run_confirm
         lda #<str_run_quit
         ldx #>str_run_quit
-        jsr editor_draw_message
+        jsr run_draw_message
         jmp .loop
 .space  jsr run_space
         jmp .loop
@@ -91,10 +107,14 @@ run_mode
         sta run_confirm
         lda run_msg
         ldx run_msg+1
-        jsr editor_draw_message
+        jsr run_draw_message
         jmp .loop
 .quit   jmp system_reset
-.leave  lda level_no            ; plan view shows the untouched level again
+.leave  lda #COL_DGREY           ; planning screen colours (see video_init)
+        sta VIC_BG1
+        lda #COL_ORANGE
+        sta VIC_BG2
+        lda level_no            ; plan view shows the untouched level again
         jsr load_plan_level
         rts
 
@@ -110,7 +130,30 @@ system_reset
 run_say
         sta run_msg
         stx run_msg+1
-        jmp editor_draw_message
+        ; fall through
+
+; A/X = 0-terminated text, shown in the message box (row RUN_MSG_ROW).
+!zone run_draw_message
+run_draw_message
+        sta ptr2
+        stx ptr2+1
+        lda #COL_WHITE
+        sta cur_col
+        ldx #1
+        ldy #RUN_MSG_ROW
+        jsr set_cursor
+        lda #38
+        sta ui_count
+.clear  lda #$20
+        jsr put_char
+        dec ui_count
+        bne .clear
+        ldx #2
+        ldy #RUN_MSG_ROW
+        jsr set_cursor
+        lda ptr2
+        ldx ptr2+1
+        jmp put_str
 
 ; Reload the level and reset all playback state.
 !zone run_reset
@@ -123,6 +166,7 @@ run_reset
         sta run_phase
         sta run_timer
         sta run_carry
+        sta run_walk
         sta scroll_offset
         lda #$FF
         sta run_cur
@@ -169,40 +213,170 @@ draw_run_screen
         jsr clear_screen
         lda #COL_WHITE
         sta cur_col
+        ; Field window (cols 0-21, rows 0-21) around the 20x20 character field.
         ldx #0
         ldy #0
+        lda #22
+        sta win_w
+        lda #22
+        jsr draw_window
+        ldx #2
+        ldy #0
+        lda #<str_run_field
+        sta ptr1
+        lda #>str_run_field
+        sta ptr1+1
+        jsr run_label
+        ; Command window (cols 22-39, rows 0-21).
+        ldx #22
+        ldy #0
+        lda #18
+        sta win_w
+        lda #22
+        jsr draw_window
+        ldx #24
+        ldy #0
+        lda #<str_run_list
+        sta ptr1
+        lda #>str_run_list
+        sta ptr1+1
+        jsr run_label
+        ldx #23
+        ldy #1
         jsr set_cursor
-        lda #<str_title_run
-        ldx #>str_title_run
+        lda #<str_program_count
+        ldx #>str_program_count
         jsr put_str
-        jsr draw_run_field
-        jsr draw_program_panel
         jsr draw_program_counts
-        jsr draw_run_list
+        lda #COL_WHITE
+        sta cur_col
+        ldx #38
+        ldy #1
+        jsr set_cursor
+        lda #ICON_CHAR_BASE+28   ; scrollbar up arrow
+        jsr put_char
+        ldx #38
+        ldy #19
+        jsr set_cursor
+        lda #ICON_CHAR_BASE+29   ; scrollbar down arrow
+        jsr put_char
+        jsr draw_scrollbar
+        ; Message box (rows 22-24) with the key help in its bottom edge.
+        lda #COL_WHITE
+        sta cur_col
+        ldx #0
+        ldy #22
+        lda #40
+        sta win_w
+        lda #3
+        jsr draw_window
+        ldx #7
+        ldy #24
         lda #<str_bottom_run
-        ldx #>str_bottom_run
-        jmp draw_help_areas_str
+        sta ptr1
+        lda #>str_bottom_run
+        sta ptr1+1
+        jsr run_label
+        jsr draw_run_field
+        jmp draw_run_list
+
+; X/Y = position, ptr1 = text: white label in a window edge.
+!zone run_label
+run_label
+        lda #COL_WHITE
+        sta cur_col
+        jsr set_cursor
+        lda ptr1
+        ldx ptr1+1
+        jmp put_str
+
+; X/Y = top-left corner, win_w = outer width, A = outer height (>= 3).
+; Rounded NES-style frame in cur_col; the inside is left untouched.
+!zone draw_window
+draw_window
+        stx win_x
+        sty win_y
+        sta win_h
+        jsr set_cursor
+        lda #UI_TL
+        jsr put_char
+        jsr .hline_top
+        lda #UI_TR
+        jsr put_char
+        lda win_y
+        sta ui_row
+.side   inc ui_row
+        lda win_y
+        clc
+        adc win_h
+        sec
+        sbc #1                  ; last row of the frame
+        cmp ui_row
+        beq .bottom
+        ldx win_x
+        ldy ui_row
+        jsr set_cursor
+        lda #UI_LEFT
+        jsr put_char
+        lda win_x
+        clc
+        adc win_w
+        sec
+        sbc #1
+        tax
+        ldy ui_row
+        jsr set_cursor
+        lda #UI_RIGHT
+        jsr put_char
+        jmp .side
+.bottom ldx win_x
+        ldy ui_row
+        jsr set_cursor
+        lda #UI_BL
+        jsr put_char
+        lda #UI_BOTTOM
+        jsr .hline
+        lda #UI_BR
+        jmp put_char
+.hline_top
+        lda #UI_TOP
+.hline  sta ui_save
+        lda win_w
+        sec
+        sbc #2
+        sta ui_count
+.h      lda ui_save
+        jsr put_char
+        dec ui_count
+        bne .h
+        rts
 
 ; ---- Sprites -----------------------------------------------------------
-; Sprite 2 = carried package, sprite 3 = robot (sprite 2 is drawn in front).
+; Sprite 2 = carried chest, sprite 3 = robot (sprite 2 is drawn in front).
+; Both are multicolour: $D025 black outline, $D026 white highlights.
 !zone run_init_sprites
 run_init_sprites
         lda #0
         sta VIC_SPRXMSB
-        sta VIC_SPR_MC
         sta VIC_SPR_EXPX
         sta VIC_SPR_EXPY
         sta VIC_SPR_PRI
-        lda #RUN_SPR_BLOCK+8
-        sta SPR_PTR0+2          ; clear_screen wiped the pointers
-        lda #COL_YELLOW
-        sta VIC_SPR0COL+2
+        lda #$0C                ; sprites 2 and 3 multicolour
+        sta VIC_SPR_MC
+        lda #COL_BLACK
+        sta VIC_SPR_MC0
         lda #COL_WHITE
+        sta VIC_SPR_MC1
+        lda #RUN_SPR_CHEST
+        sta SPR_PTR0+2          ; clear_screen wiped the pointers
+        lda #CHEST_COLOR
+        sta VIC_SPR0COL+2
+        lda #ROBOT_COLOR
         sta VIC_SPR0COL+3
         jsr run_set_robot_image
         jmp run_update_sprites
 
-; Robot image = direction, +4 while the package is carried.
+; Robot image = direction, +4 while the chest is carried, +8 on a walk step.
 !zone run_set_robot_image
 run_set_robot_image
         lda robot_dir
@@ -211,6 +385,7 @@ run_set_robot_image
         clc
         adc #4
 .set    clc
+        adc run_walk
         adc #RUN_SPR_BLOCK
         sta SPR_PTR0+3
         rts
@@ -221,20 +396,20 @@ run_update_sprites
         clc
         adc #24
         sta VIC_SPR0X+6
+        sta VIC_SPR0X+4         ; the chest is held right above the head
         lda run_spy
         clc
-        adc #50
+        adc #50-RUN_ROBOT_DY
         sta VIC_SPR0X+7
-        lda run_carry
+        ldx run_carry
         beq .robot_only
-        ldx robot_dir           ; the package sits in the gripper
-        lda run_spx
-        clc
-        adc run_pk_x,x
-        sta VIC_SPR0X+4
-        lda run_spy
-        clc
-        adc run_pk_y,x
+        sec
+        sbc #RUN_CHEST_DY
+        ldx run_walk            ; the chest bobs with the walk step
+        beq .chest_y
+        sec
+        sbc #1
+.chest_y
         sta VIC_SPR0X+5
         lda #$0C
         bne .enable
@@ -243,8 +418,56 @@ run_update_sprites
 .enable sta VIC_SPR_EN
         rts
 
-run_pk_x !byte 34,20,27,27      ; per direction: right, left, up, down
-run_pk_y !byte 53,53,46,60
+; The goal circle shimmers: every 8 frames its colour RAM cycles, unless the
+; chest stands on it.
+!zone run_goal_anim
+run_goal_anim
+        inc run_gtimer
+        lda run_gtimer
+        and #7
+        bne .done
+        lda goal_tx
+        sta tmp0
+        lda goal_ty
+        sta tmp1
+        jsr map_index
+        lda map_work,x
+        cmp #T_BOX
+        beq .done
+        inc run_gphase
+        lda run_gphase
+        and #3
+        tax
+        lda run_goal_colors,x
+        sta cur_col
+        lda goal_ty
+        asl
+        clc
+        adc #RUN_FIELD_Y
+        tax
+        lda goal_tx
+        asl
+        clc
+        adc #RUN_FIELD_X
+        clc
+        adc row_lo,x
+        sta ptr0
+        lda row_hi,x
+        adc #>(COLORRAM - SCREEN)
+        sta ptr0+1
+        lda cur_col
+        ldy #0
+        sta (ptr0),y
+        iny
+        sta (ptr0),y
+        ldy #40
+        sta (ptr0),y
+        iny
+        sta (ptr0),y
+.done   rts
+
+run_goal_colors                 ; multicolour flag + cyan, white, cyan, purple
+        !byte COL_CYAN+8, COL_WHITE+8, COL_CYAN+8, 4+8
 
 ; ---- Playback ----------------------------------------------------------
 !zone run_tick
@@ -268,11 +491,19 @@ run_tick
         adc run_vy
         sta run_spy
         dec run_steps
-        bne .done
+        beq .arrived
+        lda run_steps           ; walk cycle: step frame for 4 of 8 frames
+        and #4
+        asl                     ; 0 or 8
+        sta run_walk
+        jmp run_set_robot_image
+.arrived
         lda #0
         sta run_phase
+        sta run_walk
         lda #3
         sta run_timer
+        jmp run_set_robot_image
 .done   rts
 .turning
         ldx robot_dir
@@ -559,7 +790,8 @@ draw_run_field
         bne .row
         rts
 
-; Draw the cell (ui_col, ui_row). Floor on the target position shows the goal.
+; Draw the cell (ui_col, ui_row). Floor on the target position shows the
+; goal circle; some floor cells get flowers (fixed pattern, purely decorative).
 !zone draw_run_cell
 draw_run_cell
         lda ui_col
@@ -568,15 +800,25 @@ draw_run_cell
         sta tmp1
         jsr map_index
         lda map_work,x
-        sta ui_save             ; cell type 0..3
+        sta ui_save             ; cell type 0..3 = display tile
         bne .typed
         lda ui_col
         cmp goal_tx
-        bne .typed
+        bne .floor
         lda ui_row
         cmp goal_ty
-        bne .typed
+        bne .floor
         lda #T_GOAL
+        sta ui_save
+        bne .typed
+.floor  ldx ui_row              ; flowers: bit (col & 7) of the row mask
+        lda ui_col
+        and #7
+        tay
+        lda run_flower_rows,x
+        and run_bit_tab,y
+        beq .typed
+        lda #4                  ; grass with flowers
         sta ui_save
 .typed  ldx ui_save
         lda run_cell_colors,x
@@ -619,9 +861,16 @@ draw_run_cell
         adc #3
         jmp put_char
 
-; Colours stay below 8 so the cells remain hires characters.
-run_cell_colors                 ; floor, blocker, package, goal
-        !byte COL_BLUE, COL_RED, COL_YELLOW, COL_GREEN
+; Colour RAM per display tile; +8 = multicolour character. Shared colours:
+; $D021 black, $D022 green, $D023 light green (see run_mode).
+run_flower_rows                 ; decorative flower cells, one mask per row
+        !byte %00100001, %00000100, %01000000, %00010010, %00000000
+        !byte %10000100, %00000001, %00101000, %00000000, %01000010
+run_bit_tab
+        !byte $01, $02, $04, $08, $10, $20, $40, $80
+
+run_cell_colors                 ; grass, tree trunk, chest, goal, flowers
+        !byte COL_GREEN+8, COL_RED+8, CHEST_COLOR+8, COL_CYAN+8, COL_YELLOW+8
 
 ; ---- Command list ------------------------------------------------------
 ; Without selection letters: "nn Text"; the running command is yellow.
@@ -661,6 +910,11 @@ draw_run_list_row
         bcs .done
         cmp run_cur
         bne .draw
+        ldx #23                 ; pointing hand at the running command
+        ldy ui_row
+        jsr set_cursor
+        lda #UI_HAND
+        jsr put_char
         lda #COL_YELLOW
         sta cur_col
 .draw   ldx #24
