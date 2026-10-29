@@ -1,0 +1,1149 @@
+; editor.asm - Planning screen and command-list editing.
+
+ui_index = $29
+ui_row   = $2A
+ui_save  = $2B
+ui_count = $2C
+ui_col   = $2D
+PALETTE_NUM = 18
+AVAILABLE_COMMANDS = 7
+PROGRAM_ROWS = 18
+
+!zone game_main
+game_main
+        jsr input_init
+        jsr editor_init
+        jsr draw_planning_screen
+        jsr draw_program_list
+        jsr spr_init
+.loop   jsr wait_frame
+        jsr input_update
+        jsr editor_update_hover
+        jsr editor_handle_input
+        jsr spr_update
+        jmp .loop
+
+!zone editor_init
+editor_init
+        lda #0
+        sta editor_count
+        sta insert_pos
+        sta scroll_offset
+        sta selection_active
+        sta delete_pending
+        lda #$FF
+        sta hover_command
+        lda #0
+        tax
+.clear_program
+        sta program,x
+        inx
+        cpx #PROGRAM_MAX
+        bne .clear_program
+        rts
+
+; Mouse clicks and palette letters share the same insert path. Up/down move
+; the insertion point; letter auto-repeat is ignored so one press inserts once.
+!zone editor_handle_input
+editor_handle_input
+        lda mouse_click
+        beq .keyboard
+        jsr palette_hit_test
+        bcc .list_click
+        cmp #AVAILABLE_COMMANDS
+        bcc .palette_valid
+        rts
+.palette_valid
+        sta selected_command
+        lda selection_active
+        beq .insert_mouse
+        lda selected_command
+        sta selection_target
+        jsr editor_cancel_selection
+        lda selection_target
+        jsr editor_insert
+        rts
+.insert_mouse
+        lda selected_command
+        jsr editor_insert
+        rts
+.list_click
+        jsr list_hit_test
+        bcs .list_hit_valid
+        rts
+.list_hit_valid
+        sta selection_target
+        lda selection_active
+        beq .select_saved
+        jsr editor_cancel_selection
+        jsr list_hit_test
+        bcs .list_hit_after_cancel
+        rts
+.list_hit_after_cancel
+.select_mouse
+        jsr editor_select_item
+        rts
+.select_saved
+        lda selection_target
+        jsr editor_select_item
+        rts
+.keyboard
+        lda key_new
+        cmp #$FF
+        bne .has_key
+        rts
+.has_key
+        cmp #57                 ; physical left-arrow key, immediately left of 1
+        bne .not_left_cancel
+        jmp .cancel             ; cancel is handled before any cursor movement
+.not_left_cancel
+        cmp #7                  ; C64 cursor up/down key
+        bne .other_key
+        lda key_shift           ; Shift selects cursor up; unshifted selects down
+        bne .shifted_cursor_up
+        jmp .cursor_down
+.shifted_cursor_up
+        jmp .cursor_up
+.other_key
+        lda selection_active
+        beq .not_selected
+        lda key_new
+        bne .not_delete
+        jmp .delete
+.not_delete
+        cmp #1                  ; Return
+        bne .not_return
+        jmp .confirm
+.not_return
+        lda key_shift
+        bne .upper_select
+        rts                     ; only uppercase letters select list rows
+.upper_select
+        lda key_repeat
+        beq .not_repeat_select
+        rts
+.not_repeat_select
+        lda key_new
+        jsr key_to_palette
+        bcs .active_key_valid
+        rts
+.active_key_valid
+        sta selection_target
+        jsr editor_cancel_selection
+        lda selection_target
+        clc
+        adc scroll_offset
+        cmp editor_count
+        bcc .active_row_valid
+        rts
+.active_row_valid
+        jsr editor_select_item
+        rts
+.not_selected
+        lda key_shift
+        beq .palette_key
+        lda key_repeat
+        beq .first_upper_press
+        rts
+.first_upper_press
+        lda key_new
+        jsr key_to_palette
+        bcs .upper_key_valid
+        rts
+.upper_key_valid
+        clc
+        adc scroll_offset
+        cmp editor_count
+        bcc .row_valid
+        rts
+.row_valid
+        jsr editor_select_item
+        rts
+.palette_key
+        lda key_repeat
+        beq .first_palette_press
+        rts
+.first_palette_press
+        lda key_new
+        jsr key_to_palette
+        bcs .palette_key_valid
+        rts
+.palette_key_valid
+        jsr editor_insert
+        rts
+.cursor_up
+        lda selection_active
+        beq .insert_up
+        lda delete_pending
+        bne .done
+        jmp .selected_up
+.insert_up
+        lda insert_pos
+        beq .done
+        dec insert_pos
+        jsr editor_update_view
+        rts
+.selected_up
+        jsr editor_move_selected_up
+        rts
+.cursor_down
+        lda selection_active
+        beq .insert_down
+        lda delete_pending
+        bne .done
+        jmp .selected_down
+.insert_down
+        lda insert_pos
+        cmp editor_count
+        bcs .done
+        inc insert_pos
+        jsr editor_update_view
+        rts
+.selected_down
+        jsr editor_move_selected_down
+        rts
+.delete
+        lda key_repeat
+        bne .done
+        lda #1
+        sta delete_pending
+        jsr editor_show_selection_help
+        rts
+.confirm
+        lda key_repeat
+        bne .done
+        lda delete_pending
+        beq .confirm_move
+        jsr editor_delete_selected
+        rts
+.confirm_move
+        lda #0
+        sta selection_active
+        sta delete_pending
+        jsr editor_update_view
+        lda #$FF
+        jsr editor_draw_info
+        rts
+.cancel
+        lda key_repeat
+        bne .done
+        jsr editor_cancel_selection
+.done   rts
+
+; Return palette index in A and carry set when the pointer is over an entry.
+!zone palette_hit_test
+palette_hit_test
+        lda mouse_y
+        cmp #104                ; first palette row starts at screen row 13
+        bcc .miss
+        cmp #152                ; include the label row under both icon rows
+        bcs .miss
+        cmp #128
+        bcc .top_row
+        lda #9
+        bne .row_ready
+.top_row
+        lda #0
+.row_ready
+        sta selected_command
+        lda mouse_x_hi
+        bne .miss
+        lda mouse_x_lo
+        cmp #8                  ; first tile starts in column 1
+        bcc .miss
+        cmp #152                ; nine 16-pixel palette slots
+        bcs .miss
+        sec
+        sbc #8
+        lsr
+        lsr
+        lsr
+        lsr                     ; (x - 8) / 16
+        clc
+        adc selected_command
+        sec
+        rts
+.miss   clc
+        rts
+
+; Return the absolute command index under the pointer, if an occupied list row
+; is clicked. The row label, command text, and empty interior all select it.
+!zone list_hit_test
+list_hit_test
+        lda mouse_x_hi
+        beq .x_low
+        cmp #1
+        bne .miss
+        lda mouse_x_lo
+        cmp #48                 ; 256..303, stop before column 38
+        bcs .miss
+        jmp .y_test
+.x_low  lda mouse_x_lo
+        cmp #184                ; left edge of program panel, column 23
+        bcc .miss
+.y_test
+        lda mouse_y
+        cmp #16                 ; first program row, screen row 2
+        bcc .miss
+        cmp #160                ; last program row ends at screen row 19
+        bcs .miss
+        sec
+        sbc #16
+        lsr
+        lsr
+        lsr                     ; (y - 16) / 8 -> visible row
+        clc
+        adc scroll_offset
+        cmp editor_count
+        bcs .miss
+        sec
+        rts
+.miss   clc
+        rts
+
+; Translate C64 keyboard-matrix codes for A through R to palette indexes.
+!zone key_to_palette
+key_to_palette
+        sta selected_command
+        ldx #0
+.scan   lda palette_key_codes,x
+        cmp selected_command
+        beq .found
+        inx
+        cpx #PALETTE_NUM
+        bne .scan
+        clc
+        rts
+.found  txa
+        sec
+        rts
+
+!zone editor_insert
+editor_insert                  ; A = command index (0..6)
+        cmp #AVAILABLE_COMMANDS
+        bcs .done
+        sta selected_command
+        lda editor_count
+        cmp #PROGRAM_MAX
+        bcs .done
+        tax                      ; shift existing entries right from the end
+.shift  cpx insert_pos
+        beq .store
+        dex
+        lda program,x
+        sta program+1,x
+        jmp .shift
+.store  ldx insert_pos
+        lda selected_command
+        sta program,x
+        inc editor_count
+        inc insert_pos
+        jsr editor_update_view
+        lda #$FF
+        sta hover_command
+        lda selected_command
+        jsr editor_draw_info
+.done   rts
+
+!zone editor_update_view
+editor_update_view
+        ; Keep the insertion marker in the visible list rows (2..19).
+        lda insert_pos
+        cmp #18
+        bcc .top
+        sec
+        sbc #17
+        sta scroll_offset
+        jmp .redraw
+.top    lda #0
+        sta scroll_offset
+.redraw jsr draw_program_list
+        jsr draw_program_counts
+        jsr draw_scrollbar
+        rts
+
+!zone editor_select_item
+editor_select_item              ; A = absolute program index
+        cmp editor_count
+        bcs .done
+        sta selected_index
+        sta selection_origin
+        lda #1
+        sta selection_active
+        lda #0
+        sta delete_pending
+        jsr editor_update_selection_view
+        jsr editor_show_selection_help
+.done   rts
+
+!zone editor_update_selection_view
+editor_update_selection_view
+        lda selected_index
+        cmp scroll_offset
+        bcs .check_bottom
+        sta scroll_offset
+        jmp .redraw
+.check_bottom
+        sec
+        sbc scroll_offset
+        cmp #PROGRAM_ROWS
+        bcc .redraw
+        lda selected_index
+        sec
+        sbc #17                 ; keep selected row at bottom of viewport
+        sta scroll_offset
+.redraw jsr draw_program_list
+        jsr draw_scrollbar
+        rts
+
+!zone editor_show_selection_help
+editor_show_selection_help
+        lda delete_pending
+        beq .move_help
+        lda #<str_delete_help
+        ldx #>str_delete_help
+        jmp editor_draw_message
+.move_help
+        lda #<str_select_help
+        ldx #>str_select_help
+        jmp editor_draw_message
+
+!zone editor_move_selected_up
+editor_move_selected_up
+        lda selected_index
+        beq .done
+        jsr editor_swap_selected_up
+        jsr editor_update_selection_view
+        jsr editor_show_selection_help
+.done   rts
+
+!zone editor_move_selected_down
+editor_move_selected_down
+        ldx selected_index
+        inx
+        cpx editor_count
+        bcs .done
+        jsr editor_swap_selected_down
+        jsr editor_update_selection_view
+        jsr editor_show_selection_help
+.done   rts
+
+!zone editor_swap_selected_up
+editor_swap_selected_up
+        ldx selected_index
+        lda program,x
+        sta move_temp
+        dex
+        lda program,x
+        inx
+        sta program,x
+        dex
+        lda move_temp
+        sta program,x
+        dec selected_index
+        rts
+
+!zone editor_swap_selected_down
+editor_swap_selected_down
+        ldx selected_index
+        lda program,x
+        sta move_temp
+        inx
+        lda program,x
+        sta tmp0
+        dex
+        lda tmp0
+        sta program,x
+        inx
+        lda move_temp
+        sta program,x
+        inc selected_index
+        rts
+
+!zone editor_cancel_selection
+editor_cancel_selection
+        lda selection_active
+        beq .done
+.rollback
+        lda selected_index
+        cmp selection_origin
+        beq .restored
+        bcc .move_down
+        jsr editor_swap_selected_up
+        jmp .rollback
+.move_down
+        jsr editor_swap_selected_down
+        jmp .rollback
+.restored
+        lda #0
+        sta selection_active
+        sta delete_pending
+        jsr editor_update_view
+        lda #$FF
+        jsr editor_draw_info
+.done   rts
+
+!zone editor_delete_selected
+editor_delete_selected
+        ldx selected_index
+.shift  inx
+        cpx editor_count
+        bcs .deleted
+        lda program,x
+        dex
+        sta program,x
+        inx
+        jmp .shift
+.deleted
+        dec editor_count
+        lda selected_index
+        cmp insert_pos
+        bcs .marker_ok
+        dec insert_pos
+.marker_ok
+        lda insert_pos
+        cmp editor_count
+        bcc .clear_state
+        sta insert_pos
+        lda editor_count
+        sta insert_pos
+.clear_state
+        lda #0
+        sta selection_active
+        sta delete_pending
+        jsr editor_update_view
+        lda #$FF
+        jsr editor_draw_info
+        rts
+
+!zone draw_planning_screen
+draw_planning_screen
+        jsr clear_screen
+        lda #COL_WHITE
+        sta cur_col
+        jsr draw_title_and_counters
+        jsr draw_map_panel
+        jsr draw_palette_panel
+        jsr draw_program_panel
+        jsr draw_help_areas
+        rts
+
+!zone draw_title_and_counters
+draw_title_and_counters
+        lda #COL_WHITE
+        sta cur_col
+        ldx #0
+        ldy #0
+        jsr set_cursor
+        lda #<str_title
+        ldx #>str_title
+        jsr put_str
+        ldx #0
+        ldy #1
+        jsr set_cursor
+        lda #<str_commands_count
+        ldx #>str_commands_count
+        jsr put_str
+        ldx #24
+        ldy #1
+        jsr set_cursor
+        lda #<str_program_count
+        ldx #>str_program_count
+        jsr put_str
+        rts
+
+!zone draw_map_panel
+draw_map_panel
+        lda #COL_CYAN
+        sta cur_col
+        ldx #0
+        ldy #2
+        lda #$2D
+        jsr draw_hline10
+        ldx #0
+        ldy #11
+        lda #$2D
+        jsr draw_hline10
+        ; Corners
+        ldx #0
+        ldy #2
+        jsr set_cursor
+        lda #$2B
+        jsr put_char
+        ldx #9
+        ldy #2
+        jsr set_cursor
+        lda #$2B
+        jsr put_char
+        ldx #0
+        ldy #11
+        jsr set_cursor
+        lda #$2B
+        jsr put_char
+        ldx #9
+        ldy #11
+        jsr set_cursor
+        lda #$2B
+        jsr put_char
+        ; Empty 8x8 field, one character per tile.
+        lda #3
+        sta ui_row
+.map_row
+        ldx #0
+        ldy ui_row
+        jsr set_cursor
+        lda #$7C
+        jsr put_char
+        ldx #1
+        ldy ui_row
+        jsr set_cursor
+        lda #$2E
+        jsr repeat8
+        ldx #9
+        ldy ui_row
+        jsr set_cursor
+        lda #$7C
+        jsr put_char
+        inc ui_row
+        lda ui_row
+        cmp #11
+        bne .map_row
+        rts
+
+; X/Y/A start coordinate and character; repeat ten positions.
+!zone draw_hline10
+draw_hline10
+        stx cur_x
+        sty cur_y
+        sta ui_save
+        ldx #10
+        stx ui_count
+.h     lda ui_save
+        jsr put_char
+        dec ui_count
+        bne .h
+        rts
+
+; X/Y/A start coordinate and character; repeat eight positions.
+!zone repeat8
+repeat8
+        sta ui_save
+        ldx #8
+        stx ui_count
+.r     lda ui_save
+        jsr put_char
+        dec ui_count
+        bne .r
+        rts
+
+!zone draw_palette_panel
+draw_palette_panel
+        lda #COL_CYAN
+        sta cur_col
+        ldx #0
+        ldy #12
+        lda #$2D
+        jsr draw_hline21
+        ldx #0
+        ldy #19
+        lda #$2D
+        jsr draw_hline21
+        ; Corners
+        ldx #0
+        ldy #12
+        jsr set_cursor
+        lda #$2B
+        jsr put_char
+        ldx #20
+        ldy #12
+        jsr set_cursor
+        lda #$2B
+        jsr put_char
+        ldx #0
+        ldy #19
+        jsr set_cursor
+        lda #$2B
+        jsr put_char
+        ldx #20
+        ldy #19
+        jsr set_cursor
+        lda #$2B
+        jsr put_char
+        lda #13
+        sta ui_row
+.side  ldx #0
+        ldy ui_row
+        jsr set_cursor
+        lda #$7C
+        jsr put_char
+        ldx #20
+        ldy ui_row
+        jsr set_cursor
+        lda #$7C
+        jsr put_char
+        inc ui_row
+        lda ui_row
+        cmp #19
+        bne .side
+        ldx #0
+        stx ui_index
+.icons jsr draw_palette_icon
+        inc ui_index
+        lda ui_index
+        cmp #PALETTE_NUM
+        bne .icons
+        rts
+
+; X/Y/A start coordinate and character; repeat 21 positions.
+!zone draw_hline21
+draw_hline21
+        stx cur_x
+        sty cur_y
+        sta ui_save
+        ldx #21
+        stx ui_count
+.h     lda ui_save
+        jsr put_char
+        dec ui_count
+        bne .h
+        rts
+
+!zone draw_palette_icon
+draw_palette_icon
+        ; 18 two-by-two command tiles, nine per row.
+        lda ui_index
+        cmp #AVAILABLE_COMMANDS
+        bcc .active
+        rts
+.active
+        lda ui_index
+        cmp #9
+        bcc .first
+        sec
+        sbc #9
+        sta ui_col
+        lda #16
+        sta ui_row
+        jmp .position
+.first sta ui_col
+        lda #13
+        sta ui_row
+.position
+        lda ui_col
+        asl
+        clc
+        adc #1
+        sta tmp0                 ; tile start column
+        lda #COL_WHITE
+        sta cur_col
+        ; Each palette tile uses four glyphs from the inverse charset range.
+        ldx ui_index
+        lda palette_icon_ids,x
+        cmp #$FF
+        beq .key_label
+        asl
+        asl
+        clc
+        adc #ICON_CHAR_BASE
+        tax
+        stx tmp1                 ; icon table offset
+        ldx tmp0
+        ldy ui_row
+        jsr set_cursor
+        lda tmp1
+        jsr put_char
+        ldx tmp0
+        inx
+        ldy ui_row
+        jsr set_cursor
+        lda tmp1
+        clc
+        adc #1
+        jsr put_char
+        ldx tmp0
+        ldy ui_row
+        iny
+        jsr set_cursor
+        lda tmp1
+        clc
+        adc #2
+        jsr put_char
+        ldx tmp0
+        inx
+        ldy ui_row
+        iny
+        jsr set_cursor
+        lda tmp1
+        clc
+        adc #3
+        jsr put_char
+        ; A-R key labels below the 2x2 icon.
+.key_label
+        ldx tmp0
+        lda ui_row
+        clc
+        adc #2
+        tay
+        jsr set_cursor
+        lda ui_index
+        clc
+        adc #1
+        jsr put_char
+        rts
+
+!zone draw_program_panel
+draw_program_panel
+        lda #COL_CYAN
+        sta cur_col
+        ; Outer frame.
+        ldx #22
+        ldy #1
+        lda #$2D
+        jsr draw_hline18
+        ldx #22
+        ldy #20
+        lda #$2D
+        jsr draw_hline18
+        ldx #22
+        ldy #1
+        jsr set_cursor
+        lda #$2B
+        jsr put_char
+        ldx #39
+        ldy #1
+        jsr set_cursor
+        lda #$2B
+        jsr put_char
+        ldx #22
+        ldy #20
+        jsr set_cursor
+        lda #$2B
+        jsr put_char
+        ldx #39
+        ldy #20
+        jsr set_cursor
+        lda #$2B
+        jsr put_char
+        lda #2
+        sta ui_row
+.sides ldx #22
+        ldy ui_row
+        jsr set_cursor
+        lda #$7C
+        jsr put_char
+        ldx #39
+        ldy ui_row
+        jsr set_cursor
+        lda #$7C
+        jsr put_char
+        inc ui_row
+        lda ui_row
+        cmp #20
+        bne .sides
+        ; Header and integrated scrollbar arrows.
+        lda #COL_WHITE
+        sta cur_col
+        ldx #24
+        ldy #1
+        jsr set_cursor
+        lda #<str_program_count
+        ldx #>str_program_count
+        jsr put_str
+        ldx #38
+        ldy #1
+        jsr set_cursor
+        lda #ICON_CHAR_BASE+28   ; custom scrollbar up arrow ($FC)
+        jsr put_char
+        ldx #38
+        ldy #20
+        jsr set_cursor
+        lda #ICON_CHAR_BASE+29   ; custom scrollbar down arrow ($FD)
+        jsr put_char
+        jsr draw_scrollbar
+        rts
+
+!zone draw_hline18
+draw_hline18
+        stx cur_x
+        sty cur_y
+        sta ui_save
+        ldx #18
+        stx ui_count
+.h     lda ui_save
+        jsr put_char
+        dec ui_count
+        bne .h
+        rts
+
+!zone draw_short_name
+draw_short_name
+        asl
+        tax
+        lda short_name_ptrs,x
+        sta tmp0
+        lda short_name_ptrs+1,x
+        tax
+        lda tmp0
+        jmp put_str
+
+; Redraw 18 visible rows as "A 01 Text". Letters select visible rows; numbers
+; are absolute command positions (01-99).
+!zone draw_program_list
+draw_program_list
+        lda #COL_WHITE
+        sta cur_col
+        lda #0
+        sta ui_index
+        lda #2
+        sta ui_row
+.row    lda #COL_WHITE
+        sta cur_col
+        ldx #23
+        ldy ui_row
+        jsr set_cursor
+        lda #15
+        sta ui_count
+.clear  lda #$20
+        jsr put_char
+        dec ui_count
+        bne .clear
+
+        lda scroll_offset
+        clc
+        adc ui_index
+        sta tmp0
+        cmp editor_count
+        bcs .next
+        lda #COL_WHITE
+        sta cur_col
+        lda selection_active
+        beq .number
+        lda tmp0
+        cmp selected_index
+        bne .number
+        lda #COL_YELLOW
+        sta cur_col
+.number ldx #23
+        ldy ui_row
+        jsr set_cursor
+        lda ui_index
+        clc
+        adc #$41                ; A-R selects the corresponding visible row
+        jsr put_char
+        ldx #25
+        ldy ui_row
+        jsr set_cursor
+        lda tmp0
+        clc
+        adc #1                  ; display one-based running number
+        jsr draw_decimal2
+        ldx #28
+        ldy ui_row
+        jsr set_cursor
+        ldx tmp0
+        lda program,x
+        jsr draw_short_name
+.next   inc ui_index
+        inc ui_row
+        lda ui_index
+        cmp #PROGRAM_ROWS
+        bne .row
+        rts
+
+!zone draw_program_counts
+draw_program_counts
+        lda #COL_WHITE
+        sta cur_col
+        ldx #9
+        ldy #1
+        jsr set_cursor
+        lda editor_count
+        jsr draw_decimal2
+        ldx #32
+        ldy #1
+        jsr set_cursor
+        lda editor_count
+        jsr draw_decimal2
+        rts
+
+!zone draw_decimal2
+draw_decimal2                   ; A = 0..99, writes two decimal digits
+        sta tmp1
+        ldx #0
+.tens   lda tmp1
+        cmp #10
+        bcc .digits
+        sec
+        sbc #10
+        sta tmp1
+        inx
+        jmp .tens
+.digits txa
+        clc
+        adc #$30
+        jsr put_char
+        lda tmp1
+        clc
+        adc #$30
+        jmp put_char
+
+!zone draw_scrollbar
+draw_scrollbar
+        lda #COL_CYAN
+        sta cur_col
+        lda #2
+        sta ui_row
+.track ldx #38
+        ldy ui_row
+        jsr set_cursor
+        lda #$7C
+        jsr put_char
+        inc ui_row
+        lda ui_row
+        cmp #20
+        bne .track
+        ; Thumb position follows the first visible command. It spans two rows.
+        lda scroll_offset
+        ldx #0
+.divide cmp #5
+        bcc .thumb
+        sec
+        sbc #5
+        inx
+        jmp .divide
+.thumb  txa
+        clc
+        adc #2
+        tay
+        lda #COL_YELLOW
+        sta cur_col
+        ldx #38
+        jsr set_cursor
+        lda #$23
+        jsr put_char
+        iny
+        jsr set_cursor
+        lda #$23
+        jsr put_char
+        rts
+
+!zone draw_help_areas
+draw_help_areas
+        lda #COL_CYAN
+        sta cur_col
+        ldx #0
+        ldy #21
+        lda #$2D
+        jsr draw_hline40
+        ldx #0
+        ldy #23
+        lda #$2D
+        jsr draw_hline40
+        ldx #0
+        ldy #22
+        jsr set_cursor
+        lda #$7C
+        jsr put_char
+        ldx #39
+        ldy #22
+        jsr set_cursor
+        lda #$7C
+        jsr put_char
+        lda #$FF
+        jsr editor_draw_info
+        rts
+
+!zone draw_hline40
+draw_hline40
+        stx cur_x
+        sty cur_y
+        sta ui_save
+        lda #40
+        sta ui_count
+.line   lda ui_save
+        jsr put_char
+        dec ui_count
+        bne .line
+        rts
+
+!zone editor_update_hover
+editor_update_hover
+        lda selection_active
+        bne .done
+        jsr palette_hit_test
+        bcc .no_command
+        cmp #AVAILABLE_COMMANDS
+        bcs .no_command
+        cmp hover_command
+        beq .done
+        sta hover_command
+        jsr editor_draw_info
+        rts
+.no_command
+        lda hover_command
+        cmp #$FF
+        beq .done
+        lda #$FF
+        sta hover_command
+        jsr editor_draw_info
+.done   rts
+
+!zone editor_draw_info
+editor_draw_info                ; A = command index, or $FF to clear
+        sta selected_command
+        jsr editor_clear_info
+        lda selected_command
+        cmp #AVAILABLE_COMMANDS
+        bcs .done
+        ldx #1
+        ldy #22
+        jsr set_cursor
+        lda selected_command
+        jsr draw_short_name
+.done   rts
+
+!zone editor_draw_message
+editor_draw_message             ; A/X = 0-terminated message address
+        sta ptr2
+        stx ptr2+1
+        jsr editor_clear_info
+        ldx #1
+        ldy #22
+        jsr set_cursor
+        lda ptr2
+        ldx ptr2+1
+        jmp put_str
+
+!zone editor_clear_info
+editor_clear_info
+        lda #COL_WHITE
+        sta cur_col
+        ldx #1
+        ldy #22
+        jsr set_cursor
+        lda #38
+        sta ui_count
+.clear  lda #$20
+        jsr put_char
+        dec ui_count
+        bne .clear
+        rts
+
+; Seven implemented commands; later palette positions remain empty.
+palette_icon_ids
+        !byte 0,1,2,3,4,5,6,$FF,$FF,$FF,$FF,$FF
+        !byte $FF,$FF,$FF,$FF,$FF,$FF
+
+palette_key_codes            ; C64 keyboard matrix positions for A-R
+        !byte 10,28,20,18,14,21,26,29,33,34,37,42,36,39,38,41,62,17
+
+short_name_ptrs
+        !word short_forward,short_backward,short_turn_right,short_turn_left
+        !word short_pick_up,short_drop_off,short_turn_180
+short_pick_up !text "Pick Up",0
+short_drop_off !text "Drop Off",0
+short_forward !text "Move Fwd",0
+short_backward !text "Move Back",0
+short_turn_right !text "Turn Right",0
+short_turn_left !text "Turn Left",0
+short_turn_180 !text "Turn 180",0

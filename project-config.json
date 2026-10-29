@@ -1,0 +1,15 @@
+{
+    "name": "roboter",
+    "description": "Project roboter",
+    "toolkit": "acme",
+    "sources": [
+        "src/main.asm"
+    ],
+    "build": "debug",
+    "definitions": [],
+    "includes": [
+        "inc"
+    ],
+    "args": [],
+    "compiler": ""
+}

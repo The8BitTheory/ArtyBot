@@ -1,0 +1,33 @@
+....ArtyBot - Plan - Level 1: Fabrik....
+.Commands max: 99  Commands taken: 00 ..
+.xxxxxxxxxx...........xxxxxxxxxxxxxxxxx.
+.xoooooooox...........x A Turn Left   x.
+.xoooooooox...........x B Turn Right  x.
+.xoooooooox...........x C Pick up     x.
+.xoooooooox...........x D Drop off    x.
+.xoooooooox...........x E Move Forwd  x.
+.xoooooooox...........x F Move Backwd x.
+.xoooooooox...........x G Turn Left   x.
+.xoooooooox...........x H Turn Left   x.
+.xxxxxxxxxx...........x I Turn Left   x.
+......................x J Turn Left   x.
+.xxxxxxxxxxxxxxxxxxxx.x K Turn Left   x.
+.xCCCCCCCCCCCCCCCCCCx.x L Turn Left   x.
+.xCCCCCCCCCCCCCCCCCCx.x M Turn Left   x.
+.x a b c d e f g h ix.x N Turn Left   x.
+.xxxxxxxxxxxxxxxxxxxx.x O Turn Left   x.
+.xCCCCCCCCCCCCCCCCCCx.x P Turn Left   x.
+.xCCCCCCCCCCCCCCCCCCx.x Q Turn Left   x.
+.x j k l m n o p q rx.x R Turn Left   x.
+.xxxxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxx.
+.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.
+.x Mouse hover or other help text     x.
+.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+
+. unused space
+x border element
+o plan map tile
+C command tile (2x2)
+a-r Keyboard select command from palette
+A-R keyboard select command from commandlist

@@ -1,0 +1,98 @@
+; defs.inc - Hardware-Register und Konstanten
+
+; --- CPU
+CPU_DDR     = $00
+CPU_PORT    = $01
+
+; --- VIC-II
+VIC_SPR0X   = $D000
+VIC_SPR0Y   = $D001
+VIC_SPR1X   = $D002
+VIC_SPR1Y   = $D003
+VIC_SPRXMSB = $D010
+VIC_CTRL1   = $D011
+VIC_RASTER  = $D012
+VIC_SPR_EN  = $D015
+VIC_CTRL2   = $D016
+VIC_SPR_EXPY= $D017
+VIC_MEMPTR  = $D018
+VIC_IRR     = $D019
+VIC_IMR     = $D01A
+VIC_SPR_PRI = $D01B
+VIC_SPR_MC  = $D01C
+VIC_SPR_EXPX= $D01D
+VIC_BORDER  = $D020
+VIC_BG0     = $D021
+VIC_BG1     = $D022
+VIC_BG2     = $D023
+VIC_SPR0COL = $D027
+
+; --- SID / CIA
+SID_BASE    = $D400
+SID_POTX    = $D419
+SID_POTY    = $D41A
+SID_VOL     = $D418
+CIA1_PRA    = $DC00
+CIA1_PRB    = $DC01
+CIA1_DDRA   = $DC02
+CIA1_DDRB   = $DC03
+CIA1_ICR    = $DC0D
+CIA2_PRA    = $DD00
+CIA2_DDRA   = $DD02
+CIA2_ICR    = $DD0D
+
+COLORRAM    = $D800
+
+; --- Speicherlayout (VIC-Bank 3 = $C000-$FFFF)
+BANK_BASE   = $C000
+SCREEN      = $C000
+CHARSET     = $C800
+SPRITES     = $E000
+SPR_PTR0    = SCREEN + $3F8
+SPRITE_BLOCK= (SPRITES - BANK_BASE) >> 6
+SPRITE_BLOCK1 = SPRITE_BLOCK + 1
+CODE_LIMIT  = $C000
+ICON_CHAR_BASE  = $E0
+ICON_CHAR_COUNT = 30            ; 24 command glyphs, Turn 180, and scrollbar arrows
+ICON_CHAR_BYTES = ICON_CHAR_COUNT * 8
+
+; --- Farben
+COL_BLACK   = 0
+COL_WHITE   = 1
+COL_RED     = 2
+COL_CYAN    = 3
+COL_GREEN   = 5
+COL_YELLOW  = 7
+COL_ORANGE  = 8
+COL_DGREY   = 11
+
+; --- Spielfeld
+MAP_W       = 12
+MAP_H       = 10
+NUM_LEVELS  = 3
+FIELD_COL   = 0
+FIELD_ROW   = 2
+
+; --- Tile-IDs
+T_FLOOR     = 0
+T_WALL      = 1
+T_BOX       = 2
+T_GOAL      = 3
+T_ROBOT     = 4
+NUM_TILES   = 4
+CHAR_TILE_BASE = $80
+TILES_BYTES = NUM_TILES * 4 * 8
+SPRITE_BYTES= 128           ; mouse pointer plus insertion marker
+PROGRAM_MAX = 99
+
+; --- Eingabe
+JOY_UP      = $01
+JOY_DOWN    = $02
+JOY_LEFT    = $04
+JOY_RIGHT   = $08
+JOY_FIRE    = $10
+REPEAT_DELAY= 15
+REPEAT_RATE = 4
+
+; --- Timing
+RASTER_LINE = 250
