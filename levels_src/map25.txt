@@ -1,0 +1,17 @@
+map25 Winter 5, "Don't throw it"
+throwing across the ice is fine: from the bank at (3,6) a package flies over
+(3,5) onto the near goal. The far goal is too far: a throw from (6,6) lands on the
+ice at (6,4), which breaks, and the package is gone. Carry it onto the ice instead
+(solver: skate up column 6 onto the goal island, on up to the pines, throw back
+down over (6,2); or skate up column 7, the pine at (7,2) stops beside the goal).
+
+TTTTTTTTTT
+T########T
+T######T#T
+T#####G##T
+T##G#####T
+T########T
+..........
+...P^P....
+..........
+T........T
