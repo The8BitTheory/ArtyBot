@@ -1,0 +1,17 @@
+map26 Winter 6, "Open water"
+the ice starts right in front of the robot and the goal is straight ahead - but at
+the far end a ditch of open water waits: skate up there and the robot sinks. Only
+column 6 has ice all the way across the ditch to the north bank. The second goal
+is an island in the rink: skating up column 7 stops on it, from there skate to the
+east edge and throw back (the field edge stops a skater, open water does not).
+
+T........T
+..G.......
+~~~~~~#~~~
+##########
+#######G##
+##########
+##########
+..P^P.....
+..........
+T........T
