@@ -10,7 +10,7 @@
 ; theme only changes their look (key / keycard, lock / card reader, door / sliding door). theme_load copies it over the
 ; same character codes, so only one theme lives in the charset at a time.
 ;
-; A WORLD has one theme, a range of levels in plan_level_table (all levels of
+; A WORLD has one theme, a range of levels in plan_level_table (labels map<world><level>, all levels of
 ; a world are open once the world is), an overview map (tools/gen_world_maps.py
 ; -> world_maps.asm) and one map node per level. World n+1 opens when every
 ; level of world n is solved: the gate at the exit of the world map (cells '['
@@ -162,9 +162,9 @@ world_count = (* - world_table) / 2
 }
 
 world_meadow
-        !byte THEME_MEADOW, 0, 4        ; levels 1-4 (4: key, lock and door)
+        !byte THEME_MEADOW, (world1_levels - plan_level_table) / 2, WORLD1_LEVELS   ; map11..
         !word wmap_meadow, str_world_meadow, wnodes_meadow
-!if WNODES_MEADOW != 4 {
+!if WNODES_MEADOW != WORLD1_LEVELS {
     !error "Weltkarte meadow: Anzahl Knoten passt nicht zur Anzahl Levels"
 }
 !if plan_level_count > MAX_LEVELS {
@@ -174,9 +174,9 @@ world_meadow
 str_world_meadow !text "Meadow",0
 
 world_winter
-        !byte THEME_WINTER, 4, 5        ; levels 5-9 (8 and 9: ice)
+        !byte THEME_WINTER, (world2_levels - plan_level_table) / 2, WORLD2_LEVELS   ; map21..
         !word wmap_winter, str_world_winter, wnodes_winter
-!if WNODES_WINTER != 5 {
+!if WNODES_WINTER != WORLD2_LEVELS {
     !error "Weltkarte winter: Anzahl Knoten passt nicht zur Anzahl Levels"
 }
 str_world_winter !text "Winter",0

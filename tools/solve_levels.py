@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """solve_levels.py - checks that the levels in src/mapdata.asm are solvable.
 
-  python -B tools/solve_levels.py [--greedy] [level numbers 1..n]      (default: all)
+  python -B tools/solve_levels.py [--greedy] [levels, e.g. 11 25]      (default: all)
 
 --greedy: one goal at a time, fast also for levels with many packages; the
 program found is valid but not the shortest.
 
-Parses the level records (plan_level_N) and searches the shortest program with
+Parses the level records (map<world><level>, e.g. map11) and searches the shortest program with
 A* over the game rules of run.asm (Move Fwd/Back, Turn, Pick Up, Drop Off,
 Jump, Throw; ice: skating, breaking when jumped off / landed on / thrown on).
 Prints the program as keys of the planning screen
@@ -30,12 +30,12 @@ KEYS = {'fwd': 'w', 'back': 's', 'right': 'd', 'left': 'a', 'pick': 'q', 'drop':
 def parse_levels():
     levels, cur = {}, None
     for line in open(MAPDATA, encoding='utf-8'):
-        m = re.match(r'plan_level_(\d+)\s*$', line)
+        m = re.match(r'map(\d\d)\s*$', line)
         if m:
             cur = int(m.group(1)); levels[cur] = []; continue
         if cur is None:
             continue
-        if re.match(r'[A-Za-z_]', line) and not line.startswith('plan_level'):
+        if re.match(r'[A-Za-z_]', line) and not re.match(r'map\d\d\s*$', line):
             cur = None; continue
         m = re.match(r'\s*!byte\s+([^;]*)', line)
         if m:
@@ -198,9 +198,9 @@ def main():
         t = time.time()
         prog, nodes = (solve_greedy if greedy else solve)(levels[n])
         if prog is None:
-            print('level %d: NO SOLUTION found (%d states)' % (n, nodes)); bad += 1
+            print('map%d: NO SOLUTION found (%d states)' % (n, nodes)); bad += 1
         else:
-            print('level %d: %2d commands  %s   (%d states, %.1fs)' % (
+            print('map%d: %2d commands  %s   (%d states, %.1fs)' % (
                 n, len(prog), ''.join(KEYS[p] for p in prog), nodes, time.time() - t))
     sys.exit(1 if bad else 0)
 
