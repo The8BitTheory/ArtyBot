@@ -2,13 +2,21 @@
 ; One variable-length record per level, coordinates are field tiles
 ; (0..MAP_COLS-1 / 0..MAP_ROWS-1, origin top-left):
 ;   +0 robot x, +1 robot y, +2 robot direction (ROBOT_DIR_*),
-;   +3 goal x,  +4 goal y,  +5 package x, +6 package y,
-;   +7 number of blockers N, followed by N pairs of bytes (x, y)
-; More levels: add a record below and an entry in plan_level_table.
+;   +3 number of goal fields G (1..MAX_GOALS), followed by G pairs (x, y),
+;   then the number of packages P, followed by P pairs (x, y),
+;   then the number of blockers N, followed by N pairs (x, y).
+; A level is won when every goal field holds a package, so give it at least as
+; many packages as goal fields. More levels: add a record below and an entry in
+; plan_level_table.
 ;
 ; load_plan_level builds the static field layer in map_work (MAP_COLS*MAP_ROWS
-; bytes, row-major, tile ids T_FLOOR/T_WALL(blocker)/T_BOX(package)/T_GOAL).
+; bytes, row-major, tile ids T_FLOOR/T_WALL(blocker)/T_BOX(package)/T_GOAL
+; (free goal field)/T_BOXG(package standing on a goal field)) and the goal list
+; goal_list (goal_count pairs x, y).
 ; The robot is not stored in that layer; it lives in robot_tx/robot_ty/robot_dir.
+
+goal_list       = $0280         ; goal_count pairs (x, y) behind map_work
+MAX_GOALS       = 16
 
 ROBOT_DIR_RIGHT = 0             ; matches gfx_robot order ($80..$83)
 ROBOT_DIR_LEFT  = 1
@@ -18,22 +26,21 @@ ROBOT_DIR_DOWN  = 3
 MAPREC_ROBOT_X   = 0
 MAPREC_ROBOT_Y   = 1
 MAPREC_ROBOT_DIR = 2
-MAPREC_GOAL_X    = 3
-MAPREC_GOAL_Y    = 4
-MAPREC_PKG_X     = 5
-MAPREC_PKG_Y     = 6
-MAPREC_BLOCKERS  = 7            ; count byte; the (x, y) pairs follow
+MAPREC_GOALS     = 3            ; count byte; goals, packages, blockers follow
 
 MAP_CELLS       = MAP_COLS * MAP_ROWS
 
 plan_level_table
         !word plan_level_1
+        !word plan_level_2
 plan_level_count = (* - plan_level_table) / 2
 
 plan_level_1
         !byte 0, 0, ROBOT_DIR_RIGHT     ; robot: top-left, facing right
-        !byte 5, 5                      ; goal: centre of the 10x10 field
-        !byte 3, 5                      ; package: two tiles left of the goal
+        !byte 1                         ; goal fields (x, y)
+        !byte 5, 5                      ; centre of the 10x10 field
+        !byte 1                         ; packages (x, y)
+        !byte 3, 5                      ; two tiles left of the goal
         !byte 6                         ; blockers (x, y), fixed part of the level
         !byte 2, 2
         !byte 7, 2
@@ -41,6 +48,24 @@ plan_level_1
         !byte 2, 7
         !byte 6, 7
         !byte 9, 9
+
+plan_level_2
+        !byte 0, 5, ROBOT_DIR_RIGHT     ; robot: left edge, facing right
+        !byte 3                         ; goal fields (x, y): right column
+        !byte 6, 3
+        !byte 6, 5
+        !byte 6, 7
+        !byte 3                         ; packages (x, y): left column
+        !byte 3, 3
+        !byte 3, 5
+        !byte 3, 7
+        !byte 6                         ; blockers (x, y)
+        !byte 1, 1
+        !byte 8, 1
+        !byte 4, 4
+        !byte 4, 6
+        !byte 1, 9
+        !byte 8, 9
 
 ; A = level number. Copies its record into the game variables and builds the
 ; field layer including the blockers. Invalid numbers fall back to level 0.
@@ -65,21 +90,6 @@ load_plan_level
         ldy #MAPREC_ROBOT_DIR
         lda (ptr0),y
         sta robot_dir
-        ldy #MAPREC_GOAL_X
-        lda (ptr0),y
-        sta goal_tx
-        ldy #MAPREC_GOAL_Y
-        lda (ptr0),y
-        sta goal_ty
-        ldy #MAPREC_PKG_X
-        lda (ptr0),y
-        sta box_tx
-        ldy #MAPREC_PKG_Y
-        lda (ptr0),y
-        sta box_ty
-        ldy #MAPREC_BLOCKERS
-        lda (ptr0),y
-        sta cnt                 ; blockers still to place
 
         ; Empty field.
         ldx #0
@@ -88,24 +98,67 @@ load_plan_level
         inx
         cpx #MAP_CELLS
         bne .clear
-        ; Goal and package.
-        lda goal_tx
+
+        ; Goal fields: remember them in goal_list and mark the field layer.
+        ldy #MAPREC_GOALS
+        lda (ptr0),y
+        sta goal_count
+        sta cnt
+        iny
+        lda #0
+        sta tmp3                ; offset into goal_list
+.goal   lda cnt
+        beq .goals_done
+        lda (ptr0),y
         sta tmp0
-        lda goal_ty
+        iny
+        lda (ptr0),y
         sta tmp1
-        jsr map_index
+        iny
+        ldx tmp3
+        lda tmp0
+        sta goal_list,x
+        lda tmp1
+        sta goal_list+1,x
+        inx
+        inx
+        stx tmp3
+        jsr map_index           ; keeps Y
         lda #T_GOAL
         sta map_work,x
-        lda box_tx
-        sta tmp0
-        lda box_ty
-        sta tmp1
-        jsr map_index
-        lda #T_BOX
-        sta map_work,x
+        dec cnt
+        jmp .goal
+.goals_done
 
-        ; Blockers from the level record: N pairs (x, y) after the count byte.
-        ldy #MAPREC_BLOCKERS+1
+        ; Packages (a package that starts on a goal field counts as delivered).
+        lda (ptr0),y
+        iny
+        sta cnt
+.pkg    lda cnt
+        beq .pkgs_done
+        lda (ptr0),y
+        sta tmp0
+        iny
+        lda (ptr0),y
+        sta tmp1
+        iny
+        jsr map_index
+        lda map_work,x
+        cmp #T_GOAL
+        beq .on_goal
+        lda #T_BOX
+        bne .put
+.on_goal
+        lda #T_BOXG
+.put    sta map_work,x
+        dec cnt
+        jmp .pkg
+.pkgs_done
+
+        ; Blockers from the level record.
+        lda (ptr0),y
+        iny
+        sta cnt
 .blk    lda cnt
         beq .done
         lda (ptr0),y
@@ -194,7 +247,7 @@ draw_map_objects
         jmp put_char
 
 map_tile_chars                  ; indexed by tile id
-        !byte FLOOR_CHAR, BLOCK_CHAR, PKG_CHAR, GOAL_CHAR
+        !byte FLOOR_CHAR, BLOCK_CHAR, PKG_CHAR, GOAL_CHAR, PKG_CHAR
 
 ; Hover code for the field tile under the mouse, or $FF.
 ;   $50+dir robot, $61 blocker, $62 package, $63 goal
@@ -283,4 +336,4 @@ draw_map_info
 dir_name_ptrs
         !word str_dir_right, str_dir_left, str_dir_up, str_dir_down
 map_text_ptrs                   ; indexed by tile id (floor unused)
-        !word 0, str_blocker, str_package, str_target
+        !word 0, str_blocker, str_package, str_target, str_package_done

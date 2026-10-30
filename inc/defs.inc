@@ -85,7 +85,8 @@ MAP_SCR_Y   = 2             ; screen row of field tile (0,0)
 T_FLOOR     = 0
 T_WALL      = 1
 T_BOX       = 2
-T_GOAL      = 3
+T_GOAL      = 3             ; goal field without a package
+T_BOXG      = 4             ; package standing on a goal field (map_work only)
 SPRITE_BYTES= 128           ; mouse pointer plus insertion marker
 PROGRAM_MAX = 99
 

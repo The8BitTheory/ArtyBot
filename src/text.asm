@@ -1,4 +1,5 @@
-str_title !text "ArtyBot - Plan - Level 1: Factory",0
+str_title !text "ArtyBot - Plan - Level "
+str_title_lvl !text "1: Factory",0       ; first character = level digit, patched at draw time
 str_program_count !text " PROGRAM: 00/99",0
 str_select_help !text "Cur:move Del:remove Ret:OK "
                 !byte $1F
@@ -13,6 +14,7 @@ str_dir_up !text "Up",0
 str_dir_down !text "Down",0
 str_target !text "Target Area",0
 str_package !text "Deliver this",0
+str_package_done !text "Delivered",0
 str_blocker !text "Blocked. Not Movable",0
 str_bottom_commands !text "R: Run plan X: Exit Artybot",0
 str_quit_confirm !text "Really quit?",0
@@ -24,18 +26,21 @@ str_quit_no !text "< No >",0
 ; now uses its framed command-description row instead.
 str_help !byte 0
 str_status !text "STATUS",0
-str_run_field !text " Level 1: Factory ",0
+str_run_field !text " Level "
+str_run_field_lvl !text "1: Factory ",0   ; first character = level digit, patched at draw time
 str_run_list !text " ArtyBot Run ",0
-str_bottom_run !text " Space:Run  P:Plan  X:Exit ",0
+str_bottom_run !text "Space:Run/Pause R:Restart P:Plan X:Exit",0
 str_run_quit !text "Really quit? Return:yes "
              !byte $1F
              !text ":no",0
 str_run_ready !text "Press Space to run the plan",0
-str_run_going !text "Running...",0
+str_run_going !text "Running... Space: pause R: restart",0
+str_run_paused !text "Paused. Space: go on R: restart",0
 str_run_blocked !text "ArtyBot is blocked. Space: retry",0
 str_run_nopick !text "Nothing to pick up. Space: retry",0
 str_run_full !text "Hands full. Space: retry",0
 str_run_nodrop !text "Nothing to drop. Space: retry",0
 str_run_cantdrop !text "Can't drop here. Space: retry",0
-str_run_done !text "Package delivered! Space: again",0
+str_run_done !text "All packages delivered!",0
+str_run_next !text "Done! Space: next level  R: replay",0
 str_run_end !text "Not delivered. Space: retry",0

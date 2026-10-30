@@ -57,3 +57,4 @@ win_h       = $60
 program     = $0300
 
 map_work    = $0200
+goal_count  = $23            ; number of goal fields of the loaded level (mapdata.asm)

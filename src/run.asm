@@ -4,11 +4,13 @@
 ; at the bottom, all in rounded NES-style window frames. Space plays the plan:
 ; the robot is a multicolour sprite (sprite 3) with a two-frame walk cycle; a
 ; carried package (chest) is sprite 2, held above the robot's head.
-; Keys: Space = run, P = back to planning mode, X = quit (confirmed).
+; Keys: Space = run / pause / continue, R = restart the run, P = back to
+; planning mode, X = quit (confirmed).
 ; The mouse is ignored (pointer and insertion marker sprites are off).
 
 run_confirm   = $46             ; 1 while "Really quit?" is shown
-run_state     = $47             ; 0 ready, 1 running, 2 stopped (finished/failed)
+run_state     = $47             ; 0 ready, 1 running, 2 stopped (finished/failed), 3 paused,
+                                ; 4 level won (Space = next level)
 run_pc        = $48             ; next command to execute
 run_cur       = $49             ; command shown highlighted ($FF = none)
 run_phase     = $4A             ; 0 fetch next, 1 moving, 2 turning
@@ -29,6 +31,10 @@ run_msg       = $58             ; address of the text shown in the info row
 run_walk      = $5A             ; 0 or 8: walk-cycle frame added to the robot image
 run_gtimer    = $5B             ; frame counter for the shimmering goal
 run_gphase    = $5C             ; colour index of the goal shimmer
+run_gold      = $5D             ; 1: draw the chest cell gold (chest on a goal field)
+run_gcol      = $5E             ; goal shimmer colour of this step
+run_gi        = $5F             ; goal_list offset while shimmering
+run_won_wait  = $60             ; frames of fanfare before a key leaves the won level
 
 RUN_FIELD_X = 1                 ; screen column of the first cell
 RUN_FIELD_Y = 1                 ; screen row of the first cell
@@ -39,6 +45,7 @@ RUN_MOVE_FRAMES = 8             ; 2 pixels per frame = one 16 pixel cell
 KEY_P       = 41                ; C64 keyboard matrix codes
 KEY_X       = 23
 KEY_SPACE   = 60
+KEY_R       = 17
 KEY_RETURN  = 1
 KEY_LEFTARROW = 57
 
@@ -77,6 +84,7 @@ run_mode
 .sprites
         jsr run_update_sprites
         jsr run_goal_anim
+        jsr run_won_tick
         lda key_new
         cmp #$FF
         beq .loop
@@ -84,12 +92,23 @@ run_mode
         bne .loop
         ldx run_confirm
         bne .confirm
-        cmp #KEY_P
+        ldx run_state
+        cpx #4
+        bne .normal
+        cmp #KEY_SPACE          ; level won: Space (after the fanfare) goes to the
+        bne .normal             ; next level; P, R and X work as usual
+        ldx run_won_wait
+        bne .loop
+        beq .next
+.normal cmp #KEY_P
         beq .leave
         cmp #KEY_SPACE
         beq .space
+        cmp #KEY_R
+        beq .restart
         cmp #KEY_X
         bne .loop
+.askquit
         lda #1
         sta run_confirm
         lda #<str_run_quit
@@ -97,6 +116,10 @@ run_mode
         jsr run_draw_message
         jmp .loop
 .space  jsr run_space
+        jmp .loop
+.restart
+        jsr run_restart
+        jsr run_go
         jmp .loop
 .confirm
         cmp #KEY_RETURN
@@ -110,13 +133,41 @@ run_mode
         jsr run_draw_message
         jmp .loop
 .quit   jmp system_reset
-.leave  lda #COL_DGREY           ; planning screen colours (see video_init)
+.next   lda level_no            ; next level, back to the first one after the last
+        clc
+        adc #1
+        cmp #plan_level_count
+        bcc .set_level
+        lda #0
+.set_level
+        sta level_no
+        jsr editor_init         ; fresh level: empty command list
+.leave  jsr sound_stop
+        lda #COL_DGREY           ; planning screen colours (see video_init)
         sta VIC_BG1
         lda #COL_ORANGE
         sta VIC_BG2
         lda level_no            ; plan view shows the untouched level again
         jsr load_plan_level
         rts
+
+; While the level-won fanfare plays Space is ignored; afterwards the message
+; points to Space (next level), R (replay) and P (plan).
+!zone run_won_tick
+run_won_tick
+        lda run_state
+        cmp #4
+        bne .done
+        lda run_confirm
+        bne .done
+        lda run_won_wait
+        beq .done
+        dec run_won_wait
+        bne .done
+        lda #<str_run_next
+        ldx #>str_run_next
+        jmp run_say
+.done   rts
 
 !zone system_reset
 system_reset
@@ -158,6 +209,7 @@ run_draw_message
 ; Reload the level and reset all playback state.
 !zone run_reset
 run_reset
+        jsr sound_stop
         lda level_no
         jsr load_plan_level
         lda #0
@@ -188,25 +240,40 @@ run_reset
         sta run_spy
         rts
 
-; Space: start (or restart after a stop). Ignored while running.
+; Space: start when ready, pause while running, continue when paused,
+; restart after the run has stopped.
 !zone run_space
 run_space
         lda run_state
+        beq run_go
         cmp #1
-        beq .done
-        cmp #2
-        bne .go
+        beq .pause
+        cmp #3
+        beq run_go
+        jsr run_restart         ; stopped: play again from the start
+        jmp run_go
+.pause  lda #3
+        sta run_state
+        lda #<str_run_paused
+        ldx #>str_run_paused
+        jmp run_say
+
+; Reload the level and redraw field and list (state = ready).
+!zone run_restart
+run_restart
         jsr run_reset
         jsr draw_run_field
         jsr draw_run_list
         jsr draw_scrollbar
-        jsr run_set_robot_image
-.go     lda #1
+        jmp run_set_robot_image
+
+; Start or continue running.
+!zone run_go
+run_go  lda #1
         sta run_state
         lda #<str_run_going
         ldx #>str_run_going
-        jsr run_say
-.done   rts
+        jmp run_say
 
 !zone draw_run_screen
 draw_run_screen
@@ -220,6 +287,10 @@ draw_run_screen
         sta win_w
         lda #22
         jsr draw_window
+        lda level_no            ; patch the level digit into the label
+        clc
+        adc #$31
+        sta str_run_field_lvl
         ldx #2
         ldy #0
         lda #<str_run_field
@@ -418,34 +489,51 @@ run_update_sprites
 .enable sta VIC_SPR_EN
         rts
 
-; The goal circle shimmers: every 8 frames its colour RAM cycles, unless the
-; chest stands on it.
+; The goal circles shimmer: every 8 frames the colour RAM of every free goal
+; field cycles (fields that hold a chest keep the chest colour).
 !zone run_goal_anim
 run_goal_anim
         inc run_gtimer
         lda run_gtimer
         and #7
         bne .done
-        lda goal_tx
-        sta tmp0
-        lda goal_ty
-        sta tmp1
-        jsr map_index
-        lda map_work,x
-        cmp #T_BOX
-        beq .done
         inc run_gphase
         lda run_gphase
         and #3
         tax
         lda run_goal_colors,x
-        sta cur_col
-        lda goal_ty
+        sta run_gcol
+        lda #0
+        sta run_gi
+.next   lda run_gi
+        lsr
+        cmp goal_count
+        bcs .done
+        lda run_gi
+        tax
+        lda goal_list,x
+        sta tmp0
+        lda goal_list+1,x
+        sta tmp1
+        jsr map_index
+        lda map_work,x
+        cmp #T_GOAL
+        bne .skip
+        jsr run_paint_goal
+.skip   inc run_gi
+        inc run_gi
+        jmp .next
+.done   rts
+
+; tmp0/tmp1 = goal field, run_gcol = colour: recolour its four characters.
+!zone run_paint_goal
+run_paint_goal
+        lda tmp1
         asl
         clc
         adc #RUN_FIELD_Y
         tax
-        lda goal_tx
+        lda tmp0
         asl
         clc
         adc #RUN_FIELD_X
@@ -455,7 +543,7 @@ run_goal_anim
         lda row_hi,x
         adc #>(COLORRAM - SCREEN)
         sta ptr0+1
-        lda cur_col
+        lda run_gcol
         ldy #0
         sta (ptr0),y
         iny
@@ -464,7 +552,7 @@ run_goal_anim
         sta (ptr0),y
         iny
         sta (ptr0),y
-.done   rts
+        rts
 
 run_goal_colors                 ; multicolour flag + cyan, white, cyan, purple
         !byte COL_CYAN+8, COL_WHITE+8, COL_CYAN+8, 4+8
@@ -633,6 +721,8 @@ run_do_move
         beq .blocked
         cmp #T_BOX
         beq .blocked
+        cmp #T_BOXG
+        beq .blocked
         lda run_tx
         sta robot_tx
         lda run_ty
@@ -696,9 +786,14 @@ run_pickup
         bcc .nothing
         lda map_work,x
         cmp #T_BOX
+        beq .take_floor
+        cmp #T_BOXG
         bne .nothing
+        lda #T_GOAL             ; delivered chest taken back: goal field is free again
+        bne .take
+.take_floor
         lda #T_FLOOR
-        sta map_work,x
+.take   sta map_work,x
         jsr run_redraw_front
         lda #1
         sta run_carry
@@ -720,34 +815,56 @@ run_drop
         jsr run_front_cell
         bcc .cant
         lda map_work,x
-        beq .ok                 ; free floor
+        beq .floor              ; free floor
         cmp #T_GOAL
         bne .cant
-.ok     lda #T_BOX
-        sta map_work,x
+        lda #T_BOXG             ; chest on a goal field
+        bne .store
+.floor  lda #T_BOX
+.store  sta map_work,x
+        pha
         jsr run_redraw_front
         lda #0
         sta run_carry
         jsr run_set_robot_image
         lda #16
         sta run_timer
-        lda run_tx
-        cmp goal_tx
+        pla
+        cmp #T_BOXG
         bne .more
-        lda run_ty
-        cmp goal_ty
-        bne .more
-        jsr sound_success       ; delivered to the target area
+        jsr run_all_delivered   ; carry set: no free goal field left
+        bcc .placed
+        jsr sound_celebrate     ; everything delivered: 2 second fanfare
         lda #$FF
         sta run_cur
         jsr draw_run_list
         lda #<str_run_done
         ldx #>str_run_done
-        jmp run_stop
+        jsr run_stop
+        lda #4                  ; level won
+        sta run_state
+        lda #100                ; the fanfare takes 2 seconds
+        sta run_won_wait
+        rts
+.placed jmp sound_place         ; bright two-part sound for one delivery
 .more   lda #3
         sta tmp3
         jmp sound_move
 .cant   +run_fail str_run_cantdrop
+
+; Carry set when no goal field without a chest is left on the field.
+!zone run_all_delivered
+run_all_delivered
+        ldx #MAP_CELLS-1
+.l      lda map_work,x
+        cmp #T_GOAL
+        beq .no
+        dex
+        bpl .l
+        sec
+        rts
+.no     clc
+        rts
 
 ; A/X = message. Stops playback and keeps the failing command highlighted.
 !zone run_fail
@@ -799,17 +916,17 @@ draw_run_cell
         lda ui_row
         sta tmp1
         jsr map_index
+        lda #0
+        sta run_gold
         lda map_work,x
         sta ui_save             ; cell type 0..3 = display tile
+        beq .floor
+        cmp #T_BOXG
         bne .typed
-        lda ui_col
-        cmp goal_tx
-        bne .floor
-        lda ui_row
-        cmp goal_ty
-        bne .floor
-        lda #T_GOAL
+        lda #T_BOX              ; chest on a goal field: shown as a gold chest
         sta ui_save
+        lda #1
+        sta run_gold
         bne .typed
 .floor  ldx ui_row              ; flowers: bit (col & 7) of the row mask
         lda ui_col
@@ -822,7 +939,10 @@ draw_run_cell
         sta ui_save
 .typed  ldx ui_save
         lda run_cell_colors,x
-        sta cur_col
+        ldy run_gold
+        beq .colour
+        lda #COL_YELLOW+8
+.colour sta cur_col
         txa
         asl
         asl

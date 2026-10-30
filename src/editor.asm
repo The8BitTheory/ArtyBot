@@ -7,6 +7,7 @@ ui_count = $2C
 ui_col   = $2D
 ; $2E is mouse_raw_x in zp.inc; keep this state in an unused zero-page slot.
 exit_confirm = $43
+arrow_rep = $61              ; auto-repeat counter for scrollbar arrow clicks
 PALETTE_NUM = 18
 AVAILABLE_COMMANDS = 7
 PROGRAM_ROWS = 17
@@ -80,7 +81,19 @@ editor_handle_input
         jmp editor_handle_exit_confirm
 .normal_input
         lda mouse_click
-        beq .keyboard
+        bne .click
+        lda mouse_btn           ; button held on a scrollbar arrow: auto-repeat
+        beq .no_repeat
+        jsr arrow_hit_test
+        bcc .no_repeat
+        dec arrow_rep
+        bne .no_repeat
+        ldx #REPEAT_RATE
+        stx arrow_rep
+        jmp .arrow_action
+.no_repeat
+        jmp .keyboard
+.click
         ; Bottom line (screen row 24): Run at columns 0..11, X: Exit at columns 12..18.
         lda mouse_y
         cmp #192
@@ -98,6 +111,18 @@ editor_handle_input
 .run_click
         jmp editor_run_plan
 .palette_click
+        ; Scrollbar arrows act like cursor up/down (move marker / scroll).
+        jsr arrow_hit_test
+        bcc .not_arrow
+        ldx #REPEAT_DELAY
+        stx arrow_rep
+.arrow_action
+        cmp #0
+        bne .arrow_down
+        jmp .cursor_up
+.arrow_down
+        jmp .cursor_down
+.not_arrow
         jsr palette_hit_test
         bcc .list_click
         cmp #AVAILABLE_COMMANDS
@@ -153,6 +178,13 @@ editor_handle_input
         bne .not_run_key
         jmp editor_run_plan
 .not_run_key
+        ldx #8                  ; digit keys 1..9 switch the level
+.digit  cmp level_key_codes,x
+        bne .next_digit
+        jmp editor_level_key    ; X = level index
+.next_digit
+        dex
+        bpl .digit
         cmp #KEY_CLR_HOME
         bne .not_clear_program
         lda key_shift
@@ -313,6 +345,61 @@ editor_run_plan
         jsr draw_program_list
         jsr draw_program_counts
         jsr spr_init            ; clear_screen wiped the sprite pointers
+.done   rts
+
+; Pointer over a scrollbar arrow? Carry set and A = 0 (up) / 1 (down) if so.
+; Up arrow: column 38, row 1 (y 8..15); down arrow: column 38, row 19 (y 152..159).
+!zone arrow_hit_test
+arrow_hit_test
+        lda mouse_x_hi
+        cmp #1
+        bne .miss
+        lda mouse_x_lo
+        cmp #48
+        bcc .miss
+        cmp #56
+        bcs .miss
+        lda mouse_y
+        cmp #8
+        bcc .miss
+        cmp #16
+        bcc .up
+        cmp #152
+        bcc .miss
+        cmp #160
+        bcs .miss
+        lda #1
+        sec
+        rts
+.up     lda #0
+        sec
+        rts
+.miss   clc
+        rts
+
+; Keyboard matrix codes of the digit keys 1..9 = levels 1..9.
+level_key_codes
+        !byte 56, 59, 8, 11, 16, 19, 24, 27, 32
+
+; X = level index (0..8). Not while a list entry is being moved or deleted.
+!zone editor_level_key
+editor_level_key
+        lda selection_active
+        bne .done
+        lda key_repeat
+        bne .done
+        txa
+        cmp #plan_level_count
+        bcs .done
+        cmp level_no
+        beq .done
+        jsr load_plan_level
+        lda #$FF
+        sta hover_command
+        jsr draw_title_and_counters
+        jsr draw_map_objects
+        lda #$FF
+        jsr editor_draw_info
 .done   rts
 
 !zone editor_request_exit
@@ -837,6 +924,10 @@ draw_title_and_counters
         ldx #0
         ldy #0
         jsr set_cursor
+        lda level_no            ; patch the level digit into the title
+        clc
+        adc #$31
+        sta str_title_lvl
         lda #<str_title
         ldx #>str_title
         jsr put_str
