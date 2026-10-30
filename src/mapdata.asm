@@ -302,13 +302,42 @@ map21
         !byte 3, 5, 4, 5, 5, 5, 3, 6, 4, 6, 5, 6
         !byte 0, 0                      ; keys, locks
 
-; map22..map29: PLACEHOLDERS until the ice levels are built (package in front of
+; map23..map29: PLACEHOLDERS until the ice levels are built (package in front of
 ; the robot, goal one field further: Pick Up, Move Fwd, Drop Off).
+; map22 (Winter 2, "Brakes"): a skating rink with two snow islands holding the
+; goals. Skating, the robot only stops on the ice when the next field is blocked:
+; the pines at (6,4) and (3,7) stop it right beside the islands. Without them it
+; would skate past to the far bank.
+;
+;    T.........
+;    ..######..
+;    P.######..
+;    ..###G##..
+;    .>####T#..
+;    ..######..
+;    P.##G###..
+;    ..#T####..
+;    ..######..
+;    T........T
+;    (. snow  # ice  T pine  P package  G goal  > robot)
 map22
-        !byte 4, 8, ROBOT_DIR_UP
-        !byte 1, 4, 6                   ; goal
-        !byte 1, 4, 7                   ; package
-        !byte 0, 0, 0, 0, 0             ; trees, water, ice, keys, locks
+        !byte 1, 4, ROBOT_DIR_RIGHT
+        !byte 2                       ; goal fields (x, y)
+        !byte 5, 3, 4, 6
+        !byte 2                       ; packages (x, y)
+        !byte 0, 2, 0, 6
+        !byte 5                       ; blockers (x, y)
+        !byte 0, 0, 0, 9, 9, 9, 6, 4, 3, 7
+        !byte 0                       ; water fields
+        !byte 44                      ; ice fields (frozen water)
+        !byte 2, 1, 3, 1, 4, 1, 5, 1, 6, 1, 7, 1, 2, 2, 3, 2
+        !byte 4, 2, 5, 2, 6, 2, 7, 2, 2, 3, 3, 3, 4, 3, 6, 3
+        !byte 7, 3, 2, 4, 3, 4, 4, 4, 5, 4, 7, 4, 2, 5, 3, 5
+        !byte 4, 5, 5, 5, 6, 5, 7, 5, 2, 6, 3, 6, 5, 6, 6, 6
+        !byte 7, 6, 2, 7, 4, 7, 5, 7, 6, 7, 7, 7, 2, 8, 3, 8
+        !byte 4, 8, 5, 8, 6, 8, 7, 8
+        !byte 0, 0                      ; keys, locks
+
 map23
         !byte 4, 8, ROBOT_DIR_UP
         !byte 1, 4, 6                   ; goal
