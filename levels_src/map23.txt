@@ -1,0 +1,15 @@
+map23 Winter 3, "Steering"
+an open rink: plan a chain of slides. Up past the pine at (3,0) to stop in row 1,
+right to the field edge, drop onto the corner goal. That package then stops the
+next slide up column 9 right beside the second goal.
+
+###T#####T
+##########
+#########G
+########G#
+##########
+##########
+##########
+##########
+##########
+P^P.......
