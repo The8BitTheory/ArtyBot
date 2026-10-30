@@ -19,6 +19,7 @@ Ein spielbarer Kreislauf **Weltkarte → Planen → Ausführen → Weltkarte** i
 - Levelknoten: offenes Level = Zielfeld, gelöstes = goldene Truhe, Levelnummer als Ziffer unten rechts im Knoten. Statuszeile zeigt "Meadow 3 - solved   Space: play".
 - **Space/Return** auf einem Knoten oder **Mausklick** auf einen Knoten startet das Level (Planungsbildschirm). Gleiches Level wie zuletzt → Befehlsliste bleibt, anderes Level → leere Liste (`last_level`).
 - **F2** (= Shift+F1, nur Test): markiert alle Levels der aktuellen Welt als gelöst (`world_cheat`); die Karte wird neu betreten und das Tor blinkt auf. Vor der Abgabe ggf. entfernen (Block `cmp #KEY_F1` in `world_mode` und Routine `world_cheat` in `world.asm`).
+- **F1** öffnet die **Level-Statistik** als Overlay (`world_stats`): Tabelle mit allen Levels, Spalten Level (Weltname + Nr.), Solved (Yes/No), Runs, Cmds (`-` solange ungelöst). Schließen mit F1, Space, Return oder ←; danach wird die Karte neu betreten. **Zählung** (`stats_run_start`, `stats_level_won` in `world.asm`, RAM: `level_runs`, `level_cmds`, je 1 Byte pro Level): Ein Run zählt, wenn die Ausführung startet (`run_go`) und der Plan (Level + Befehlsliste, Prüfsumme `stat_s1/s2`) sich seit dem letzten Start geändert hat. Retry, R, Pause/Weiter und F1-Hin-und-Zurück ohne Änderung zählen nicht. Nach der ersten Lösung wird `level_runs` eingefroren (Max. 255). `level_cmds` = Anzahl ausgeführter Befehle (`run_pc`) bis zur Lieferung des letzten Pakets; bei erneuter Lösung gilt der kürzere Wert. Test: `tools/sim_stats.py`. Das Overlay passt für bis zu 17 Levels auf eine Seite (Assemblierzeit-Prüfung `STATS_H`).
 - **F5** nächste Welt (nur Welten, die über das Tor geöffnet wurden), **F3** vorige Welt, **F8** Beenden (Rückfrage). Roboterposition wird pro Welt gemerkt (`world_pos_x/y`).
 - Welt 1 "Meadow" = Levels 1–4, Welt 2 "Winter" = Levels 5–7 (Schnee, Kiefern, Eissee, brauner Weg).
 - **Rückweg:** Jede Welt außer der ersten hat einen Bogen (Kartenzeichen `<`, Zelltyp 9, `WM_BACK`, immer begehbar, cyan). Betreten führt in die vorige Welt (`world_check_gate`), die Figur steht dort wieder vor dem Tor. In Winter liegt er unten links neben Level 1. Der Generator verlangt genau einen `<` in jeder Welt außer Welt 1 und keinen in Welt 1.
@@ -65,7 +66,7 @@ Ein spielbarer Kreislauf **Weltkarte → Planen → Ausführen → Weltkarte** i
 
 ## Was fehlt / offen
 
-- Keine Zählung von Versuchen, Schritten oder Befehlen als Wertung. Die Aufgabe nennt ausdrücklich "weniger Befehle oder weniger Versuche".
+- Wertung ist da (Level-Statistik, s. oben), aber keine Schritt-Zählung und kein Programmlängen-Limit.
 - Kein Programmlängen-Limit pro Level (Anzeige "PROGRAM: 00/99" existiert).
 - Nur 4 Level. Bewertet werden Umfang, Qualität und Abwechslung der Level.
 - Kein Titelbild / keine Einleitung.
@@ -107,6 +108,7 @@ Ein spielbarer Kreislauf **Weltkarte → Planen → Ausführen → Weltkarte** i
 | `tools/gen_theme_winter.py` | **Generator** von `src/gfx_winter.asm` (Winter-Zellen + Plan-Kacheln, ASCII-Art); `--preview out.png` zeichnet eine Vorschau: `python -B tools/gen_theme_winter.py` |
 | `src/gfx_winter.asm` | **generiert** von `tools/gen_theme_winter.py` – nicht von Hand ändern |
 | `tools/sim_winter.py` | Simulator-Durchlauf des ganzen Spiels (Meadow → Tor → Winter → Bogen zurück → Winter-Levels), mit Prüfungen und Screenshots: `python -B tools/sim_winter.py build/roboter.prg out/prefix` (braucht `Test.map`) |
+| `tools/sim_stats.py` | Simulator-Test der Level-Statistik: Runs werden nur bei geändertem Plan gezählt, Befehlszahl nach Sieg, Overlay-Screenshots: `python -B tools/sim_stats.py build/roboter.prg build/labels.txt out/prefix` (Labels mit `acme -l build/labels.txt` erzeugen) |
 | `tools/sim_gate.py` | Simulator-Test des Welt-Tors: geschlossen blockiert, Level 1 lösen, Tor blinkt auf der Karte, Durchgehen; Screenshots und Frame-genaue Ausgabe von `wm_gate_open`: `python -B tools/sim_gate.py build/roboter.prg out/prefix` (braucht `Test.map` im Projektordner) |
 | `tools/sheet.py` | Vergrößerte Vorschau der Planungs-Kacheln als PNG: `python -B tools/sheet.py [out.png]` (braucht Pillow) |
 | `tools/linux_acme/` | `stubs.c` + `build_linux_acme.sh`: baut ACME aus `C:\Users\martin\programme\acme\src` für Linux (für Cloud-Chats ohne Windows). Nur in einer **Kopie** des Projekts assemblieren, sonst überschreibt `main.asm` `Test.lbl/.pdb` (`!svl`/`!pdb`) mit Stub-Ausgaben |

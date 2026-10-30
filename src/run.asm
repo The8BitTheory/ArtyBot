@@ -283,7 +283,8 @@ run_restart
 
 ; Start or continue running.
 !zone run_go
-run_go  lda #1
+run_go  jsr stats_run_start    ; counts a run when the plan changed since the last one
+        lda #1
         sta run_state
         lda #<str_run_going
         ldx #>str_run_going
@@ -926,6 +927,7 @@ run_land
         ldx #>str_run_done
         jsr run_stop
         jsr progress_mark       ; solved (world map shows a gold chest)
+        jsr stats_level_won     ; remember how many commands the solution needed
         lda #4                  ; level won
         sta run_state
         lda #100                ; the fanfare takes 2 seconds

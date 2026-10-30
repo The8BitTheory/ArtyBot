@@ -53,9 +53,18 @@ str_run_cantthrow !text "Can't throw there. Space: retry",0
 str_empty !byte 0
 ; World map (world.asm)
 str_world_title !text " World ",0
-str_bottom_world !text "Space:Play F3/F5:World F8:Exit",0
+str_bottom_world !text "Space:Play F1:Stats F3/5:World F8:Exit",0
 str_world_walk !text "WASD/Cursor: walk to a level",0
 str_world_play !text "   Space: play",0
 str_world_solved !text " - solved",0
 str_world_gate !text "The gate is open - go through!",0
 str_world_end !text "The road ends here - for now",0
+; Level statistics overlay (world.asm)
+str_stats_title !text " Level statistics ",0
+str_stats_close !text " F1:Close ",0
+str_stats_level !text "Level",0
+str_stats_solved !text "Solved",0
+str_stats_runs !text "Runs",0
+str_stats_cmds !text "Cmds",0
+str_stats_yes !text "Yes",0
+str_stats_no !text "No",0

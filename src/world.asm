@@ -169,6 +169,13 @@ str_world_winter !text "Winter",0
 
 ; ---- Progress (RAM) ---------------------------------------------------------
 level_done      !fill MAX_LEVELS/8, 0   ; one bit per level of plan_level_table
+level_runs      !fill MAX_LEVELS, 0     ; runs per level (counted until it is solved, max 255)
+level_cmds      !fill MAX_LEVELS, 0     ; fewest commands of a solution (0 = not solved)
+stat_s1         !byte 0                 ; checksum of the plan of the last run
+stat_s2         !byte 0
+stat_nz         !byte 0                 ; stats_put_num: leading digit seen
+stat_lvl        !byte 0                 ; stats_put_level_name / stats rows
+stat_w          !byte 0
 world_pos_x     !fill MAX_WORLDS, 0     ; last robot cell per world
 world_pos_y     !fill MAX_WORLDS, 0
 last_level      !byte $FF               ; level whose plan is in the command list
@@ -190,6 +197,14 @@ world_init
 .clr    sta level_done,x
         dex
         bpl .clr
+        ldx #MAX_LEVELS-1
+        lda #0
+.clr2   sta level_runs,x
+        sta level_cmds,x
+        dex
+        bpl .clr2
+        sta stat_s1
+        sta stat_s2
         lda #0
         sta wm_tmp
 .w      lda wm_tmp
@@ -360,11 +375,12 @@ world_mode
 .not_quit
         ldx wm_steps            ; the rest only while the robot stands still
         bne .loop
-        cmp #KEY_F1             ; F2 (= Shift+F1): test key, solves the whole world
+        cmp #KEY_F1             ; F1: level statistics, F2 (= Shift+F1): test key, solves the world
         bne .not_f2
         ldx key_shift
-        beq .loop
+        beq .stats
         jmp world_cheat
+.stats  jmp world_stats
 .not_f2
         cmp #KEY_SPACE
         beq .enter
@@ -436,6 +452,327 @@ world_cheat
         inc wm_tmp
         jmp .l
 .done   jmp world_mode
+
+; ---- Statistics: runs and commands per level --------------------------------
+; A run is counted when the program is started and the plan (level + command
+; list) differs from the plan of the previous run; restarting, retrying after
+; an error, pausing and continuing do not count. Counting stops once the level
+; is solved. level_cmds keeps the shortest solution (commands executed until
+; the last package was delivered).
+
+; Called whenever playback starts or continues (run_go).
+!zone stats_run_start
+stats_run_start
+        lda level_no            ; Fletcher-like checksum over the list
+        sta stat_nz
+        lda editor_count
+        clc
+        adc #1
+        sta tmp1
+        ldx #0
+.l      cpx editor_count
+        beq .done
+        lda stat_nz
+        clc
+        adc program,x
+        adc #1
+        sta stat_nz
+        clc
+        adc tmp1
+        sta tmp1
+        inx
+        bne .l
+.done   lda stat_nz
+        cmp stat_s1
+        bne .new
+        lda tmp1
+        cmp stat_s2
+        beq .same
+.new    lda stat_nz
+        sta stat_s1
+        lda tmp1
+        sta stat_s2
+        lda level_no
+        jsr level_is_done
+        bne .same               ; solved already: runs are frozen
+        ldx level_no
+        inc level_runs,x
+        bne .same
+        dec level_runs,x        ; saturate at 255
+.same   rts
+
+; The level was just solved: run_pc = number of commands executed.
+!zone stats_level_won
+stats_level_won
+        ldx level_no
+        lda level_cmds,x
+        beq .store              ; first solution
+        cmp run_pc
+        bcc .done               ; the stored one is shorter
+        beq .done
+.store  lda run_pc
+        sta level_cmds,x
+.done   rts
+
+; A = number 0..255: three characters, right aligned.
+!zone stats_put_num
+stats_put_num
+        sta tmp1
+        lda #0
+        sta stat_nz
+        ldx #0
+.h      lda tmp1
+        cmp #100
+        bcc .hd
+        sbc #100
+        sta tmp1
+        inx
+        bne .h
+.hd     jsr .digit
+        ldx #0
+.t      lda tmp1
+        cmp #10
+        bcc .td
+        sbc #10
+        sta tmp1
+        inx
+        bne .t
+.td     jsr .digit
+        lda tmp1
+        clc
+        adc #'0'
+        jmp put_char
+.digit  txa                     ; X = digit value; blank while it is a leading zero
+        ora stat_nz
+        bne .show
+        lda #' '
+        jmp put_char
+.show   lda #1
+        sta stat_nz
+        txa
+        clc
+        adc #'0'
+        jmp put_char
+
+; A = level (global index): prints "<world name> <n>" at the cursor.
+!zone stats_put_level_name
+stats_put_level_name
+        sta stat_lvl
+        lda #0
+        sta stat_w
+.w      lda stat_w
+        asl
+        tax
+        lda world_table,x
+        sta ptr1
+        lda world_table+1,x
+        sta ptr1+1
+        ldy #WREC_FIRST
+        lda stat_lvl
+        sec
+        sbc (ptr1),y
+        bcc .next               ; level is before this world
+        iny
+        cmp (ptr1),y
+        bcs .next               ; level is after this world
+        clc
+        adc #'1'
+        pha
+        ldy #WREC_NAME
+        lda (ptr1),y
+        pha
+        iny
+        lda (ptr1),y
+        tax
+        pla
+        jsr put_str
+        lda #' '
+        jsr put_char
+        pla
+        jmp put_char
+.next   inc stat_w
+        lda stat_w
+        cmp #world_count
+        bcc .w
+        rts
+
+STATS_X       = 3               ; overlay window position and size
+STATS_Y       = 2
+STATS_W       = 34
+STATS_H       = plan_level_count + 5
+!if STATS_H > 22 {
+    !error "Level-Statistik: zu viele Levels fuer eine Seite"
+}
+
+; F1 on the world map: table with the bookkeeping of every level over the map.
+; Any of F1 / Space / Return / left arrow closes it; the map is entered again.
+!zone world_stats
+world_stats
+        jsr world_save_pos
+        lda #0
+        sta VIC_SPR_EN
+        jsr sound_stop
+        ; blank interior
+        lda #COL_WHITE
+        sta cur_col
+        lda #STATS_Y+1
+        sta stat_lvl
+.fill   ldx #STATS_X+1
+        ldy stat_lvl
+        jsr set_cursor
+        lda #STATS_W-2
+        sta stat_w
+.fc     lda #' '
+        jsr put_char
+        dec stat_w
+        bne .fc
+        inc stat_lvl
+        lda stat_lvl
+        cmp #STATS_Y+STATS_H-1
+        bne .fill
+        lda #COL_WHITE
+        sta cur_col
+        lda #STATS_W
+        sta win_w
+        ldx #STATS_X
+        ldy #STATS_Y
+        lda #STATS_H
+        jsr draw_window
+        ; rule under the header
+        ldx #STATS_X+1
+        ldy #STATS_Y+2
+        jsr set_cursor
+        lda #STATS_W-2
+        sta stat_w
+.rule   lda #UI_TOP
+        jsr put_char
+        dec stat_w
+        bne .rule
+        ; labels
+        lda #<str_stats_title
+        sta ptr1
+        lda #>str_stats_title
+        sta ptr1+1
+        ldx #STATS_X+2
+        ldy #STATS_Y
+        jsr run_label
+        lda #<str_stats_close
+        sta ptr1
+        lda #>str_stats_close
+        sta ptr1+1
+        ldx #STATS_X+2
+        ldy #STATS_Y+STATS_H-1
+        jsr run_label
+        ; header
+        lda #COL_YELLOW
+        sta cur_col
+        ldx #5
+        ldy #STATS_Y+1
+        jsr set_cursor
+        lda #<str_stats_level
+        ldx #>str_stats_level
+        jsr put_str
+        ldx #16
+        ldy #STATS_Y+1
+        jsr set_cursor
+        lda #<str_stats_solved
+        ldx #>str_stats_solved
+        jsr put_str
+        ldx #24
+        ldy #STATS_Y+1
+        jsr set_cursor
+        lda #<str_stats_runs
+        ldx #>str_stats_runs
+        jsr put_str
+        ldx #30
+        ldy #STATS_Y+1
+        jsr set_cursor
+        lda #<str_stats_cmds
+        ldx #>str_stats_cmds
+        jsr put_str
+        ; one row per level
+        lda #0
+        sta wm_tmp
+.row    lda #COL_WHITE
+        sta cur_col
+        ldx #5
+        lda wm_tmp
+        clc
+        adc #STATS_Y+3
+        tay
+        jsr set_cursor
+        lda wm_tmp
+        jsr stats_put_level_name
+        ldx #16                 ; solved?
+        lda wm_tmp
+        clc
+        adc #STATS_Y+3
+        tay
+        jsr set_cursor
+        lda wm_tmp
+        jsr level_is_done
+        beq .no
+        lda #COL_GREEN
+        sta cur_col
+        lda #<str_stats_yes
+        ldx #>str_stats_yes
+        bne .say
+.no     lda #COL_RED
+        sta cur_col
+        lda #<str_stats_no
+        ldx #>str_stats_no
+.say    jsr put_str
+        lda #COL_WHITE
+        sta cur_col
+        ldx #25                 ; runs
+        lda wm_tmp
+        clc
+        adc #STATS_Y+3
+        tay
+        jsr set_cursor
+        ldx wm_tmp
+        lda level_runs,x
+        jsr stats_put_num
+        ldx #31                 ; commands (only for solved levels)
+        lda wm_tmp
+        clc
+        adc #STATS_Y+3
+        tay
+        jsr set_cursor
+        ldx wm_tmp
+        lda level_cmds,x
+        beq .dash
+        jsr stats_put_num
+        jmp .next
+.dash   lda #' '
+        jsr put_char
+        lda #' '
+        jsr put_char
+        lda #'-'
+        jsr put_char
+.next   inc wm_tmp
+        lda wm_tmp
+        cmp #plan_level_count
+        beq .rows_done
+        jmp .row
+.rows_done
+        ; wait for the closing key
+.wait   jsr wait_frame
+        jsr input_update
+        lda key_new
+        cmp #$FF
+        beq .wait
+        ldx key_repeat
+        bne .wait
+        cmp #KEY_F1
+        beq .close
+        cmp #KEY_SPACE
+        beq .close
+        cmp #KEY_RETURN
+        beq .close
+        cmp #KEY_LEFTARROW
+        bne .wait
+.close  jmp world_mode          ; redraws the whole map (position was saved)
 
 ; A = node index: start that level in plan mode, back when the player leaves.
 !zone world_play
