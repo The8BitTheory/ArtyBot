@@ -5,7 +5,7 @@
 ; the robot is a multicolour sprite (sprite 3) with a two-frame walk cycle; a
 ; carried package (chest) is sprite 2, held above the robot's head.
 ; Keys: Space = run / pause / continue, R = restart the run, P = back to
-; planning mode, X = quit (confirmed).
+; planning mode, F7 = world map, F8 = quit (confirmed).
 ; The mouse is ignored (pointer and insertion marker sprites are off).
 
 run_confirm   = $46             ; 1 while "Really quit?" is shown
@@ -123,10 +123,10 @@ run_mode
         beq .space
         cmp #KEY_R
         beq .restart
-        cmp #KEY_F7             ; F8 (= Shift+F7) exits
+        cmp #KEY_F7             ; F7: world map, F8 (= Shift+F7) exits
         bne .loop
         ldx key_shift
-        beq .loop
+        beq .next
 .askquit
         lda #1
         sta run_confirm

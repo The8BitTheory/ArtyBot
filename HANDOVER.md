@@ -39,7 +39,7 @@ Ein spielbarer Kreislauf **Weltkarte → Planen → Ausführen → Weltkarte** i
 - Jump: Roboter fliegt 16 Frames im Bogen (Tabelle `run_arc`, 10 px hoch) zwei Felder weit. Throw: die Truhe fliegt als eigenes Sprite im Bogen (`run_throw_arc`, Phase 3) und wird erst bei der Landung ins Feld geschrieben (`run_land`, gemeinsam mit Drop Off).
 - Unterer Rahmen des Spielfelds (Zeile 21, Spalte 2): "Delivered: n/m" (Pakete auf Zielen / Zielfelder), Routine `draw_run_delivered` in run.asm, aktualisiert bei Levelstart/Neustart, Aufheben und Ablegen/Landen.
 - Befehlsliste rechts, der laufende Befehl wird hervorgehoben und mitgescrollt.
-- Steuerung: Space = Start/Pause/Weiter, R = Neustart, **F1** (oder P) = zurück zum Planen, **F8** = Beenden.
+- Steuerung: Space = Start/Pause/Weiter, R = Neustart, **F1** (oder P) = zurück zum Planen, **F7** = direkt zur Weltkarte (jederzeit außer bei der Quit-Rückfrage; Befehlsliste bleibt erhalten, wie Space nach Sieg über `run_to_map`), **F8** = Beenden. Untere Zeile: "Space:Go R:Redo F1:Plan F7:Map F8:Exit".
 - Fehlermeldungen mit Fehlerton: blockiert, nichts aufzuheben, Hände voll, nichts abzulegen, hier nicht ablegbar, Programm zu Ende ohne Lieferung, "can't swim" (ins Wasser gelaufen), Baum im Weg (Jump/Throw), nicht landbar (Jump), nichts zu werfen, hierhin nicht werfbar.
 - Erfolg: Ton pro geliefertem Paket, 2-Sekunden-Fanfare wenn alle Zielfelder belegt sind, Level wird als gelöst markiert (`progress_mark`), dann Space = zurück zur Weltkarte, R = Wiederholen.
 
