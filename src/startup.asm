@@ -30,6 +30,8 @@ start
         +copy gfx_robot, CHARSET + ROBOT_CHAR_BASE*8, ROBOT_CHAR_BYTES
         +copy gfx_icons2, CHARSET + ICON2_CHAR_BASE*8, ICON2_CHAR_BYTES
         +copy gfx_run, CHARSET + RUN_CHAR_BASE*8, RUN_CHAR_BYTES
+        +copy gfx_ui_frame, CHARSET + UI_FRAME_BASE*8, 8*8
+        +copy gfx_ui_extra, CHARSET + UI_HAND*8, 2*8
         +copy gfx_sprites, SPRITES, SPRITE_BYTES
         +copy gfx_run_sprites, SPRITES + SPRITE_BYTES, RUN_SPR_BYTES
 

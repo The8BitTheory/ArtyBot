@@ -58,14 +58,17 @@ ICON_CHAR_BASE  = $E0
 ICON_CHAR_COUNT = 30            ; 24 command glyphs, Turn 180, and scrollbar arrows
 ICON_CHAR_BYTES = ICON_CHAR_COUNT * 8
 ROBOT_CHAR_BASE  = $80
-ROBOT_CHAR_COUNT = 10           ; 4 robot dirs + floor, goal, package, blocker, water, ice (all multicolour)
+ROBOT_CHAR_COUNT = 13           ; 4 robot dirs + floor, goal, package, blocker, water, ice, key, lock, door (all multicolour)
 FLOOR_CHAR       = ROBOT_CHAR_BASE + 4
 GOAL_CHAR        = ROBOT_CHAR_BASE + 5
 PKG_CHAR         = ROBOT_CHAR_BASE + 6
 BLOCK_CHAR       = ROBOT_CHAR_BASE + 7
 WATER_CHAR       = ROBOT_CHAR_BASE + 8
 ICE_CHAR         = ROBOT_CHAR_BASE + 9
-PLAN_TILE_COUNT  = 6            ; per theme: floor, goal, package, blocker, water, ice (from FLOOR_CHAR)
+KEY_CHAR         = ROBOT_CHAR_BASE + 10
+LOCK_CHAR        = ROBOT_CHAR_BASE + 11
+DOOR_CHAR        = ROBOT_CHAR_BASE + 12
+PLAN_TILE_COUNT  = 9            ; per theme: floor, goal, package, blocker, water, ice, key, lock, door (from FLOOR_CHAR)
 ROBOT_CHAR_BYTES = ROBOT_CHAR_COUNT * 8
 ; Second command-icon block (the $E0 block is full): Jump $90-$93, Throw $94-$97.
 ICON2_CHAR_BASE  = $90
@@ -109,6 +112,11 @@ T_WATER     = 5             ; water: blocks walking/dropping, can be jumped over
 T_ICE       = 6             ; frozen water: the robot skates over it; jumping off it, landing
                             ; or throwing a package on it breaks it (run fails)
 T_BROKEN    = 7             ; broken ice (map_work only, shown after such a failure)
+T_KEY       = 8             ; key: picked up / dropped / thrown like a package, not a delivery
+T_LOCK      = 9             ; lock: drop (or throw) the key onto it -> T_LOCKED, its door opens
+T_LOCKED    = 10            ; lock holding its key (map_work only)
+T_DOOR      = 11            ; closed door: blocks like a tree; opened it becomes T_FLOOR
+MAX_LOCKS   = 4             ; lock/door pairs per level
 SPRITE_BYTES= 128           ; mouse pointer plus insertion marker
 PROGRAM_MAX = 99
 
@@ -126,34 +134,48 @@ REPEAT_RATE = 4
 RASTER_LINE = 250
 COL_BLUE    = 6
 
-; --- Run screen (RPG look): multicolour 2x2-character field cells, NES-style
-; window frame characters and the pointing hand, all from $A1 on ($A0 is the
-; scrollbar block of the ROM set); sprites.
-RUN_CHAR_BASE  = $A1
-RUN_CELL_TYPES = 12             ; grass, tree, chest, goal, flowers, water, path, gate l/r, arch (world map), ice, broken ice
-RUN_CELL_ICE   = 10             ; display cell of T_ICE (T_BROKEN = RUN_CELL_ICE+1)
-RUN_UI_BASE    = RUN_CHAR_BASE + RUN_CELL_TYPES*4
-UI_TL          = RUN_UI_BASE+0  ; window frame: rounded corners and edges
-UI_TOP         = RUN_UI_BASE+1
-UI_TR          = RUN_UI_BASE+2
-UI_LEFT        = RUN_UI_BASE+3
-UI_RIGHT       = RUN_UI_BASE+4
-UI_BL          = RUN_UI_BASE+5
-UI_BOTTOM      = RUN_UI_BASE+6
-UI_BR          = RUN_UI_BASE+7
-UI_HAND        = RUN_UI_BASE+8  ; Final-Fantasy style pointing hand
-RUN_CHAR_COUNT = RUN_CELL_TYPES*4 + 9
+; --- Run screen (RPG look): multicolour 2x2-character field cells $A0-$DF (16 cell
+; types, the theme's tileset), NES-style window frame $98-$9F, pointing hand $8D,
+; solid block $8E (scrollbar thumb); sprites.
+; Cell order (= display tile): grass, tree, chest, goal, flowers, water, path, gate l/r,
+; arch (world map), ice, broken ice, key, lock, full lock, door. Every theme draws its own
+; key / lock / door in the same positions (e.g. keycard, card reader, sliding door).
+RUN_CHAR_BASE  = $A0
+RUN_CELL_TYPES = 16
+RUN_CELL_ICE   = 10             ; display cell of T_ICE; T_ICE..T_DOOR map to RUN_CELL_ICE.. in order
+RUN_CHAR_COUNT = RUN_CELL_TYPES*4
 RUN_CHAR_BYTES = RUN_CHAR_COUNT * 8
+UI_FRAME_BASE  = $98
+UI_TL          = UI_FRAME_BASE+0 ; window frame: rounded corners and edges
+UI_TOP         = UI_FRAME_BASE+1
+UI_TR          = UI_FRAME_BASE+2
+UI_LEFT        = UI_FRAME_BASE+3
+UI_RIGHT       = UI_FRAME_BASE+4
+UI_BL          = UI_FRAME_BASE+5
+UI_BOTTOM      = UI_FRAME_BASE+6
+UI_BR          = UI_FRAME_BASE+7
+UI_HAND        = ROBOT_CHAR_BASE + ROBOT_CHAR_COUNT ; $8D: Final-Fantasy style pointing hand
+SOLID_CHAR     = UI_HAND + 1    ; $8E: solid block (scrollbar thumb)
+!if T_DOOR - T_ICE + RUN_CELL_ICE != RUN_CELL_TYPES - 1 {
+    !error "Tile-IDs T_ICE..T_DOOR passen nicht zu den Run-Zellen"
+}
+!if SOLID_CHAR >= ICON2_CHAR_BASE {
+    !error "Hand/Block-Zeichen ueberlappen die Icon2-Zeichen"
+}
 !if RUN_CHAR_BASE + RUN_CHAR_COUNT > ICON_CHAR_BASE {
     !error "Run-Zeichen ueberlappen die Icon-Zeichen"
 }
-!if ICON2_CHAR_BASE + ICON2_CHAR_COUNT > RUN_CHAR_BASE {
-    !error "Icon2-Zeichen ueberlappen die Run-Zeichen"
+!if ICON2_CHAR_BASE + ICON2_CHAR_COUNT > UI_FRAME_BASE {
+    !error "Icon2-/Rahmen-Zeichen ueberlappen"
 }
-RUN_SPR_COUNT  = 17             ; robot 4 dirs x (normal, carrying) x 2 walk frames, chest
+!if UI_FRAME_BASE + 8 > RUN_CHAR_BASE {
+    !error "Rahmen-/Run-Zeichen ueberlappen"
+}
+RUN_SPR_COUNT  = 18             ; robot 4 dirs x (normal, carrying) x 2 walk frames, chest, key
 RUN_SPR_BYTES  = RUN_SPR_COUNT * 64
 RUN_SPR_BLOCK  = SPRITE_BLOCK + 2   ; stored behind the pointer/marker sprites
 RUN_SPR_CHEST  = RUN_SPR_BLOCK + 16
+RUN_SPR_KEY    = RUN_SPR_BLOCK + 17
 
 ; Run screen colours. Multicolour: $D021 black, $D022/$D023 the two grass greens.
 COL_LGREEN     = 13
@@ -163,3 +185,4 @@ RUN_BG1        = COL_GREEN
 RUN_BG2        = COL_LGREEN
 ROBOT_COLOR    = COL_LGREY      ; sprite colour (%10), $D025 black, $D026 white
 CHEST_COLOR    = COL_RED        ; brownish red, also the chest cell colour
+KEY_COLOR      = COL_YELLOW     ; carried key sprite

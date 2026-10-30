@@ -57,6 +57,8 @@ win_h       = $60
 program     = $0300
 
 map_work    = $0200
+lock_count  = $24            ; number of lock/door pairs of the loaded level (mapdata.asm)
+run_item    = $25            ; what is carried / was last carried: 0 package, 1 key (run.asm)
 goal_count  = $23            ; number of goal fields of the loaded level (mapdata.asm)
 ; --- World map, worlds and plan/run hand-over (world.asm)
 run_to_map    = $6C             ; set by run_mode: won level left with Space

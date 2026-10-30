@@ -1360,7 +1360,7 @@ draw_scrollbar
         sta cur_col
         ldx #38
         jsr set_cursor
-        lda #$A0                ; solid block
+        lda #SOLID_CHAR         ; solid block
         jsr put_char
         rts
 

@@ -1,6 +1,6 @@
 # Projekt-Handover: ArtyBot
 
-**Stand:** 30.10.2026, 13:20 (Wien) – 2 Welten (Meadow, Winter), 9 Levels, Welt-Tor, Rückweg-Bogen, Level-Statistik, Eis
+**Stand:** 30.10.2026, ca. 14:00 (Wien) – 2 Welten (Meadow, Winter), 10 Levels, Welt-Tor, Rückweg-Bogen, Level-Statistik, Eis, **Schlüssel/Schloss/Tür (NEU, noch NICHT assembliert/getestet – im Chat war der Rechner nicht mehr erreichbar; als Erstes bauen und `sim_winter.py` laufen lassen)**
 **Basis:** lokaler Arbeitsstand `C:\Users\martin\iCloudDrive\8bit\robotron\ArtyBot`.
 **Abgabe:** Sa 31.10.2026, 12:00.
 
@@ -54,7 +54,7 @@ Ein spielbarer Kreislauf **Weltkarte → Planen → Ausführen → Weltkarte** i
 - **Drop Off aufs Eis** ist nicht erlaubt ("Can't drop here", wie bei Wasser) – bewusst so festgelegt.
 - Level gewonnen, wenn jedes Zielfeld ein Paket trägt.
 
-**Level** (`mapdata.asm`): 7 Level, alle mit `tools/solve_levels.py` auf Lösbarkeit geprüft (Befehlszahl = kürzeste Lösung, bei Level 4 nur eine gefundene).
+**Level** (`mapdata.asm`): 10 Level (Nummern 6–10 = frühere 5–9), alle mit `tools/solve_levels.py` auf Lösbarkeit geprüft (Befehlszahl = kürzeste Lösung, bei Level 4 nur eine gefundene).
 - Level 1: ein Paket, ein Ziel, 6 Bäume.
 - Level 2: drei Pakete, drei Ziele, 6 Bäume.
 - Level 3 ("Fluss"): Fluss in Spalte 5, Roboter und 2 Pakete links, 2 Ziele rechts. Ziel (6,2) ist von Bäumen eingezäunt und nur zur Wasserseite offen → dieses Paket muss geworfen werden. Kürzeste Lösung 17 Befehle (BFS-Regelmodell; ohne Throw bzw. ohne Jump unlösbar; im Simulator bis zur Fanfare durchgespielt).
@@ -69,11 +69,21 @@ Ein spielbarer Kreislauf **Weltkarte → Planen → Ausführen → Weltkarte** i
 
 **Sound** (`sound.asm`): kleiner Notensequenzer im Raster-IRQ (Stimme 1): Schritt-Blips je Richtung, Fehler, "Ding-Ding" beim Liefern, Fanfare, Sprung-"Boing" (`sound_jump`, steigende Dreiecksnoten über die 16 Sprungframes), Wurf-"Whoosh" (`sound_throw`, fallende Sägezahnnoten).
 
+## Schlüssel, Schloss, Tür (30.10., Level 5 in Meadow)
+
+- **Tile-IDs** (`defs.inc`): `T_KEY`=8, `T_LOCK`=9, `T_LOCKED`=10 (Schloss mit Schlüssel, nur `map_work`), `T_DOOR`=11. Anzeige-Zellen/Plan-Kacheln sind in **jedem Theme an denselben Zeichenpositionen**: Run-Zellen 12–15 (`key`, `lock`, `lock_full`, `door`; `RUN_CELL_ICE`+Tile-ID−`T_ICE`), Plan-Kacheln `$8A` Schlüssel, `$8B` Schloss, `$8C` Tür (`KEY_CHAR/LOCK_CHAR/DOOR_CHAR`). Ein neues Theme (z. B. Computerwelt) zeichnet nur andere Grafik (Keycard / Leseschlitz / Schiebetür) in diese Slots; der Code bleibt gleich. Zeichen in `gen_gfx_run.py` (Meadow, `CELLS['key'|'lock'|'lock_full'|'door']`), `gen_theme_winter.py` (übernimmt Meadow-Art, anpassbar) und `gen_plan_tiles.py` (`KEY/LOCK/DOOR`); Farben pro Theme in `world.asm` (`theme_*`, je 4 Einträge hinter „broken ice“ bzw. `T_BROKEN`).
+- **Regeln** (`run.asm`): Schlüssel wird mit Pick Up wie ein Paket aufgenommen (`run_item`=1, Sprite 2 zeigt dann `RUN_SPR_KEY` in `KEY_COLOR`; `run_item`=0 Paket). Drop Off auf freien Boden legt ihn ab; **Drop Off oder Throw auf ein Schloss** (`T_LOCK`) → `T_LOCKED`, `run_open_door` macht die zugehörige Tür zu `T_FLOOR` und zeichnet die Zelle neu (Karte ändert sich dynamisch, Meldung „Click! A door opened.“, Ton `sound_place`). Schlüssel zählt nicht als Lieferung, kann nicht auf Zielfeld/Eis-Ziel abgelegt werden; Pakete passen nicht ins Schloss. Schlüssel, Schloss und geschlossene Tür blockieren das Gehen (auch Gleiten). **Geschlossene Tür blockiert Springen/Werfen wie ein Baum**; Schlüssel und Schloss darf man überspringen/überwerfen, nicht darauf landen. Aufgesetzter Schlüssel kann nicht zurückgenommen werden.
+- **Levelformat** (`mapdata.asm`): nach der Eisliste folgen Anzahl Schlüssel + (x,y)-Paare, dann Anzahl Schloss/Tür-Paare (max. `MAX_LOCKS`=4) + Datensätze (Schloss x, y, Tür x, y). Alle alten Levels haben `0, 0` am Ende. Im RAM: `lock_list` `$02A0` (4 Byte je Paar), `lock_count` `$24`, `run_item` `$25` (zp.inc).
+- **Level 5 „Locked gates“** (Meadow 5): zwei Baumwände (x=3, x=6) mit je einer geschlossenen Tür; Schloss 1 (1,2) im ersten Raum, Schlüssel 1 (2,7); dahinter Schlüssel 2 (4,8) und Schloss 2 (5,2); 2 Pakete, 2 Ziele (8,2),(8,7). Löser: 47 Befehle (gewichtet, nicht kürzeste): `wdsaqazzexqzazzdezwdqdwzzeaqazacdqawzdcdqwdzwde`. Die Winter-Levels sind dadurch **6–10** (`plan_level_6..10`, Winter `first level` = 5, `world_table`); Meadow hat jetzt 5 Knoten (Knoten 5 bei (16,4) auf der Karte).
+- **Zeichensatz umgebaut:** `RUN_CHAR_BASE` = `$A0` (ROM-Block `$A0` ist weg, Scrollbalken nutzt `SOLID_CHAR` `$8E`), 16 Run-Zelltypen = `$A0–$DF` (voll), Fensterrahmen `UI_FRAME_BASE` `$98–$9F`, Hand `UI_HAND` `$8D`. Plan-Kacheln `$80–$8C`. Frei: `$8F`, `$FE-$FF`.
+- **Solver** (`solve_levels.py`) kennt Schlüssel/Schlösser/Türen; `SOLVE_W=4` für gewichtete (schnelle) Suche bei großen Leveln.
+- **Offen/ungetestet:** Build (ACME), Simulatorlauf `tools/sim_winter.py` (Level-5-Programm eingetragen, Winter-Indizes verschoben), Optik der neuen Zellen in VICE, Hover-Texte `str_key/str_lock/str_door` im Plan.
+
 ## Was fehlt / offen
 
 - Wertung ist da (Level-Statistik, s. oben), aber keine Schritt-Zählung und kein Programmlängen-Limit.
 - Kein Programmlängen-Limit pro Level (Anzeige "PROGRAM: 00/99" existiert).
-- Nur 4 Level. Bewertet werden Umfang, Qualität und Abwechslung der Level.
+- Nur 10 Level. Bewertet werden Umfang, Qualität und Abwechslung der Level.
 - Kein Titelbild / keine Einleitung.
 - Das Tor der letzten Welt (Winter) führt ins Leere (Meldung "road ends here - for now"); eine dritte Welt braucht: Theme (Zellen + Plan-Kacheln + Farben), Levels, Karte in `gen_world_maps.py` (mit `<`), Eintrag in `world_table`/`theme_table`. Der Fluss oben in Meadow (Spalten 11/12) ist bewusst Wasser geblieben, nicht Tor.
 - Optik des Tors (zwei Holztüren, `gate_l/gate_r` in `gen_gfx_run.py`) ist einfach gehalten, kann verfeinert werden.

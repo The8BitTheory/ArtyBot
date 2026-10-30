@@ -2,8 +2,8 @@
 ; edit the ASCII art there and re-run the script instead of editing this file.
 ;
 ; winter_cells: RUN_CELL_TYPES cells of 4 characters (TL, TR, BL, BR), order as
-; gen_gfx_run.CELL_ORDER: grass, tree, chest, goal, flowers, water, path, gate_l, gate_r, arch, ice, broken.
-; winter_plan: the PLAN_TILE_COUNT planning tiles (floor, goal, package, blocker, water, ice).
+; gen_gfx_run.CELL_ORDER: grass, tree, chest, goal, flowers, water, path, gate_l, gate_r, arch, ice, broken, key, lock, lock_full, door.
+; winter_plan: the PLAN_TILE_COUNT planning tiles (floor, goal, package, blocker, water, ice, key, lock, door).
 ;   . = $D021 black   g = $D022 snow   l = $D023 shadow   c = colour RAM
 winter_cells
 ; --- grass
@@ -258,6 +258,90 @@ winter_cells
         !byte $FC,$14,$18,$4C,$93,$4F,$FF,$C5
         !byte $63,$14,$C3,$FC,$F1,$31,$53,$63
         !byte $C6,$F0,$FF,$53,$94,$4F,$CD,$17
+; --- key
+;   gggggggg
+;   gggggglg
+;   ggggglgl
+;   gggggggg
+;   g...gggg
+;   .ccc....
+;   .c.ccccc
+;   .c.ccccc
+;   .ccc.c.c
+;   g...g.g.
+;   gggggggg
+;   gggggggg
+;   gggggggg
+;   gglggggg
+;   glglgggg
+;   gggggggg
+        !byte $55,$55,$55,$55,$40,$3F,$33,$33
+        !byte $55,$59,$66,$55,$55,$00,$FF,$FF
+        !byte $3F,$40,$55,$55,$55,$59,$66,$55
+        !byte $33,$44,$55,$55,$55,$55,$55,$55
+; --- lock
+;   gggggggg
+;   g......g
+;   .llllll.
+;   ........
+;   .llllll.
+;   .cccccc.
+;   .cc..cc.
+;   .c....c.
+;   .cc..cc.
+;   .cc..cc.
+;   .cccccc.
+;   .llllll.
+;   .llllll.
+;   .gllllg.
+;   g......g
+;   gggggggg
+        !byte $55,$40,$2A,$00,$2A,$3F,$3C,$30
+        !byte $55,$01,$A8,$00,$A8,$FC,$3C,$0C
+        !byte $3C,$3C,$3F,$2A,$2A,$1A,$40,$55
+        !byte $3C,$3C,$FC,$A8,$A8,$A4,$01,$55
+; --- lock_full
+;   gggggggg
+;   g......g
+;   .llllll.
+;   ........
+;   .llllll.
+;   .cccccc.
+;   .cc..cc.
+;   .c.cc.c.
+;   .c.cc.c.
+;   .cc..cc.
+;   .cccccc.
+;   .llllll.
+;   .llllll.
+;   .gllllg.
+;   g......g
+;   gggggggg
+        !byte $55,$40,$2A,$00,$2A,$3F,$3C,$33
+        !byte $55,$01,$A8,$00,$A8,$FC,$3C,$CC
+        !byte $33,$3C,$3F,$2A,$2A,$1A,$40,$55
+        !byte $CC,$3C,$FC,$A8,$A8,$A4,$01,$55
+; --- door
+;   gg....gg
+;   g.cccc.g
+;   .cc..cc.
+;   .cc..cc.
+;   .cc..cc.
+;   ........
+;   .cc..cc.
+;   .cc..cc.
+;   .cl..lc.
+;   .cc..cc.
+;   ........
+;   .cc..cc.
+;   .cc..cc.
+;   .cc..cc.
+;   .cccccc.
+;   ........
+        !byte $50,$4F,$3C,$3C,$3C,$00,$3C,$3C
+        !byte $05,$F1,$3C,$3C,$3C,$00,$3C,$3C
+        !byte $38,$3C,$00,$3C,$3C,$3C,$3F,$00
+        !byte $2C,$3C,$00,$3C,$3C,$3C,$FC,$00
 winter_cells_end
 !if winter_cells_end - winter_cells != RUN_CELL_TYPES * 32 {
     !error "gfx_winter: Anzahl Zelltypen passt nicht zu RUN_CELL_TYPES"
@@ -323,6 +407,36 @@ winter_plan
 ;   cccc
 ;   cccc
         !byte $FF,$DF,$7F,$FF,$F7,$DF,$FF,$FF
+; key
+;   gggg
+;   g.gg
+;   .c.g
+;   c.cc
+;   g.cc
+;   gg.c
+;   gggg
+;   gggg
+        !byte $55,$45,$31,$CF,$4F,$53,$55,$55
+; lock
+;   g..g
+;   .ll.
+;   ....
+;   .cc.
+;   .c..
+;   .cc.
+;   .ll.
+;   g..g
+        !byte $41,$28,$00,$3C,$30,$3C,$28,$41
+; door
+;   g..g
+;   .cc.
+;   .cc.
+;   ....
+;   .cc.
+;   .lc.
+;   .cc.
+;   ....
+        !byte $41,$3C,$3C,$00,$3C,$2C,$3C,$00
 winter_plan_end
 !if winter_plan_end - winter_plan != PLAN_TILE_COUNT * 8 {
     !error "gfx_winter: Anzahl Plan-Kacheln passt nicht zu PLAN_TILE_COUNT"

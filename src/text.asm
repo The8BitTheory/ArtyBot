@@ -19,6 +19,9 @@ str_package_done !text "Delivered",0
 str_blocker !text "Blocked",0
 str_water !text "Water: jump it",0
 str_ice !text "Ice: you slide",0
+str_key !text "Key: pick it up",0
+str_lock !text "Lock: drop key",0
+str_door !text "Door: needs key",0
 str_bottom_commands !text "F1:Run F7:Map F8:Quit",0
 str_quit_confirm !text "Really quit?",0
 str_clear_confirm !text "Really clear",0
@@ -52,6 +55,7 @@ str_run_noland !text "Can't land there. Space: retry",0
 str_run_nothrow !text "Nothing to throw. Space: retry",0
 str_run_cantthrow !text "Can't throw there. Space: retry",0
 str_run_ice !text "The ice broke! Space: retry",0
+str_run_unlock !text "Click! A door opened.",0
 str_empty !byte 0
 ; World map (world.asm)
 str_world_title !text " World ",0

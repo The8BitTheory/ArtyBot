@@ -12,6 +12,11 @@
 ;   then the number of ice fields I (frozen water: the robot skates over it until
 ;   land is reached or the next field is blocked; jumping off it, landing on it or
 ;   throwing a package on it breaks it and the run fails), followed by I pairs.
+;   then the number of keys K, followed by K pairs (x, y): keys lie on the ground, are
+;   picked up / dropped / thrown like a package but are no deliveries,
+;   then the number of lock/door pairs L (max MAX_LOCKS), followed by L records
+;   (lock x, lock y, door x, door y). A closed door blocks like a tree (also jumping
+;   and throwing); a key dropped or thrown onto its lock turns the door into floor.
 ; A level is won when every goal field holds a package, so give it at least as
 ; many packages as goal fields. More levels: add a record below and an entry in
 ; plan_level_table.
@@ -24,6 +29,7 @@
 
 goal_list       = $0280         ; goal_count pairs (x, y) behind map_work
 MAX_GOALS       = 16
+lock_list       = $02A0         ; lock_count records (lock x, lock y, door x, door y)
 
 ROBOT_DIR_RIGHT = 0             ; matches gfx_robot order ($80..$83)
 ROBOT_DIR_LEFT  = 1
@@ -33,7 +39,7 @@ ROBOT_DIR_DOWN  = 3
 MAPREC_ROBOT_X   = 0
 MAPREC_ROBOT_Y   = 1
 MAPREC_ROBOT_DIR = 2
-MAPREC_GOALS     = 3            ; count byte; goals, packages, blockers follow
+MAPREC_GOALS     = 3            ; count byte; goals, packages, blockers, water, ice, keys, locks follow
 
 MAP_CELLS       = MAP_COLS * MAP_ROWS
 
@@ -42,11 +48,12 @@ plan_level_table
         !word plan_level_2
         !word plan_level_3
         !word plan_level_4
-        !word plan_level_5
-        !word plan_level_6
+        !word plan_level_5            ; level 5 (meadow): key, lock and door
+        !word plan_level_6              ; winter levels follow (6-10)
         !word plan_level_7
         !word plan_level_8
         !word plan_level_9
+        !word plan_level_10
 plan_level_count = (* - plan_level_table) / 2
 
 plan_level_1
@@ -64,6 +71,7 @@ plan_level_1
         !byte 9, 9
         !byte 0                         ; water fields
         !byte 0                         ; ice fields (frozen water)
+        !byte 0, 0                      ; keys, locks
 
 plan_level_2
         !byte 0, 5, ROBOT_DIR_RIGHT     ; robot: left edge, facing right
@@ -84,6 +92,7 @@ plan_level_2
         !byte 8, 9
         !byte 0                         ; water fields
         !byte 0                         ; ice fields (frozen water)
+        !byte 0, 0                      ; keys, locks
 
 ; Level 3: a river (column 5) splits the field. Robot and packages start on the
 ; left bank, both goals are on the right bank. The upper goal (6,2) is fenced in
@@ -127,6 +136,7 @@ plan_level_3
         !byte 5, 8
         !byte 5, 9
         !byte 0                         ; ice fields (frozen water)
+        !byte 0, 0                      ; keys, locks
 
 ; Level 4 (Sokoban-style warehouse): walls of the classic puzzle are trees, 7 goals,
 ; 7 packages (one already stands on its goal). Robot starts in the upper-left
@@ -198,11 +208,50 @@ plan_level_4
         !byte 8, 8
         !byte 0                         ; water fields
         !byte 0                         ; ice fields (frozen water)
+        !byte 0, 0                      ; keys, locks
 
-; Level 5 (Winter 1, "Ice bridge"): a frozen lake (rows 4-5) cuts the field in two,
+; Level 5 (Meadow 5, "Locked gates"): two walls of trees (x = 3 and x = 6) split the
+; meadow into three rooms; each wall has a closed door. The locks stand elsewhere:
+; the key lying in the first room opens the first door via the lock (1,2); behind it
+; lies the second key, whose lock (5,2) opens the last door. Trees and closed doors
+; block jumping and throwing, so keys and packages have to be carried through the
+; doors. A key can be dropped or thrown onto its lock.
+;   T tree  k key  L lock  D door  P package  G goal  R robot
+;    T..T..TT..
+;    ...T..T...
+;    .L.T.LT.G.
+;    ...TP.T...
+;    .P.T..T.T.
+;    ...D..D..T
+;    ...T..T...
+;    ..kT..T.G.
+;    R..Tk.T...
+;    ...T..T..T
+plan_level_5
+        !byte 0, 8, ROBOT_DIR_RIGHT
+        !byte 2                         ; goal fields (x, y)
+        !byte 8, 2, 8, 7
+        !byte 2                         ; packages (x, y)
+        !byte 1, 4, 4, 3
+        !byte 23                         ; blockers (x, y)
+        !byte 3, 0, 3, 1, 3, 2, 3, 3
+        !byte 3, 4, 3, 6, 3, 7, 3, 8
+        !byte 3, 9, 6, 0, 6, 1, 6, 2
+        !byte 6, 3, 6, 4, 6, 6, 6, 7
+        !byte 6, 8, 6, 9, 0, 0, 9, 9
+        !byte 8, 4, 7, 0, 9, 5
+        !byte 0                         ; water fields
+        !byte 0                         ; ice fields
+        !byte 2                         ; keys (x, y)
+        !byte 2, 7, 4, 8
+        !byte 2                         ; lock/door pairs: lock x, y, door x, door y
+        !byte 1, 2, 3, 5
+        !byte 5, 2, 6, 5
+
+; Level 6 (Winter 1, "Ice bridge"): a frozen lake (rows 4-5) cuts the field in two,
 ; only the ice bridge at x = 4, 5 leads across. Three packages down south, three
 ; goals up north: carry them over the bridge or throw them across the bridge ends.
-plan_level_5
+plan_level_6
         !byte 4, 8, ROBOT_DIR_UP
         !byte 3                         ; goal fields (x, y)
         !byte 3, 1
@@ -237,12 +286,13 @@ plan_level_5
         !byte 8, 5
         !byte 9, 5
         !byte 0                         ; ice fields (frozen water)
+        !byte 0, 0                      ; keys, locks
 
 
-; Level 6 (Winter 2, "Pine forest"): two walls of pines (x = 4 and x = 6), each with a
+; Level 7 (Winter 2, "Pine forest"): two walls of pines (x = 4 and x = 6), each with a
 ; single gap, form a zigzag corridor. Trees block jumping and throwing, so both
 ; packages have to be carried through both gaps.
-plan_level_6
+plan_level_7
         !byte 2, 4, ROBOT_DIR_RIGHT
         !byte 2                         ; goal fields (x, y)
         !byte 8, 5
@@ -274,10 +324,11 @@ plan_level_6
         !byte 8, 9
         !byte 0                         ; water fields
         !byte 0                         ; ice fields (frozen water)
+        !byte 0, 0                      ; keys, locks
 
-; Level 7 (Winter 3, "Frozen lake"): three ice floes with a goal each lie in a lake.
+; Level 8 (Winter 3, "Frozen lake"): three ice floes with a goal each lie in a lake.
 ; Nothing can walk or drop there, the packages have to be thrown across the water.
-plan_level_7
+plan_level_8
         !byte 0, 4, ROBOT_DIR_RIGHT
         !byte 3                         ; goal fields (x, y)
         !byte 4, 4
@@ -308,8 +359,9 @@ plan_level_7
         !byte 5, 6
         !byte 6, 6
         !byte 0                         ; ice fields (frozen water)
+        !byte 0, 0                      ; keys, locks
 
-; Level 8 (Winter 4, "Skating rink"): a big ice rink between two snow banks. On ice
+; Level 9 (Winter 4, "Skating rink"): a big ice rink between two snow banks. On ice
 ; the robot skates on until it reaches land or the next field is blocked. The goal
 ; in the middle of the rink can only be served from the ice: the pine at (5,4) stops
 ; the robot right above it. Jumping or throwing onto the ice breaks it.
@@ -325,7 +377,7 @@ plan_level_7
 ;    ..######..
 ;    ..........
 ;    (. snow  # ice  ~ water  T pine  P package  G goal  > robot)
-plan_level_8
+plan_level_9
         !byte 1, 4, ROBOT_DIR_RIGHT
         !byte 2                       ; goal fields (x, y)
         !byte 9, 2, 4, 5
@@ -341,8 +393,9 @@ plan_level_8
         !byte 3, 5, 5, 5, 6, 5, 7, 5, 2, 6, 3, 6, 4, 6, 5, 6
         !byte 6, 6, 7, 6, 2, 7, 3, 7, 4, 7, 5, 7, 6, 7, 7, 7
         !byte 2, 8, 3, 8, 4, 8, 5, 8, 6, 8, 7, 8
+        !byte 0, 0                      ; keys, locks
 
-; Level 9 (Winter 5, "Ice maze"): an ice field with pines and a hole of open water
+; Level 10 (Winter 5, "Ice maze"): an ice field with pines and a hole of open water
 ; as stoppers. Both goals are small snow islands in the ice: skate so that the
 ; robot stops next to them (or throw from the ice, two fields ahead).
 ;
@@ -357,7 +410,7 @@ plan_level_8
 ;    .####T###.
 ;    >........P
 ;    (. snow  # ice  ~ water  T pine  P package  G goal  > robot)
-plan_level_9
+plan_level_10
         !byte 0, 9, ROBOT_DIR_RIGHT
         !byte 2                       ; goal fields (x, y)
         !byte 2, 4, 6, 6
@@ -375,6 +428,7 @@ plan_level_9
         !byte 5, 5, 6, 5, 8, 5, 1, 6, 3, 6, 4, 6, 5, 6, 7, 6
         !byte 8, 6, 1, 7, 2, 7, 3, 7, 4, 7, 5, 7, 6, 7, 7, 7
         !byte 8, 7, 1, 8, 2, 8, 3, 8, 4, 8, 6, 8, 7, 8, 8, 8
+        !byte 0, 0                      ; keys, locks
 
 ; A = level number. Copies its record into the game variables and builds the
 ; field layer including the blockers. Invalid numbers fall back to level 0.
@@ -517,7 +571,68 @@ load_plan_level
         sta map_work,x
         dec cnt
         jmp .ice
-.end    rts
+
+        ; Keys lying on the ground.
+.end    lda (ptr0),y
+        iny
+        sta cnt
+.key    lda cnt
+        beq .locks
+        lda (ptr0),y
+        sta tmp0
+        iny
+        lda (ptr0),y
+        sta tmp1
+        iny
+        jsr map_index           ; keeps Y
+        lda #T_KEY
+        sta map_work,x
+        dec cnt
+        jmp .key
+
+        ; Lock/door pairs: lock_list gets the four bytes, the field layer the tiles.
+.locks  lda (ptr0),y
+        iny
+        sta lock_count
+        sta cnt
+        lda #0
+        sta tmp3                ; offset into lock_list
+.lock   lda cnt
+        beq .lend
+        ldx tmp3
+        lda (ptr0),y            ; lock x
+        sta lock_list,x
+        sta tmp0
+        iny
+        lda (ptr0),y            ; lock y
+        sta lock_list+1,x
+        sta tmp1
+        iny
+        lda (ptr0),y            ; door x
+        sta lock_list+2,x
+        iny
+        lda (ptr0),y            ; door y
+        sta lock_list+3,x
+        iny
+        inx
+        inx
+        inx
+        inx
+        stx tmp3
+        jsr map_index           ; keeps Y: the lock
+        lda #T_LOCK
+        sta map_work,x
+        ldx tmp3
+        lda lock_list-2,x       ; door x
+        sta tmp0
+        lda lock_list-1,x       ; door y
+        sta tmp1
+        jsr map_index
+        lda #T_DOOR
+        sta map_work,x
+        dec cnt
+        jmp .lock
+.lend   rts
 
 ; tmp0 = x, tmp1 = y -> X = row-major index into map_work.
 !zone map_index
@@ -596,9 +711,11 @@ draw_map_objects
 
 map_tile_chars                  ; indexed by tile id
         !byte FLOOR_CHAR, BLOCK_CHAR, PKG_CHAR, GOAL_CHAR, PKG_CHAR, WATER_CHAR, ICE_CHAR, WATER_CHAR
+        !byte KEY_CHAR, LOCK_CHAR, LOCK_CHAR, DOOR_CHAR
 ; map_tile_colors (colour RAM per tile id) comes from the theme, see world.asm.
 map_info_colors                 ; help-text colour per tile id
         !byte COL_WHITE, COL_GREEN, COL_YELLOW, COL_CYAN, COL_YELLOW, COL_CYAN, COL_CYAN, COL_CYAN
+        !byte COL_YELLOW, COL_YELLOW, COL_YELLOW, COL_YELLOW
 
 ; Hover code for the field tile under the mouse, or $FF.
 ;   $50+dir robot, $61 blocker, $62 package, $63 goal, $64 delivered, $65 water
@@ -692,3 +809,4 @@ dir_name_ptrs
         !word str_dir_right, str_dir_left, str_dir_up, str_dir_down
 map_text_ptrs                   ; indexed by tile id (floor unused)
         !word 0, str_blocker, str_package, str_target, str_package_done, str_water, str_ice, str_water
+        !word str_key, str_lock, str_lock, str_door

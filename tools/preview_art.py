@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 # Static preview of the run screen art (field + sprites), C64 Pepto palette.
+# Last row: key, lock, full lock, door between trees; robot carrying the key.
+# python -B tools/preview_art.py [robot colour] [out.png] [robots.png]
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import gen_gfx_run as G
@@ -10,9 +12,11 @@ PAL = [0x000000,0xFFFFFF,0x68372B,0x70A4B2,0x6F3D86,0x588D43,0x352879,0xB8C76F,
 def rgb(i): v = PAL[i]; return ((v>>16)&255,(v>>8)&255,v&255)
 
 BG = {'.':0,'g':5,'l':13}
-CELLCOL = {'grass':5,'tree':2,'chest':2,'goal':3,'flowers':7,'water':6,'path':7,'gate_l':2,'gate_r':2,'arch':1,'ice':3,'broken':6}
+CELLCOL = {'grass':5,'tree':2,'chest':2,'goal':3,'flowers':7,'water':6,'path':7,'gate_l':2,'gate_r':2,'arch':1,'ice':3,'broken':6,
+           'key':7,'lock':7,'lock_full':7,'door':2}
 ROBOT_COL = int(sys.argv[1]) if len(sys.argv) > 1 else 15
 CHEST_COL = 2
+KEY_COL = 7
 
 def draw_cell(img, name, cx, cy):
     art = [x for x in G.CELLS[name].strip('\n').split('\n')]
@@ -30,15 +34,17 @@ def draw_spr(img, art, sx, sy, col):
                 X,Y = sx+x*2+k, sy+y
                 if 0<=X<img.width and 0<=Y<img.height: img.putpixel((X,Y), rgb(m[p]))
 
-W,H = 16*10, 16*6
+W,H = 16*10, 16*7
 img = Image.new('RGB',(W,H))
 layout = ["gfgggwgalr",
           "gtgcgwgfib",
           "gpppowggtg",
           "gfgggggggg",
           "ggtggfgtgg",
-          "gggggggggg"]
-names = {'g':'grass','t':'tree','c':'chest','o':'goal','f':'flowers','w':'water','p':'path','l':'gate_l','r':'gate_r','a':'arch','i':'ice','b':'broken'}
+          "gggggggggg",
+          "gkgLgFtDtg"]
+names = {'g':'grass','t':'tree','c':'chest','o':'goal','f':'flowers','w':'water','p':'path','l':'gate_l','r':'gate_r','a':'arch','i':'ice','b':'broken',
+         'k':'key','L':'lock','F':'lock_full','D':'door'}
 for y,row in enumerate(layout):
     for x,ch in enumerate(row):
         draw_cell(img, names[ch], x*16, y*16)
@@ -51,6 +57,8 @@ for i in range(4):
     draw_spr(img, imgs[16], (i*2)*16, 5*16-2-8, CHEST_COL)
     draw_spr(img, imgs[12+i], (i*2+1)*16, 5*16-2, ROBOT_COL)
     draw_spr(img, imgs[16], (i*2+1)*16, 5*16-2-8, CHEST_COL)
+draw_spr(img, imgs[5], 9*16, 6*16-2, ROBOT_COL)          # robot carrying the key
+draw_spr(img, imgs[17], 9*16, 6*16-2-6, KEY_COL)
 img = img.resize((W*4,H*4), Image.NEAREST)
 out = sys.argv[2] if len(sys.argv) > 2 else 'preview.png'
 img.save(out); print(out)

@@ -17,6 +17,7 @@ import os, re, sys, heapq, time
 HERE = os.path.dirname(os.path.abspath(__file__))
 MAPDATA = os.path.join(HERE, '..', 'src', 'mapdata.asm')
 COLS = ROWS = 10
+W = float(os.environ.get('SOLVE_W', '1'))   # >1: weighted A* (faster, not the shortest program)
 DX = (1, -1, 0, 0)          # right, left, up, down (ROBOT_DIR_*)
 DY = (0, 0, -1, 1)
 TURN_R = (3, 2, 0, 1)
@@ -47,13 +48,16 @@ def parse_levels():
         rx, ry, rd = b[0], b[1], b[2]
         i = 3
         lists = []
-        for _ in range(5):                 # goals, packages, trees, water, ice
+        for _ in range(6):                 # goals, packages, trees, water, ice, keys
             c = b[i]; i += 1
             lists.append([(b[i + 2 * k], b[i + 2 * k + 1]) for k in range(c)])
             i += 2 * c
+        c = b[i]; i += 1                   # lock/door records: lock x, y, door x, y
+        locks = [((b[i + 4 * k], b[i + 4 * k + 1]), (b[i + 4 * k + 2], b[i + 4 * k + 3])) for k in range(c)]
+        i += 4 * c
         assert i == len(b), 'level %d: %d bytes, parsed %d' % (n, len(b), i)
         out[n] = dict(robot=(rx, ry, rd), goals=lists[0], boxes=lists[1], trees=set(lists[2]),
-                      water=set(lists[3]), ice=set(lists[4]))
+                      water=set(lists[3]), ice=set(lists[4]), keys=lists[5], locks=locks)
     return out
 
 
@@ -62,13 +66,16 @@ def solve(lv, limit=3_000_000, start_state=None, more=False):
     trees, water, ice = lv['trees'], lv['water'], lv['ice']
     inside = lambda x, y: 0 <= x < COLS and 0 <= y < ROWS
     rx, ry, rd = lv['robot']
-    start = start_state or (rx, ry, rd, 0, frozenset(lv['boxes']))
+    # state: x, y, dir, carry (0 nothing, 1 package, 2 key), packages, loose keys, filled locks
+    locks = dict(lv['locks'])                      # lock position -> door position
+    lockpos = set(locks)
+    start = start_state or (rx, ry, rd, 0, frozenset(lv['boxes']), frozenset(lv['keys']), frozenset())
     covered0 = sum(1 for g in goals if g in start[4])
 
     def h(st):
-        x, y, d, carry, boxes = st
+        x, y, d, carry, boxes = st[:5]
         free = [b for b in boxes if b not in gset]
-        if carry:
+        if carry == 1:
             free = free + [(x, y)]
         t = 0
         for g in goals:
@@ -81,14 +88,20 @@ def solve(lv, limit=3_000_000, start_state=None, more=False):
             return sum(1 for g in goals if g in st[4]) > covered0
         return all(g in st[4] for g in goals)
 
-    def free(p, boxes):                 # can be walked on / skated over (floor, goal, ice)
-        return inside(*p) and p not in trees and p not in water and p not in boxes
+    def free(p, boxes, keys=frozenset(), filled=frozenset()):   # walked on / skated over (floor, goal, ice)
+        if not inside(*p) or p in trees or p in water or p in boxes or p in keys or p in lockpos:
+            return False
+        return not any(door == p and lk not in filled for lk, door in locks.items())
+
+    def door_closed(p, filled):
+        return any(door == p and lk not in filled for lk, door in locks.items())
 
     def moves(st):
-        x, y, d, carry, boxes = st
+        x, y, d, carry, boxes, keys, filled = st
+        fr = lambda p, bx: free(p, bx, keys, filled)
         for name, dd in (('fwd', d), ('back', d ^ 1)):
             nx, ny = x + DX[dd], y + DY[dd]
-            if free((nx, ny), boxes):
+            if fr((nx, ny), boxes):
                 # Ice: keep skating in the moving direction until land is reached
                 # (stop there) or the next field is blocked (stop on the ice).
                 dead = False
@@ -97,30 +110,42 @@ def solve(lv, limit=3_000_000, start_state=None, more=False):
                     if (sx, sy) in water:           # skating into open water: drowns
                         dead = True
                         break
-                    if not free((sx, sy), boxes):
+                    if not fr((sx, sy), boxes):
                         break
                     nx, ny = sx, sy
                 if not dead:
-                    yield name, (nx, ny, d, carry, boxes)
-        yield 'right', (x, y, TURN_R[d], carry, boxes)
-        yield 'left', (x, y, TURN_L[d], carry, boxes)
-        yield 'turn180', (x, y, TURN_R[TURN_R[d]], carry, boxes)
+                    yield name, (nx, ny, d, carry, boxes, keys, filled)
+        yield 'right', (x, y, TURN_R[d], carry, boxes, keys, filled)
+        yield 'left', (x, y, TURN_L[d], carry, boxes, keys, filled)
+        yield 'turn180', (x, y, TURN_R[TURN_R[d]], carry, boxes, keys, filled)
         fx, fy = x + DX[d], y + DY[d]
-        if not carry and inside(fx, fy) and (fx, fy) in boxes:
-            yield 'pick', (x, y, d, 1, boxes - {(fx, fy)})
-        if carry and free((fx, fy), boxes) and (fx, fy) not in ice:
-            yield 'drop', (x, y, d, 0, boxes | {(fx, fy)})
+        if not carry and inside(fx, fy):
+            if (fx, fy) in boxes:
+                yield 'pick', (x, y, d, 1, boxes - {(fx, fy)}, keys, filled)
+            elif (fx, fy) in keys:
+                yield 'pick', (x, y, d, 2, boxes, keys - {(fx, fy)}, filled)
+        if carry and inside(fx, fy):
+            if fr((fx, fy), boxes) and (fx, fy) not in ice:
+                if carry == 1:
+                    yield 'drop', (x, y, d, 0, boxes | {(fx, fy)}, keys, filled)
+                else:
+                    yield 'drop', (x, y, d, 0, boxes, keys | {(fx, fy)}, filled)
+            elif carry == 2 and (fx, fy) in lockpos and (fx, fy) not in filled:
+                yield 'drop', (x, y, d, 0, boxes, keys, filled | {(fx, fy)})
         ax, ay = x + 2 * DX[d], y + 2 * DY[d]
-        if inside(ax, ay) and (fx, fy) not in trees:
+        if inside(ax, ay) and (fx, fy) not in trees and not door_closed((fx, fy), filled):
             # landing on ice (robot or package) breaks it: fail; jumping off ice too
-            land_ok = free((ax, ay), boxes) and (ax, ay) not in ice
+            land_ok = fr((ax, ay), boxes) and (ax, ay) not in ice
             if land_ok and (x, y) not in ice:
-                yield 'jump', (ax, ay, d, carry, boxes)
-            if land_ok:
-                if carry:
-                    yield 'throw', (x, y, d, 0, boxes | {(ax, ay)})
+                yield 'jump', (ax, ay, d, carry, boxes, keys, filled)
+            if land_ok and carry == 1:
+                yield 'throw', (x, y, d, 0, boxes | {(ax, ay)}, keys, filled)
+            elif land_ok and carry == 2:
+                yield 'throw', (x, y, d, 0, boxes, keys | {(ax, ay)}, filled)
+            elif carry == 2 and (ax, ay) in lockpos and (ax, ay) not in filled:
+                yield 'throw', (x, y, d, 0, boxes, keys, filled | {(ax, ay)})
 
-    openq = [(h(start), 0, 0, start)]
+    openq = [(W * h(start), 0, 0, start)]
     best = {start: 0}
     parent = {start: None}
     tie = 0
@@ -145,14 +170,14 @@ def solve(lv, limit=3_000_000, start_state=None, more=False):
                 best[nst] = ng
                 parent[nst] = (st, name)
                 tie += 1
-                heapq.heappush(openq, (ng + h(nst), ng, tie, nst))
+                heapq.heappush(openq, (ng + W * h(nst), ng, tie, nst))
     return None, n
 
 
 def solve_greedy(lv):
     """Not the shortest program: cover one more goal per search (for big levels)."""
     rx, ry, rd = lv['robot']
-    st = (rx, ry, rd, 0, frozenset(lv['boxes']))
+    st = (rx, ry, rd, 0, frozenset(lv['boxes']), frozenset(lv['keys']), frozenset())
     prog, total = [], 0
     while not all(g in st[4] for g in lv['goals']):
         r = solve(lv, 400_000, st, True)

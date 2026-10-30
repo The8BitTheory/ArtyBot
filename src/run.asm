@@ -233,6 +233,7 @@ run_reset
         sta run_phase
         sta run_timer
         sta run_carry
+        sta run_item
         sta run_walk
         sta run_jump
         sta run_fly
@@ -491,6 +492,14 @@ run_update_sprites
         sta VIC_SPR_EN
         rts
 .visible
+        lda #RUN_SPR_CHEST      ; sprite 2: the package or the key
+        ldx #CHEST_COLOR
+        ldy run_item
+        beq .item
+        lda #RUN_SPR_KEY
+        ldx #KEY_COLOR
+.item   sta SPR_PTR0+2
+        stx VIC_SPR0COL+2
         lda run_spx
         clc
         adc #24
@@ -827,6 +836,8 @@ run_do_move
         beq .water
         cmp #T_BROKEN
         beq .water
+        cmp #T_KEY              ; key, lock and (closed) door block the way
+        bcs .blocked
         lda run_tx
         sta robot_tx
         lda run_ty
@@ -892,11 +903,20 @@ run_pickup
         lda map_work,x
         cmp #T_BOX
         beq .take_floor
+        cmp #T_KEY
+        beq .take_key
         cmp #T_BOXG
         bne .nothing
+        lda #0
+        sta run_item
         lda #T_GOAL             ; delivered chest taken back: goal field is free again
         bne .take
+.take_key
+        lda #1
+        bne .item
 .take_floor
+        lda #0
+.item   sta run_item
         lda #T_FLOOR
 .take   sta map_work,x
         jsr run_redraw_front
@@ -922,13 +942,24 @@ run_drop
         bcc .cant
         lda map_work,x
         beq .floor              ; free floor
+        cmp #T_LOCK
+        beq .lock
         cmp #T_GOAL
+        bne .cant
+        lda run_item            ; only packages are delivered
         bne .cant
         lda #T_BOXG             ; chest on a goal field
         bne .store
-.floor  lda #T_BOX
+.lock   lda run_item            ; only the key fits the lock
+        beq .cant
+        lda #T_LOCKED
+        bne .store
+.floor  ldy run_item
+        lda item_tile,y         ; chest or key lies down
 .store  jmp run_land
 .cant   +run_fail str_run_cantdrop
+
+item_tile !byte T_BOX, T_KEY
 
 ; A = new tile (T_BOX / T_BOXG), X = map index of the field run_tx/run_ty: the
 ; package is put down there (Drop Off, or the end of a Throw).
@@ -947,6 +978,8 @@ run_land
         lda #16
         sta run_timer
         pla
+        cmp #T_LOCKED
+        beq .unlock
         cmp #T_BOXG
         bne .more
         jsr run_all_delivered   ; carry set: no free goal field left
@@ -966,9 +999,45 @@ run_land
         sta run_won_wait
         rts
 .placed jmp sound_place         ; bright two-part sound for one delivery
+.unlock jsr run_open_door       ; the key sits in the lock: its door opens
+        jmp sound_place
 .more   lda #3
         sta tmp3
         jmp sound_move
+
+; run_tx/run_ty = a lock that just got its key: the matching door becomes floor and
+; the map changes on screen (ui_col/ui_row = door cell for draw_run_cell).
+!zone run_open_door
+run_open_door
+        ldx #0
+.find   cpx lock_count
+        beq .none
+        txa
+        asl
+        asl
+        tay                     ; Y = offset of record X in lock_list
+        lda lock_list,y
+        cmp run_tx
+        bne .next
+        lda lock_list+1,y
+        cmp run_ty
+        bne .next
+        lda lock_list+2,y
+        sta tmp0
+        sta ui_col
+        lda lock_list+3,y
+        sta tmp1
+        sta ui_row
+        jsr map_index
+        lda #T_FLOOR
+        sta map_work,x
+        jsr draw_run_cell       ; the lock itself is redrawn by run_redraw_front
+        lda #<str_run_unlock
+        ldx #>str_run_unlock
+        jmp run_say
+.next   inx
+        bne .find
+.none   rts
 
 ; X = map index of the robot's cell; run_tx/run_ty = that cell.
 !zone run_robot_cell
@@ -1129,6 +1198,8 @@ run_do_jump
         lda run_mid
         cmp #T_WALL
         beq .tree
+        cmp #T_DOOR
+        beq .tree
         lda map_work,x
         beq .go                 ; free floor
         cmp #T_GOAL
@@ -1174,17 +1245,28 @@ run_do_throw
         lda run_mid
         cmp #T_WALL
         beq .tree
+        cmp #T_DOOR
+        beq .tree
         lda map_work,x
         beq .floor              ; free floor
         cmp #T_GOAL
         beq .goal
+        cmp #T_LOCK             ; a key thrown onto its lock opens the door
+        beq .lock
         cmp #T_ICE              ; on ice the package breaks through (on landing)
         bne .cant
         lda #T_BROKEN
         bne .fly
-.goal   lda #T_BOXG
+.goal   lda run_item            ; only packages are delivered
+        bne .cant
+        lda #T_BOXG
         bne .fly
-.floor  lda #T_BOX
+.lock   lda run_item
+        beq .cant
+        lda #T_LOCKED
+        bne .fly
+.floor  ldy run_item
+        lda item_tile,y
 .fly    sta run_ftile
         stx run_fidx
         lda #0                  ; the robot lets go, the chest sprite flies on

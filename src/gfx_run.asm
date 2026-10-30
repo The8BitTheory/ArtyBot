@@ -2,9 +2,10 @@
 ; edit the ASCII art there and re-run the script instead of editing this file.
 ;
 ; Multicolour field cells (16x16 px = 2x2 characters TL,TR,BL,BR) from
-; RUN_CHAR_BASE: grass, tree, chest, goal, flowers, water, path, gate_l, gate_r, arch, ice, broken.
+; RUN_CHAR_BASE: grass, tree, chest, goal, flowers, water, path, gate_l, gate_r, arch, ice, broken, key, lock, lock_full, door.
 ;   . = $D021 black   g = $D022 green   l = $D023 light green   c = colour RAM
-; Then hires UI characters: tl, top, tr, left, right, bl, bottom, br, hand.
+; Hires UI characters: gfx_ui_frame (tl, top, tr, left, right, bl, bottom, br) -> UI_FRAME_BASE,
+; gfx_ui_extra (hand, solid) -> UI_HAND.
 gfx_run
 ; --- grass
 ;   gggggggg
@@ -258,6 +259,95 @@ gfx_run
         !byte $FC,$14,$18,$4C,$93,$4F,$FF,$C5
         !byte $63,$14,$C3,$FC,$F1,$31,$53,$63
         !byte $C6,$F0,$FF,$53,$94,$4F,$CD,$17
+; --- key
+;   gggggggg
+;   gggggglg
+;   ggggglgl
+;   gggggggg
+;   g...gggg
+;   .ccc....
+;   .c.ccccc
+;   .c.ccccc
+;   .ccc.c.c
+;   g...g.g.
+;   gggggggg
+;   gggggggg
+;   gggggggg
+;   gglggggg
+;   glglgggg
+;   gggggggg
+        !byte $55,$55,$55,$55,$40,$3F,$33,$33
+        !byte $55,$59,$66,$55,$55,$00,$FF,$FF
+        !byte $3F,$40,$55,$55,$55,$59,$66,$55
+        !byte $33,$44,$55,$55,$55,$55,$55,$55
+; --- lock
+;   gggggggg
+;   g......g
+;   .llllll.
+;   ........
+;   .llllll.
+;   .cccccc.
+;   .cc..cc.
+;   .c....c.
+;   .cc..cc.
+;   .cc..cc.
+;   .cccccc.
+;   .llllll.
+;   .llllll.
+;   .gllllg.
+;   g......g
+;   gggggggg
+        !byte $55,$40,$2A,$00,$2A,$3F,$3C,$30
+        !byte $55,$01,$A8,$00,$A8,$FC,$3C,$0C
+        !byte $3C,$3C,$3F,$2A,$2A,$1A,$40,$55
+        !byte $3C,$3C,$FC,$A8,$A8,$A4,$01,$55
+; --- lock_full
+;   gggggggg
+;   g......g
+;   .llllll.
+;   ........
+;   .llllll.
+;   .cccccc.
+;   .cc..cc.
+;   .c.cc.c.
+;   .c.cc.c.
+;   .cc..cc.
+;   .cccccc.
+;   .llllll.
+;   .llllll.
+;   .gllllg.
+;   g......g
+;   gggggggg
+        !byte $55,$40,$2A,$00,$2A,$3F,$3C,$33
+        !byte $55,$01,$A8,$00,$A8,$FC,$3C,$CC
+        !byte $33,$3C,$3F,$2A,$2A,$1A,$40,$55
+        !byte $CC,$3C,$FC,$A8,$A8,$A4,$01,$55
+; --- door
+;   gg....gg
+;   g.cccc.g
+;   .cc..cc.
+;   .cc..cc.
+;   .cc..cc.
+;   ........
+;   .cc..cc.
+;   .cc..cc.
+;   .cl..lc.
+;   .cc..cc.
+;   ........
+;   .cc..cc.
+;   .cc..cc.
+;   .cc..cc.
+;   .cccccc.
+;   ........
+        !byte $50,$4F,$3C,$3C,$3C,$00,$3C,$3C
+        !byte $05,$F1,$3C,$3C,$3C,$00,$3C,$3C
+        !byte $38,$3C,$00,$3C,$3C,$3C,$3F,$00
+        !byte $2C,$3C,$00,$3C,$3C,$3C,$FC,$00
+gfx_run_end
+!if gfx_run_end - gfx_run != RUN_CHAR_BYTES {
+    !error "RUN_CHAR_BYTES passt nicht zu den Run-Zeichendaten"
+}
+gfx_ui_frame
 ; --- tl
 ;   ........
 ;   ........
@@ -338,6 +428,8 @@ gfx_run
 ;   ........
 ;   ........
         !byte $18,$18,$18,$F8,$F0,$00,$00,$00
+gfx_ui_frame_end
+gfx_ui_extra
 ; --- hand
 ;   ........
 ;   .XXXX...
@@ -348,15 +440,28 @@ gfx_run
 ;   .XXXX...
 ;   ........
         !byte $00,$78,$87,$9E,$8C,$9C,$78,$00
-gfx_run_end
-!if gfx_run_end - gfx_run != RUN_CHAR_BYTES {
-    !error "RUN_CHAR_BYTES passt nicht zu den Run-Zeichendaten"
+; --- solid
+;   XXXXXXXX
+;   XXXXXXXX
+;   XXXXXXXX
+;   XXXXXXXX
+;   XXXXXXXX
+;   XXXXXXXX
+;   XXXXXXXX
+;   XXXXXXXX
+        !byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+gfx_ui_extra_end
+!if gfx_ui_frame_end - gfx_ui_frame != 8 * 8 {
+    !error "UI-Rahmenzeichen: Anzahl passt nicht"
+}
+!if gfx_ui_extra_end - gfx_ui_extra != 2 * 8 {
+    !error "UI-Zeichen (Hand, Block): Anzahl passt nicht"
 }
 
 ; Multicolour sprites (12x21, art in the left 8 columns):
 ;   . = transparent   B = $D025 black   c = sprite colour   W = $D026 white
 ; Robot images: index = direction (right, left, up, down) + 4 carrying
-; + 8 walk step. Image 16 = the carried package.
+; + 8 walk step. Image 16 = the carried package, 17 = the carried key.
 gfx_run_sprites
 ; --- robot right
 ;   ...BB...
@@ -1029,6 +1134,35 @@ gfx_run_sprites
         !byte $DA,$A7,$00
         !byte $DA,$A7,$00
         !byte $15,$54,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00
+; --- key carried above the head
+;   .BBB....
+;   BcWcB...
+;   BcBcBBBB
+;   BcBccccB
+;   BcccBBcB
+;   .BBB..B.
+        !byte $15,$00,$00
+        !byte $6E,$40,$00
+        !byte $66,$55,$00
+        !byte $66,$A9,$00
+        !byte $6A,$59,$00
+        !byte $15,$04,$00
+        !byte $00,$00,$00
         !byte $00,$00,$00
         !byte $00,$00,$00
         !byte $00,$00,$00

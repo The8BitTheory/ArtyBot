@@ -4,8 +4,10 @@
 ; Plan F7 or Space after a won level -> back to the world map.
 ;
 ; A THEME is one tileset: the run-screen cells (grass, tree, chest, goal,
-; flowers, water, path; 4 characters each), the five planning tiles (floor, goal,
-; package, blocker, water) and the colours. theme_load copies it over the
+; flowers, water, path, gate, arch, ice, key, lock, door; 4 characters each), the
+; planning tiles (floor, goal, package, blocker, water, ice, key, lock, door) and the
+; colours. Key, lock and door always use the same character codes and tile ids; a
+; theme only changes their look (key / keycard, lock / card reader, door / sliding door). theme_load copies it over the
 ; same character codes, so only one theme lives in the charset at a time.
 ;
 ; A WORLD has one theme, a range of levels in plan_level_table (all levels of
@@ -40,8 +42,8 @@ KEY_F5        = 6
 
 ; ---- Themes --------------------------------------------------------------
 ; Record: +0 run cells (RUN_CELL_TYPES*32 bytes), +2 planning tiles (PLAN_TILE_COUNT*8
-; bytes: floor/goal/package/blocker/water/ice), +4 $D022, +5 $D023, +6 colour RAM of the
-; RUN_CELL_TYPES run cells, then colour RAM per tile id (T_FLOOR..T_BROKEN),
+; bytes: floor/goal/package/blocker/water/ice/key/lock/door), +4 $D022, +5 $D023, +6 colour
+; RAM of the RUN_CELL_TYPES run cells, then colour RAM per tile id (T_FLOOR..T_DOOR),
 ; then the colour of the robot arrows in the planning map.
 ; Colour RAM values +8 = multicolour.
 THEME_MEADOW  = 0
@@ -60,8 +62,10 @@ theme_meadow
         !byte COL_GREEN, COL_LGREEN
         !byte COL_GREEN+8, COL_RED+8, CHEST_COLOR+8, COL_CYAN+8, COL_YELLOW+8, COL_BLUE+8, COL_YELLOW+8
         !byte COL_RED+8, COL_RED+8, COL_WHITE+8, COL_CYAN+8, COL_BLUE+8
+        !byte COL_YELLOW+8, COL_YELLOW+8, COL_YELLOW+8, COL_RED+8     ; key, lock, full lock, door
         !byte COL_GREEN+8, COL_RED+8, CHEST_COLOR+8, COL_CYAN+8, COL_YELLOW+8, COL_BLUE+8
         !byte COL_CYAN+8, COL_BLUE+8
+        !byte COL_YELLOW+8, COL_YELLOW+8, COL_YELLOW+8, COL_RED+8     ; T_KEY, T_LOCK, T_LOCKED, T_DOOR
         !byte COL_WHITE+8
 
 ; Winter: white snow with light-blue shadows, pines, ice-cold water, brown path.
@@ -71,8 +75,10 @@ theme_winter
         !byte COL_WHITE, COL_LBLUE
         !byte COL_BLUE+8, COL_GREEN+8, CHEST_COLOR+8, COL_CYAN+8, COL_CYAN+8, COL_BLUE+8, COL_RED+8
         !byte COL_RED+8, COL_RED+8, COL_CYAN+8, COL_CYAN+8, COL_BLUE+8
+        !byte COL_YELLOW+8, COL_YELLOW+8, COL_YELLOW+8, COL_RED+8     ; key, lock, full lock, door
         !byte COL_BLUE+8, COL_GREEN+8, CHEST_COLOR+8, COL_CYAN+8, COL_YELLOW+8, COL_BLUE+8
         !byte COL_CYAN+8, COL_BLUE+8
+        !byte COL_YELLOW+8, COL_YELLOW+8, COL_YELLOW+8, COL_RED+8     ; T_KEY, T_LOCK, T_LOCKED, T_DOOR
         !byte COL_PURPLE+8              ; robot arrows: white would vanish in the snow
 
 ; Colours of the loaded theme (theme_load copies them here; preset = meadow).
@@ -82,13 +88,15 @@ theme_bg2       !byte COL_LGREEN        ; $D023
 run_cell_colors                         ; grass, tree trunk, chest, goal, flowers, water, path, gate l/r, arch,
         !byte COL_GREEN+8, COL_RED+8, CHEST_COLOR+8, COL_CYAN+8, COL_YELLOW+8, COL_BLUE+8, COL_YELLOW+8
         !byte COL_RED+8, COL_RED+8, COL_WHITE+8, COL_CYAN+8, COL_BLUE+8   ; ice, broken ice
+        !byte COL_YELLOW+8, COL_YELLOW+8, COL_YELLOW+8, COL_RED+8     ; key, lock, full lock, door
 !if * - run_cell_colors != RUN_CELL_TYPES {
     !error "run_cell_colors: ein Eintrag pro Zelltyp"
 }
-map_tile_colors                         ; planning tiles by tile id (T_FLOOR..T_BROKEN)
+map_tile_colors                         ; planning tiles by tile id (T_FLOOR..T_DOOR)
         !byte COL_GREEN+8, COL_RED+8, CHEST_COLOR+8, COL_CYAN+8, COL_YELLOW+8, COL_BLUE+8
         !byte COL_CYAN+8, COL_BLUE+8
-!if * - map_tile_colors != T_BROKEN + 1 {
+        !byte COL_YELLOW+8, COL_YELLOW+8, COL_YELLOW+8, COL_RED+8
+!if * - map_tile_colors != T_DOOR + 1 {
     !error "map_tile_colors: ein Eintrag pro Tile-ID"
 }
 theme_plan_robot !byte COL_WHITE+8      ; colour of the robot arrows in the planning map
@@ -154,9 +162,9 @@ world_count = (* - world_table) / 2
 }
 
 world_meadow
-        !byte THEME_MEADOW, 0, 4
+        !byte THEME_MEADOW, 0, 5        ; levels 1-5 (5: key, lock and door)
         !word wmap_meadow, str_world_meadow, wnodes_meadow
-!if WNODES_MEADOW != 4 {
+!if WNODES_MEADOW != 5 {
     !error "Weltkarte meadow: Anzahl Knoten passt nicht zur Anzahl Levels"
 }
 !if plan_level_count > MAX_LEVELS {
@@ -166,7 +174,7 @@ world_meadow
 str_world_meadow !text "Meadow",0
 
 world_winter
-        !byte THEME_WINTER, 4, 5        ; levels 5-9 (8 and 9: ice)
+        !byte THEME_WINTER, 5, 5        ; levels 6-10 (9 and 10: ice)
         !word wmap_winter, str_world_winter, wnodes_winter
 !if WNODES_WINTER != 5 {
     !error "Weltkarte winter: Anzahl Knoten passt nicht zur Anzahl Levels"

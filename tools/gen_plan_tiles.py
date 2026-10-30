@@ -49,8 +49,14 @@ W_TREE  = ["g..g",".gg.",".cc.",".cc.","cccc","g..g","g..g","gggg"]
 W_WATER = ["cccc","cgcc","ccgc","cccc","cccc","cc.c","cgcc","cccc"]
 # Ice (frozen water, both themes): light ice with white glints.
 ICE     = ["cccc","cgcc","gccc","cccc","ccgc","cgcc","cccc","cccc"]
+# Key, lock and door (all themes, colours from the theme): golden key, stone post
+# with brass plate, wooden door.
+KEY     = ["gggg","g.gg",".c.g","c.cc","g.cc","gg.c","gggg","gggg"]
+LOCK    = ["g..g",".ll.","....",".cc.",".c..",".cc.",".ll.","g..g"]
+DOOR    = ["g..g",".cc.",".cc.","....",".cc.",".lc.",".cc.","...."]
 WINTER_TILES = [('snow (floor)', W_FLOOR), ('goal', GOAL), ('package (chest)', CHEST),
-                ('blocker (pine)', W_TREE), ('water (ice lake)', W_WATER), ('ice', ICE)]
+                ('blocker (pine)', W_TREE), ('water (ice lake)', W_WATER), ('ice', ICE),
+                ('key', KEY), ('lock', LOCK), ('door', DOOR)]
 
 tiles = []   # (comment, rows)
 for d in ('right','left','up','down'):
@@ -61,6 +67,9 @@ tiles.append(('package (chest)', CHEST))
 tiles.append(('blocker (tree)', TREE))
 tiles.append(('water', WATER))
 tiles.append(('ice (frozen water)', ICE))
+tiles.append(('key', KEY))
+tiles.append(('lock', LOCK))
+tiles.append(('door (closed)', DOOR))
 
 if __name__ == '__main__':
     for name, rows in tiles:

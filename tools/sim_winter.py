@@ -3,7 +3,7 @@
 
   python -B tools/sim_winter.py build/roboter.prg out/prefix
 
-Solves the 4 meadow levels (walking on the world map), the gate blinks open,
+Solves the 5 meadow levels (walking on the world map), the gate blinks open,
 through the gate into winter, back through the archway, F5 forward again,
 solves the 5 winter levels and walks to the winter gate (no world behind it).
 The level programs come from tools/solve_levels.py. Needs Test.map (labels)."""
@@ -20,11 +20,12 @@ PROGS = {
     1: 'zqzcsdwqwazeazzawqxc',
     2: 'wdsaqazcdwzzdqxzc',
     3: 'aqxessaqwcqaedwqwcqsezaqcxzqwdc',
-    4: 'wdqazzcxzqxcssaqsdzzcaqzdc',
-    5: 'awqsdcsdzqssazzdedqazazdcdzdqdzwae',
-    6: 'wdwqawcawzaqssacazzdqzwdwc',
-    7: 'azaqsxessdzzqssdssae',
-    8: 'wdsdqsdssedwdwwazqsdsde',
+    4: 'wdsaqazzexqzazzdezwdqdwzzeaqazacdqawzdcdqwdzwde',   # key level (SOLVE_W=4, not the shortest)
+    5: 'wdqazzcxzqxcssaqsdzzcaqzdc',
+    6: 'awqsdcsdzqssazzdedqazazdcdzdqdzwae',
+    7: 'wdwqawcawzaqssacazzdqzwdwc',
+    8: 'azaqsxessdzzqssdssae',
+    9: 'wdsdqsdssedwdwwazqsdsde',
 }
 prg = open(sys.argv[1], 'rb').read(); out = sys.argv[2]
 lbl = {}
@@ -74,20 +75,20 @@ def play(level, local):
     walk_to({node_cell(local)}, (6,))
     press(SPACE); m.run_frames(20)
     for ch in PROGS[level]: press(K[ch], 2, 4)
-    if level in (0, 4, 7): shot('plan_L%d' % (level + 1))
+    if level in (0, 4, 5, 8): shot('plan_L%d' % (level + 1))
     press(F1); m.run_frames(20)
     press(SPACE)
     for _ in range(120):
         m.run_frames(20)
         if m.ram[0x47] in (2, 4): break
     check(m.ram[0x47] == 4, 'level %d solved (run_state %d)' % (level + 1, m.ram[0x47]))
-    if level in (0, 4, 7, 8): shot('run_L%d' % (level + 1))
+    if level in (0, 4, 5, 8, 9): shot('run_L%d' % (level + 1))
     m.run_frames(110)
     press(SPACE, 3, 3); m.run_frames(30)
 
 m.run_frames(40)
 shot('01_start')
-for i in range(4): play(i, i)
+for i in range(5): play(i, i)
 m.run_frames(150)          # gate blinks
 check(m.ram[lbl['gate_done']] & 1, 'meadow gate opened')
 shot('02_gate_open')
@@ -104,7 +105,7 @@ check(world() == 1 and pos() == (1, 8), 'F5 -> winter, robot in front of the arc
 press(F3); m.run_frames(20)
 check(world() == 0, 'F3 -> meadow')
 press(F5); m.run_frames(20)
-for i in range(5): play(4 + i, i)
+for i in range(5): play(5 + i, i)
 m.run_frames(150)
 check(m.ram[lbl['gate_done']] & 2, 'winter gate opened')
 shot('05_winter_gate_open')

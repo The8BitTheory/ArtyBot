@@ -92,6 +92,11 @@ C['gate_r'] = G.CELLS['gate_r']
 C['arch'] = G.CELLS['arch']
 C['ice'] = G.CELLS['ice']
 C['broken'] = G.CELLS['broken']
+# Key, lock and door: the meadow art reads fine on snow (post = shadow blue).
+C['key'] = G.CELLS['key']
+C['lock'] = G.CELLS['lock']
+C['lock_full'] = G.CELLS['lock_full']
+C['door'] = G.CELLS['door']
 assert set(C) == set(G.CELL_ORDER), set(G.CELL_ORDER) ^ set(C)
 
 
@@ -105,7 +110,7 @@ def main():
          ';',
          '; winter_cells: RUN_CELL_TYPES cells of 4 characters (TL, TR, BL, BR), order as',
          '; gen_gfx_run.CELL_ORDER: ' + ', '.join(G.CELL_ORDER) + '.',
-         '; winter_plan: the PLAN_TILE_COUNT planning tiles (floor, goal, package, blocker, water, ice).',
+         '; winter_plan: the PLAN_TILE_COUNT planning tiles (floor, goal, package, blocker, water, ice, key, lock, door).',
          ';   . = $D021 black   g = $D022 snow   l = $D023 shadow   c = colour RAM',
          'winter_cells']
     for name in G.CELL_ORDER:
@@ -140,7 +145,8 @@ def preview(path, bg1=1, bg2=14):
     bg = {'.': 0, 'g': bg1, 'l': bg2}
     # colour RAM per cell type (keep in sync with theme_winter in world.asm)
     ccol = {'grass': 6, 'tree': 5, 'chest': 2, 'goal': 3, 'flowers': 3, 'water': 6,
-            'path': 2, 'gate_l': 2, 'gate_r': 2, 'arch': 3, 'ice': 3, 'broken': 6}
+            'path': 2, 'gate_l': 2, 'gate_r': 2, 'arch': 3, 'ice': 3, 'broken': 6,
+            'key': 7, 'lock': 7, 'lock_full': 7, 'door': 2}
     n = len(G.CELL_ORDER)
     im = Image.new('RGB', (16 * n, 16 + 8 + 4), rgb(bg1))
     for i, name in enumerate(G.CELL_ORDER):
@@ -149,7 +155,7 @@ def preview(path, bg1=1, bg2=14):
                 col = ccol[name] if p == 'c' else bg[p]
                 for k in range(2):
                     im.putpixel((i * 16 + x * 2 + k, y), rgb(col))
-    pcol = [6, 3, 2, 5, 6, 3]
+    pcol = [6, 3, 2, 5, 6, 3, 7, 7, 2]
     for i, (name, rows) in enumerate(P.WINTER_TILES):
         for y, row in enumerate(rows):
             for x, p in enumerate(row):
