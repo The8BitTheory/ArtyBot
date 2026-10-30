@@ -283,6 +283,7 @@ run_space
 run_restart
         jsr run_reset
         jsr draw_run_field
+        jsr draw_run_delivered
         jsr draw_run_list
         jsr draw_scrollbar
         jmp run_set_robot_image
@@ -318,6 +319,7 @@ draw_run_screen
         lda #>str_run_field
         sta ptr1+1
         jsr run_label
+        jsr draw_run_delivered
         ; Command window (cols 22-39, rows 0-21).
         ldx #22
         ldy #0
@@ -876,6 +878,7 @@ run_pickup
         lda #T_FLOOR
 .take   sta map_work,x
         jsr run_redraw_front
+        jsr draw_run_delivered
         lda #1
         sta run_carry
         jsr run_set_robot_image
@@ -912,6 +915,7 @@ run_land
         sta map_work,x
         pha
         jsr run_redraw_front
+        jsr draw_run_delivered
         lda #0
         sta run_carry
         jsr run_set_robot_image
@@ -1063,6 +1067,42 @@ run_do_throw
         jmp sound_throw
 .tree   +run_fail str_run_tree
 .cant   +run_fail str_run_cantthrow
+
+; Bottom edge of the field window (row 21): " Delivered: n/m " = goal fields that
+; hold a chest / all goal fields. Clobbers A, X, Y, tmp0-tmp3, ptr0, ptr2.
+!zone draw_run_delivered
+draw_run_delivered
+        ldx #MAP_CELLS-1
+        lda #0
+        sta tmp0
+.cnt    lda map_work,x
+        cmp #T_BOXG
+        bne .nx
+        inc tmp0
+.nx     dex
+        bpl .cnt
+        lda #COL_WHITE
+        sta cur_col
+        ldx #2
+        ldy #21
+        jsr set_cursor
+        lda #<str_run_delivered
+        ldx #>str_run_delivered
+        jsr put_str
+        lda tmp0
+        jsr .num
+        lda #'/'
+        jsr put_char
+        lda goal_count
+        jsr .num
+        lda #' '
+        jmp put_char
+.num    cmp #10                 ; one or two digits
+        bcs .two
+        clc
+        adc #$30
+        jmp put_char
+.two    jmp draw_decimal2
 
 ; Carry set when no goal field without a chest is left on the field.
 !zone run_all_delivered

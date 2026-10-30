@@ -30,6 +30,7 @@ str_help !byte 0
 str_status !text "STATUS",0
 str_run_field !text " Level "
 str_run_field_lvl !text "1: Factory ",0   ; first character = level digit, patched at draw time
+str_run_delivered !text " Delivered: ",0
 str_run_list !text " ArtyBot Run ",0
 str_bottom_run !text "Space:Go/Pause R:Redo F1:Plan F8:Exit",0
 str_run_quit !text "Really quit? Return:yes "

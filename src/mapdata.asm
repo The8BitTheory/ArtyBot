@@ -38,6 +38,7 @@ plan_level_table
         !word plan_level_1
         !word plan_level_2
         !word plan_level_3
+        !word plan_level_4
 plan_level_count = (* - plan_level_table) / 2
 
 plan_level_1
@@ -115,6 +116,76 @@ plan_level_3
         !byte 5, 7
         !byte 5, 8
         !byte 5, 9
+
+; Level 4 (Sokoban-style warehouse): walls of the classic puzzle are trees, 7 goals,
+; 7 packages (one already stands on its goal). Robot starts in the upper-left
+; nook facing down. Redrawn from the original 8x9 map, shifted by (1,0).
+; Map (T tree, p package, G goal, P package on a goal, R robot):
+;      TTTTT  
+;    TTT...T  
+;    TGRp..T  
+;    TTT.pGT  
+;    TGTTp.T  
+;    T.T.G.TT 
+;    Tp.PppGT 
+;    T...G..T 
+;    TTTTTTTT 
+;             
+plan_level_4
+        !byte 3, 2, ROBOT_DIR_DOWN      ; robot
+        !byte 7                         ; goal fields (x, y)
+        !byte 2, 2
+        !byte 6, 3
+        !byte 2, 4
+        !byte 5, 5
+        !byte 7, 6
+        !byte 5, 7
+        !byte 4, 6
+        !byte 7                         ; packages (x, y)
+        !byte 4, 2
+        !byte 5, 3
+        !byte 5, 4
+        !byte 2, 6
+        !byte 4, 6
+        !byte 5, 6
+        !byte 6, 6
+        !byte 35                        ; blockers (x, y)
+        !byte 1, 1
+        !byte 1, 2
+        !byte 1, 3
+        !byte 1, 4
+        !byte 1, 5
+        !byte 1, 6
+        !byte 1, 7
+        !byte 1, 8
+        !byte 2, 1
+        !byte 2, 3
+        !byte 2, 8
+        !byte 3, 0
+        !byte 3, 1
+        !byte 3, 3
+        !byte 3, 4
+        !byte 3, 5
+        !byte 3, 8
+        !byte 4, 0
+        !byte 4, 4
+        !byte 4, 8
+        !byte 5, 0
+        !byte 5, 8
+        !byte 6, 0
+        !byte 6, 8
+        !byte 7, 0
+        !byte 7, 1
+        !byte 7, 2
+        !byte 7, 3
+        !byte 7, 4
+        !byte 7, 5
+        !byte 7, 8
+        !byte 8, 5
+        !byte 8, 6
+        !byte 8, 7
+        !byte 8, 8
+        !byte 0                         ; water fields
 
 ; A = level number. Copies its record into the game variables and builds the
 ; field layer including the blockers. Invalid numbers fall back to level 0.

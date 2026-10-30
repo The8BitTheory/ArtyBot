@@ -22,6 +22,7 @@ Ein spielbarer Kreislauf **Planen → Ausführen → nächstes Level** ist im Bu
 - RPG-Look (NES/SNES-Stil): Multicolour-Feld aus 2×2-Zeichen-Zellen (Gras, Baum = Blocker, Truhe = Paket, schimmerndes Zielfeld, Blumen als Deko, Wasser), Fensterrahmen, Zeigehand.
 - Roboter als Multicolour-Sprite mit 2-Frame-Laufanimation in 4 Richtungen, getragene Truhe als eigenes Sprite über dem Kopf.
 - Jump: Roboter fliegt 16 Frames im Bogen (Tabelle `run_arc`, 10 px hoch) zwei Felder weit. Throw: die Truhe fliegt als eigenes Sprite im Bogen (`run_throw_arc`, Phase 3) und wird erst bei der Landung ins Feld geschrieben (`run_land`, gemeinsam mit Drop Off).
+- Unterer Rahmen des Spielfelds (Zeile 21, Spalte 2): "Delivered: n/m" (Pakete auf Zielen / Zielfelder), Routine `draw_run_delivered` in run.asm, aktualisiert bei Levelstart/Neustart, Aufheben und Ablegen/Landen.
 - Befehlsliste rechts, der laufende Befehl wird hervorgehoben und mitgescrollt.
 - Steuerung: Space = Start/Pause/Weiter, R = Neustart, **F1** (oder P) = zurück zum Planen, **F8** = Beenden.
 - Fehlermeldungen mit Fehlerton: blockiert, nichts aufzuheben, Hände voll, nichts abzulegen, hier nicht ablegbar, Programm zu Ende ohne Lieferung, "can't swim" (ins Wasser gelaufen), Baum im Weg (Jump/Throw), nicht landbar (Jump), nichts zu werfen, hierhin nicht werfbar.
@@ -35,10 +36,11 @@ Ein spielbarer Kreislauf **Planen → Ausführen → nächstes Level** ist im Bu
 - **Throw**: das getragene Paket landet zwei Felder voraus (eins weiter als Drop Off). Dazwischen gilt dieselbe Regel wie beim Jump; Landefeld freier Boden oder freies Zielfeld (nicht Wasser).
 - Level gewonnen, wenn jedes Zielfeld ein Paket trägt.
 
-**Level** (`mapdata.asm`): 3 Level.
+**Level** (`mapdata.asm`): 4 Level.
 - Level 1: ein Paket, ein Ziel, 6 Bäume.
 - Level 2: drei Pakete, drei Ziele, 6 Bäume.
 - Level 3 ("Fluss"): Fluss in Spalte 5, Roboter und 2 Pakete links, 2 Ziele rechts. Ziel (6,2) ist von Bäumen eingezäunt und nur zur Wasserseite offen → dieses Paket muss geworfen werden. Kürzeste Lösung 17 Befehle (BFS-Regelmodell; ohne Throw bzw. ohne Jump unlösbar; im Simulator bis zur Fanfare durchgespielt).
+- Level 4 (Sokoban-Warehouse): Nachbau eines klassischen Sokoban-Levels (8×9, um (1,0) verschoben). Mauern = Bäume (nur der Ring um den Spielbereich), 7 Ziele, 7 Pakete (eins steht schon auf einem Ziel), Roboter bei (3,2) Richtung unten, direkt links neben dem Paket (4,2). Nicht per BFS auf Lösbarkeit geprüft; assembliert fehlerfrei (Kopie, Linux-ACME).
 - Nach dem letzten Level geht es wieder zu Level 1.
 - Format: variable Datensätze – Roboter x/y/Richtung, dann Listen mit vorangestelltem Anzahl-Byte und (x, y)-Paaren: Ziele, Pakete, Bäume, **Wasserfelder**. Neue Level über `plan_level_table`.
 
@@ -48,7 +50,7 @@ Ein spielbarer Kreislauf **Planen → Ausführen → nächstes Level** ist im Bu
 
 - Keine Zählung von Versuchen, Schritten oder Befehlen als Wertung. Die Aufgabe nennt ausdrücklich "weniger Befehle oder weniger Versuche".
 - Kein Programmlängen-Limit pro Level (Anzeige "PROGRAM: 00/99" existiert).
-- Nur 3 Level. Bewertet werden Umfang, Qualität und Abwechslung der Level.
+- Nur 4 Level. Bewertet werden Umfang, Qualität und Abwechslung der Level.
 - Kein Titelbild / keine Einleitung, kein Level-Auswahlbildschirm.
 - Level-Titel ist fest "Factory"; nur die Ziffer wird gepatcht.
 - README beschreibt ein altes Konzept (Joystick, 20 Slots, "ROBOTRON") und die KI-Angaben nennen Codex; vor Abgabe neu schreiben.
