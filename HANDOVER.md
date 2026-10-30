@@ -1,7 +1,6 @@
 # Projekt-Handover: ArtyBot
 
 **Stand:** 30.10.2026, ca. 14:00 (Wien) – 2 Welten (Meadow, Winter), 10 Levels, Welt-Tor, Rückweg-Bogen, Level-Statistik, Eis, **Schlüssel/Schloss/Tür (NEU, noch NICHT assembliert/getestet – im Chat war der Rechner nicht mehr erreichbar; als Erstes bauen und `sim_winter.py` laufen lassen)**
-**Basis:** lokaler Arbeitsstand `C:\Users\martin\iCloudDrive\8bit\robotron\ArtyBot`.
 **Abgabe:** Sa 31.10.2026, 12:00.
 
 > **Source of Truth ist der lokale Ordner**, nicht GitHub. Martin committet und pusht selbst in unregelmäßigen Abständen; das Repo kann hinterherhinken.

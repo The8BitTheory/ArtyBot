@@ -17,13 +17,15 @@ screen cells of the world's tileset). Map characters:
   <  archway back to the previous world (always walkable). Every world except
        the first needs exactly one, the first must not have one.
   1-9        level node n of this world (drawn as goal / gold chest; walkable)
-The robot starts on node 1. The script checks that every node can be reached
-from node 1 over the path (gate cells count as walkable: every gate cell must
+  S  start place of the robot (drawn as path; exactly one per world)
+The robot starts the world on its S cell. The script checks that every node can
+be reached from S over the path (gate cells count as walkable: every gate cell must
 be reachable, they are the exit of the world).
 
 Output per world NAME:
   wmap_NAME    WMAP_BYTES bytes, cells row-major, two per byte (high nibble first)
   wnodes_NAME  x, y per node (node 1 first)
+  wstart_NAME  x, y of the start place S
   WNODES_NAME  number of nodes (= levels of the world, checked in world.asm)
 """
 import os, sys
@@ -41,7 +43,7 @@ WORLDS = []
 # World 1: meadow (levels 1-4). The path winds round the end of the river.
 WORLDS.append(('meadow', """
 TTTT[]TTTTT~~TTTTTT
-T,1....*T,,~~*T,4.T
+T,1.S..*T,,~~*T,4.T
 T,*T,,.,TT,~~,,T*.T
 T,TT*,.,,T*~~,TT,.T
 TT,....T,*~~,,T,..T
@@ -64,7 +66,7 @@ T,T,,...4.....,,,,T
 T,,~~~~~~~~~,.*,T,T
 TT*~~~~~~~~~,3,,,*T
 T,,,~~~~~~~,,.,T*,T
-<..1......2...,,,,T
+<S.1......2...,,,,T
 TTTTTTTTTTTTTTTTTTT
 """))
 
@@ -73,7 +75,7 @@ def parse(name, art, index):
     rows = [r for r in art.strip('\n').split('\n')]
     if len(rows) != ROWS:
         sys.exit('%s: %d rows, expected %d' % (name, len(rows), ROWS))
-    cells, nodes = [], {}
+    cells, nodes, starts = [], {}, []
     for y, r in enumerate(rows):
         if len(r) != COLS:
             sys.exit('%s row %d: %d columns, expected %d' % (name, y, len(r), COLS))
@@ -83,6 +85,9 @@ def parse(name, art, index):
                 if n in nodes:
                     sys.exit('%s: node %d twice' % (name, n))
                 nodes[n] = (x, y)
+                cells.append(PATH)
+            elif ch == 'S':
+                starts.append((x, y))
                 cells.append(PATH)
             elif ch in CELL:
                 cells.append(CELL[ch])
@@ -97,10 +102,13 @@ def parse(name, art, index):
     count = len(nodes)
     if sorted(nodes) != list(range(1, count + 1)):
         sys.exit('%s: nodes must be 1..n without gaps, got %s' % (name, sorted(nodes)))
-    # reachability from node 1
+    if len(starts) != 1:
+        sys.exit('%s: needs exactly one start place "S", found %d' % (name, len(starts)))
+    start = starts[0]
+    # reachability from the start place
     walk = lambda x, y: 0 <= x < COLS and 0 <= y < ROWS and cells[y * COLS + x] in (PATH, 7, 8, 9)
-    seen = {nodes[1]}
-    q = deque([nodes[1]])
+    seen = {start}
+    q = deque([start])
     while q:
         x, y = q.popleft()
         for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
@@ -110,8 +118,8 @@ def parse(name, art, index):
                 q.append(p)
     for n, p in nodes.items():
         if p not in seen:
-            sys.exit('%s: node %d at %s cannot be reached from node 1' % (name, n, p))
-    return cells, [nodes[n] for n in range(1, count + 1)]
+            sys.exit('%s: node %d at %s cannot be reached from the start place' % (name, n, p))
+    return cells, [nodes[n] for n in range(1, count + 1)], start
 
 
 def main():
@@ -125,7 +133,7 @@ def main():
            'WMAP_BYTES = %d' % ((COLS * ROWS + 1) // 2),
            '']
     for index, (name, art) in enumerate(WORLDS):
-        cells, nodes = parse(name, art, index)
+        cells, nodes, start = parse(name, art, index)
         if len(cells) % 2:
             cells.append(0)
         data = [cells[i] << 4 | cells[i + 1] for i in range(0, len(cells), 2)]
@@ -138,6 +146,8 @@ def main():
         out.append('wnodes_%s' % name)
         out.append('        !byte ' + ', '.join('%d,%d' % p for p in nodes))
         out.append('WNODES_%s = %d' % (name.upper(), len(nodes)))
+        out.append('wstart_%s' % name)
+        out.append('        !byte %d,%d' % start)
         out.append('')
     with open(OUT, 'w', newline='\n') as f:
         f.write('\n'.join(out))
