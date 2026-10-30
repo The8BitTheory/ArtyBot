@@ -10,7 +10,7 @@ PAL = [0x000000,0xFFFFFF,0x68372B,0x70A4B2,0x6F3D86,0x588D43,0x352879,0xB8C76F,
 def rgb(i): v = PAL[i]; return ((v>>16)&255,(v>>8)&255,v&255)
 
 BG = {'.':0,'g':5,'l':13}
-CELLCOL = {'grass':5,'tree':2,'chest':2,'goal':3,'flowers':7,'water':6,'path':7,'gate_l':2,'gate_r':2,'arch':1}
+CELLCOL = {'grass':5,'tree':2,'chest':2,'goal':3,'flowers':7,'water':6,'path':7,'gate_l':2,'gate_r':2,'arch':1,'ice':3,'broken':6}
 ROBOT_COL = int(sys.argv[1]) if len(sys.argv) > 1 else 15
 CHEST_COL = 2
 
@@ -33,12 +33,12 @@ def draw_spr(img, art, sx, sy, col):
 W,H = 16*10, 16*6
 img = Image.new('RGB',(W,H))
 layout = ["gfgggwgalr",
-          "gtgcgwgfgg",
+          "gtgcgwgfib",
           "gpppowggtg",
           "gfgggggggg",
           "ggtggfgtgg",
           "gggggggggg"]
-names = {'g':'grass','t':'tree','c':'chest','o':'goal','f':'flowers','w':'water','p':'path','l':'gate_l','r':'gate_r','a':'arch'}
+names = {'g':'grass','t':'tree','c':'chest','o':'goal','f':'flowers','w':'water','p':'path','l':'gate_l','r':'gate_r','a':'arch','i':'ice','b':'broken'}
 for y,row in enumerate(layout):
     for x,ch in enumerate(row):
         draw_cell(img, names[ch], x*16, y*16)

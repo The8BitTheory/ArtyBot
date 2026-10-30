@@ -278,6 +278,16 @@ gfx_robot
 ;   c.c.
 ;   cccc
         !byte $FF,$CF,$33,$FF,$FF,$F3,$CC,$FF
+; ice (frozen water): the robot skates over it (output of gen_plan_tiles.py)
+;   cccc
+;   cgcc
+;   gccc
+;   cccc
+;   ccgc
+;   cgcc
+;   cccc
+;   cccc
+        !byte $FF,$DF,$7F,$FF,$F7,$DF,$FF,$FF
 gfx_robot_end
 !if gfx_robot_end - gfx_robot != ROBOT_CHAR_BYTES {
     !error "ROBOT_CHAR_BYTES does not match robot charset data"

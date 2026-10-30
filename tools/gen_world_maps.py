@@ -53,18 +53,18 @@ TTTTTTTTTTTTTTTTTTT
 """))
 
 
-# World 2: winter (levels 5-7). The archway at the bottom left leads back to
-# the meadow, the path winds up through the snow to the gate at the top.
+# World 2: winter (levels 5-9). The archway at the bottom left leads back to
+# the meadow, the path winds round the frozen lake up to the gate at the top.
 WORLDS.append(('winter', """
-TTTTT[]TTTTTTTTTTTT
-T,,*T..,TT,,,*,,,,T
-T,*...,T,,~~~~,,*,T
-T,,3,*,,T,~~~~~,,,T
-T,*.,,T,,,~~~~~,*,T
-T,,......2,,~~~,,,T
-T,*,T,,,,.,,,~~,,*T
-T,,,,T,*,.,,,,,,,,T
-<..1......,,,*,,,,T
+TTTTTTTTTTTTTTT[]TT
+T,T,*,T,T,*,T,,..,T
+T,,T,......5....,,T
+T,,,T.,*,T,,,*T,,TT
+T,T,,...4.....,,,,T
+T,,~~~~~~~~~,.*,T,T
+TT*~~~~~~~~~,3,,,*T
+T,,,~~~~~~~,,.,T*,T
+<..1......2...,,,,T
 TTTTTTTTTTTTTTTTTTT
 """))
 

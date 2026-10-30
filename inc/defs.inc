@@ -58,12 +58,14 @@ ICON_CHAR_BASE  = $E0
 ICON_CHAR_COUNT = 30            ; 24 command glyphs, Turn 180, and scrollbar arrows
 ICON_CHAR_BYTES = ICON_CHAR_COUNT * 8
 ROBOT_CHAR_BASE  = $80
-ROBOT_CHAR_COUNT = 9            ; 4 robot dirs + floor, goal, package, blocker, water (all multicolour)
+ROBOT_CHAR_COUNT = 10           ; 4 robot dirs + floor, goal, package, blocker, water, ice (all multicolour)
 FLOOR_CHAR       = ROBOT_CHAR_BASE + 4
 GOAL_CHAR        = ROBOT_CHAR_BASE + 5
 PKG_CHAR         = ROBOT_CHAR_BASE + 6
 BLOCK_CHAR       = ROBOT_CHAR_BASE + 7
 WATER_CHAR       = ROBOT_CHAR_BASE + 8
+ICE_CHAR         = ROBOT_CHAR_BASE + 9
+PLAN_TILE_COUNT  = 6            ; per theme: floor, goal, package, blocker, water, ice (from FLOOR_CHAR)
 ROBOT_CHAR_BYTES = ROBOT_CHAR_COUNT * 8
 ; Second command-icon block (the $E0 block is full): Jump $90-$93, Throw $94-$97.
 ICON2_CHAR_BASE  = $90
@@ -104,6 +106,9 @@ T_BOX       = 2
 T_GOAL      = 3             ; goal field without a package
 T_BOXG      = 4             ; package standing on a goal field (map_work only)
 T_WATER     = 5             ; water: blocks walking/dropping, can be jumped over/thrown across
+T_ICE       = 6             ; frozen water: the robot skates over it; jumping off it, landing
+                            ; or throwing a package on it breaks it (run fails)
+T_BROKEN    = 7             ; broken ice (map_work only, shown after such a failure)
 SPRITE_BYTES= 128           ; mouse pointer plus insertion marker
 PROGRAM_MAX = 99
 
@@ -125,7 +130,8 @@ COL_BLUE    = 6
 ; window frame characters and the pointing hand, all from $A1 on ($A0 is the
 ; scrollbar block of the ROM set); sprites.
 RUN_CHAR_BASE  = $A1
-RUN_CELL_TYPES = 10             ; grass, tree, chest, goal, flowers, water, path, gate left/right, arch (last 4: world map)
+RUN_CELL_TYPES = 12             ; grass, tree, chest, goal, flowers, water, path, gate l/r, arch (world map), ice, broken ice
+RUN_CELL_ICE   = 10             ; display cell of T_ICE (T_BROKEN = RUN_CELL_ICE+1)
 RUN_UI_BASE    = RUN_CHAR_BASE + RUN_CELL_TYPES*4
 UI_TL          = RUN_UI_BASE+0  ; window frame: rounded corners and edges
 UI_TOP         = RUN_UI_BASE+1

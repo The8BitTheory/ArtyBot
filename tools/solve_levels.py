@@ -8,7 +8,8 @@ program found is valid but not the shortest.
 
 Parses the level records (plan_level_N) and searches the shortest program with
 A* over the game rules of run.asm (Move Fwd/Back, Turn, Pick Up, Drop Off,
-Jump, Throw). Prints the program as keys of the planning screen
+Jump, Throw; ice: skating, breaking when jumped off / landed on / thrown on).
+Prints the program as keys of the planning screen
 (w s d a q e x z c) so it can be typed in.
 """
 import os, re, sys, heapq, time
@@ -46,19 +47,19 @@ def parse_levels():
         rx, ry, rd = b[0], b[1], b[2]
         i = 3
         lists = []
-        for _ in range(4):                 # goals, packages, trees, water
+        for _ in range(5):                 # goals, packages, trees, water, ice
             c = b[i]; i += 1
             lists.append([(b[i + 2 * k], b[i + 2 * k + 1]) for k in range(c)])
             i += 2 * c
         assert i == len(b), 'level %d: %d bytes, parsed %d' % (n, len(b), i)
         out[n] = dict(robot=(rx, ry, rd), goals=lists[0], boxes=lists[1], trees=set(lists[2]),
-                      water=set(lists[3]))
+                      water=set(lists[3]), ice=set(lists[4]))
     return out
 
 
 def solve(lv, limit=3_000_000, start_state=None, more=False):
     goals = tuple(lv['goals']); gset = set(goals)
-    trees, water = lv['trees'], lv['water']
+    trees, water, ice = lv['trees'], lv['water'], lv['ice']
     inside = lambda x, y: 0 <= x < COLS and 0 <= y < ROWS
     rx, ry, rd = lv['robot']
     start = start_state or (rx, ry, rd, 0, frozenset(lv['boxes']))
@@ -80,25 +81,42 @@ def solve(lv, limit=3_000_000, start_state=None, more=False):
             return sum(1 for g in goals if g in st[4]) > covered0
         return all(g in st[4] for g in goals)
 
+    def free(p, boxes):                 # can be walked on / skated over (floor, goal, ice)
+        return inside(*p) and p not in trees and p not in water and p not in boxes
+
     def moves(st):
         x, y, d, carry, boxes = st
         for name, dd in (('fwd', d), ('back', d ^ 1)):
             nx, ny = x + DX[dd], y + DY[dd]
-            if inside(nx, ny) and (nx, ny) not in trees and (nx, ny) not in water and (nx, ny) not in boxes:
-                yield name, (nx, ny, d, carry, boxes)
+            if free((nx, ny), boxes):
+                # Ice: keep skating in the moving direction until land is reached
+                # (stop there) or the next field is blocked (stop on the ice).
+                dead = False
+                while (nx, ny) in ice:
+                    sx, sy = nx + DX[dd], ny + DY[dd]
+                    if (sx, sy) in water:           # skating into open water: drowns
+                        dead = True
+                        break
+                    if not free((sx, sy), boxes):
+                        break
+                    nx, ny = sx, sy
+                if not dead:
+                    yield name, (nx, ny, d, carry, boxes)
         yield 'right', (x, y, TURN_R[d], carry, boxes)
         yield 'left', (x, y, TURN_L[d], carry, boxes)
         yield 'turn180', (x, y, TURN_R[TURN_R[d]], carry, boxes)
         fx, fy = x + DX[d], y + DY[d]
         if not carry and inside(fx, fy) and (fx, fy) in boxes:
             yield 'pick', (x, y, d, 1, boxes - {(fx, fy)})
-        if carry and inside(fx, fy) and (fx, fy) not in trees and (fx, fy) not in water and (fx, fy) not in boxes:
+        if carry and free((fx, fy), boxes) and (fx, fy) not in ice:
             yield 'drop', (x, y, d, 0, boxes | {(fx, fy)})
         ax, ay = x + 2 * DX[d], y + 2 * DY[d]
         if inside(ax, ay) and (fx, fy) not in trees:
-            land_ok = (ax, ay) not in trees and (ax, ay) not in water and (ax, ay) not in boxes
-            if land_ok:
+            # landing on ice (robot or package) breaks it: fail; jumping off ice too
+            land_ok = free((ax, ay), boxes) and (ax, ay) not in ice
+            if land_ok and (x, y) not in ice:
                 yield 'jump', (ax, ay, d, carry, boxes)
+            if land_ok:
                 if carry:
                     yield 'throw', (x, y, d, 0, boxes | {(ax, ay)})
 

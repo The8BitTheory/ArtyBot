@@ -39,9 +39,9 @@ KEY_F3        = 5
 KEY_F5        = 6
 
 ; ---- Themes --------------------------------------------------------------
-; Record: +0 run cells (RUN_CELL_TYPES*32 bytes), +2 planning tiles (5*8 bytes,
-; floor/goal/package/blocker/water), +4 $D022, +5 $D023, +6 colour RAM of the
-; RUN_CELL_TYPES run cells, then colour RAM per planning tile id (T_FLOOR..T_WATER),
+; Record: +0 run cells (RUN_CELL_TYPES*32 bytes), +2 planning tiles (PLAN_TILE_COUNT*8
+; bytes: floor/goal/package/blocker/water/ice), +4 $D022, +5 $D023, +6 colour RAM of the
+; RUN_CELL_TYPES run cells, then colour RAM per tile id (T_FLOOR..T_BROKEN),
 ; then the colour of the robot arrows in the planning map.
 ; Colour RAM values +8 = multicolour.
 THEME_MEADOW  = 0
@@ -59,8 +59,9 @@ theme_meadow
         !word gfx_run, gfx_robot + 4*8
         !byte COL_GREEN, COL_LGREEN
         !byte COL_GREEN+8, COL_RED+8, CHEST_COLOR+8, COL_CYAN+8, COL_YELLOW+8, COL_BLUE+8, COL_YELLOW+8
-        !byte COL_RED+8, COL_RED+8, COL_WHITE+8
+        !byte COL_RED+8, COL_RED+8, COL_WHITE+8, COL_CYAN+8, COL_BLUE+8
         !byte COL_GREEN+8, COL_RED+8, CHEST_COLOR+8, COL_CYAN+8, COL_YELLOW+8, COL_BLUE+8
+        !byte COL_CYAN+8, COL_BLUE+8
         !byte COL_WHITE+8
 
 ; Winter: white snow with light-blue shadows, pines, ice-cold water, brown path.
@@ -69,22 +70,27 @@ theme_winter
         !word winter_cells, winter_plan
         !byte COL_WHITE, COL_LBLUE
         !byte COL_BLUE+8, COL_GREEN+8, CHEST_COLOR+8, COL_CYAN+8, COL_CYAN+8, COL_BLUE+8, COL_RED+8
-        !byte COL_RED+8, COL_RED+8, COL_CYAN+8
+        !byte COL_RED+8, COL_RED+8, COL_CYAN+8, COL_CYAN+8, COL_BLUE+8
         !byte COL_BLUE+8, COL_GREEN+8, CHEST_COLOR+8, COL_CYAN+8, COL_YELLOW+8, COL_BLUE+8
+        !byte COL_CYAN+8, COL_BLUE+8
         !byte COL_PURPLE+8              ; robot arrows: white would vanish in the snow
 
 ; Colours of the loaded theme (theme_load copies them here; preset = meadow).
 theme_colors
 theme_bg1       !byte COL_GREEN         ; $D022
 theme_bg2       !byte COL_LGREEN        ; $D023
-run_cell_colors                         ; grass, tree trunk, chest, goal, flowers, water, path, gate l/r, arch
+run_cell_colors                         ; grass, tree trunk, chest, goal, flowers, water, path, gate l/r, arch,
         !byte COL_GREEN+8, COL_RED+8, CHEST_COLOR+8, COL_CYAN+8, COL_YELLOW+8, COL_BLUE+8, COL_YELLOW+8
-        !byte COL_RED+8, COL_RED+8, COL_WHITE+8
+        !byte COL_RED+8, COL_RED+8, COL_WHITE+8, COL_CYAN+8, COL_BLUE+8   ; ice, broken ice
 !if * - run_cell_colors != RUN_CELL_TYPES {
     !error "run_cell_colors: ein Eintrag pro Zelltyp"
 }
-map_tile_colors                         ; planning tiles by tile id (T_FLOOR..T_WATER)
+map_tile_colors                         ; planning tiles by tile id (T_FLOOR..T_BROKEN)
         !byte COL_GREEN+8, COL_RED+8, CHEST_COLOR+8, COL_CYAN+8, COL_YELLOW+8, COL_BLUE+8
+        !byte COL_CYAN+8, COL_BLUE+8
+!if * - map_tile_colors != T_BROKEN + 1 {
+    !error "map_tile_colors: ein Eintrag pro Tile-ID"
+}
 theme_plan_robot !byte COL_WHITE+8      ; colour of the robot arrows in the planning map
 THEME_COLOR_BYTES = * - theme_colors
 
@@ -113,7 +119,7 @@ theme_load
         lda (ptr2),y
         sta ptr0+1
         +set16 ptr1, CHARSET + FLOOR_CHAR*8
-        +set16 cnt, 5*8
+        +set16 cnt, PLAN_TILE_COUNT*8
         jsr memcpy
         ldx #0
         ldy #TREC_COLORS
@@ -160,9 +166,9 @@ world_meadow
 str_world_meadow !text "Meadow",0
 
 world_winter
-        !byte THEME_WINTER, 4, 3        ; levels 5-7
+        !byte THEME_WINTER, 4, 5        ; levels 5-9 (8 and 9: ice)
         !word wmap_winter, str_world_winter, wnodes_winter
-!if WNODES_WINTER != 3 {
+!if WNODES_WINTER != 5 {
     !error "Weltkarte winter: Anzahl Knoten passt nicht zur Anzahl Levels"
 }
 str_world_winter !text "Winter",0

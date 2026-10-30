@@ -224,7 +224,50 @@ cggggggc
 cccccccc
 """
 
-CELL_ORDER = ['grass', 'tree', 'chest', 'goal', 'flowers', 'water', 'path', 'gate_l', 'gate_r', 'arch']
+# Ice (frozen water, T_ICE): smooth ice in colour RAM with white glints and
+# light shadow streaks. The robot skates over it.
+CELLS['ice'] = """
+cccccccc
+ccgccccc
+cgcclccc
+cccccccc
+ccccccgc
+cccclgcc
+cccccccc
+cclccccc
+cccccccc
+cgcccccc
+gcccclcc
+cccccccc
+ccccgccc
+cccgcccc
+cclccccc
+cccccccc
+"""
+
+# Broken ice (T_BROKEN, after a failed run): dark water in colour RAM, white
+# floes with black cracks.
+CELLS['broken'] = """
+gg.cccc.
+g.cc.gg.
+.ccc.gl.
+cc.gg.c.
+c.gllg.c
+cc.gg.cc
+.ccccccc
+gg.cc.gg
+gl.cc.gl
+.gg.cc..
+c..ccccc
+ccc.gg.c
+cc.glgg.
+.c.gg.cc
+gg.cc.cg
+gl.c.ggc
+"""
+
+CELL_ORDER = ['grass', 'tree', 'chest', 'goal', 'flowers', 'water', 'path', 'gate_l', 'gate_r', 'arch',
+              'ice', 'broken']
 
 # ---------------------------------------------------------------- UI chars
 # NES Final Fantasy window frame (rounded corners) and the pointing hand.

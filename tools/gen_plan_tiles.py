@@ -47,8 +47,10 @@ WATER = ["cccc","c.cc",".c.c","cccc","cccc","cc.c","c.c.","cccc"]
 W_FLOOR = ["gggg","gggg","gggg","gglg","gggg","gggg","gggg","gggg"]
 W_TREE  = ["g..g",".gg.",".cc.",".cc.","cccc","g..g","g..g","gggg"]
 W_WATER = ["cccc","cgcc","ccgc","cccc","cccc","cc.c","cgcc","cccc"]
+# Ice (frozen water, both themes): light ice with white glints.
+ICE     = ["cccc","cgcc","gccc","cccc","ccgc","cgcc","cccc","cccc"]
 WINTER_TILES = [('snow (floor)', W_FLOOR), ('goal', GOAL), ('package (chest)', CHEST),
-                ('blocker (pine)', W_TREE), ('water (ice lake)', W_WATER)]
+                ('blocker (pine)', W_TREE), ('water (ice lake)', W_WATER), ('ice', ICE)]
 
 tiles = []   # (comment, rows)
 for d in ('right','left','up','down'):
@@ -58,6 +60,7 @@ tiles.append(('goal', GOAL))
 tiles.append(('package (chest)', CHEST))
 tiles.append(('blocker (tree)', TREE))
 tiles.append(('water', WATER))
+tiles.append(('ice (frozen water)', ICE))
 
 if __name__ == '__main__':
     for name, rows in tiles:

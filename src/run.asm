@@ -45,6 +45,9 @@ run_fsteps    = $68             ; thrown package: flight frames left
 run_mid       = $69             ; tile id of the field jumped over / thrown across
 run_ftile     = $6A             ; tile the thrown package becomes when it lands
 run_fidx      = $6B             ; map index of that landing field
+run_skate     = $6E             ; 1 while the robot skates over ice (no walk cycle, faster)
+run_break     = $6F             ; 1: the jump lands on ice, which breaks on arrival; 2: skated into water
+run_sunk      = $8F             ; 1: the robot broke through the ice (sprites hidden)
 
 RUN_FIELD_X = 1                 ; screen column of the first cell
 RUN_FIELD_Y = 1                 ; screen row of the first cell
@@ -53,6 +56,7 @@ RUN_ROBOT_DY = 2                ; robot art starts 2 lines above its cell
 RUN_CHEST_DY = 3                ; chest sprite sits this far above the robot
 RUN_MOVE_FRAMES = 8             ; 2 pixels per frame = one 16 pixel cell
 RUN_JUMP_FRAMES = 16            ; 2 pixels per frame = two cells (jump and throw)
+RUN_SKATE_FRAMES = 4            ; 4 pixels per frame = one cell while skating on ice
 KEY_P       = 41                ; C64 keyboard matrix codes
 KEY_X       = 23
 KEY_SPACE   = 60
@@ -232,6 +236,9 @@ run_reset
         sta run_walk
         sta run_jump
         sta run_fly
+        sta run_skate
+        sta run_break
+        sta run_sunk
         sta scroll_offset
         lda #$FF
         sta run_cur
@@ -478,6 +485,12 @@ run_set_robot_image
 
 !zone run_update_sprites
 run_update_sprites
+        lda run_sunk            ; broke through the ice: robot (and chest) gone
+        beq .visible
+        lda #0
+        sta VIC_SPR_EN
+        rts
+.visible
         lda run_spx
         clc
         adc #24
@@ -627,6 +640,7 @@ run_tick
         dec run_steps
         beq .arrived
         lda run_jump            ; in the air: legs stay apart (step frame)
+        ora run_skate           ; skating: no steps either
         bne .air
         lda run_steps           ; walk cycle: step frame for 4 of 8 frames
         and #4
@@ -635,13 +649,26 @@ run_tick
         jmp run_set_robot_image
 .air    rts
 .arrived
+        lda run_skate           ; tmp3 = 1 when the robot was skating already
+        sta tmp3
         lda #0
         sta run_phase
         sta run_walk
         sta run_jump
+        sta run_skate
         lda #3
         sta run_timer
-        jmp run_set_robot_image
+        jsr run_set_robot_image
+        lda run_break           ; the jump landed on ice: it breaks
+        beq .slide
+        tax
+        lda #0
+        sta run_break
+        cpx #2                  ; 2: skated into open water
+        bne .brk
+        jmp run_drown
+.brk    jmp run_break_robot
+.slide  jmp run_skate_on        ; on ice: skate on
 .done   rts
 .turning
         ldx robot_dir
@@ -798,6 +825,8 @@ run_do_move
         beq .blocked
         cmp #T_WATER
         beq .water
+        cmp #T_BROKEN
+        beq .water
         lda run_tx
         sta robot_tx
         lda run_ty
@@ -905,7 +934,10 @@ run_drop
 ; package is put down there (Drop Off, or the end of a Throw).
 !zone run_land
 run_land
-        sta map_work,x
+        cmp #T_BROKEN           ; thrown onto ice: ice and package are gone
+        bne .put
+        jmp run_break_ice
+.put    sta map_work,x
         pha
         jsr run_redraw_front
         jsr draw_run_delivered
@@ -937,6 +969,109 @@ run_land
 .more   lda #3
         sta tmp3
         jmp sound_move
+
+; X = map index of the robot's cell; run_tx/run_ty = that cell.
+!zone run_robot_cell
+run_robot_cell
+        lda robot_tx
+        sta run_tx
+        sta tmp0
+        lda robot_ty
+        sta run_ty
+        sta tmp1
+        jmp map_index
+
+; The robot skated into open water: it sinks.
+!zone run_drown
+run_drown
+        lda #1
+        sta run_sunk
+        lda #<str_run_water
+        ldx #>str_run_water
+        jmp run_fail
+
+; Ice breaks under the robot (jump off the ice or onto it): the robot sinks.
+!zone run_break_robot
+run_break_robot
+        jsr run_robot_cell
+        lda #1
+        sta run_sunk
+        ; fall through
+
+; X = map index of the ice field run_tx/run_ty: it breaks, the run fails.
+!zone run_break_ice
+run_break_ice
+        lda #T_BROKEN
+        sta map_work,x
+        jsr run_redraw_front    ; draws run_tx/run_ty
+        lda #<str_run_ice
+        ldx #>str_run_ice
+        jmp run_fail
+
+; Called after every arrival of the robot. On ice it keeps skating in the
+; moving direction (run_mdir): onto the next ice field, or onto land where it
+; stops; when the next field is blocked (tree, package, field edge) it
+; stays on the ice. tmp3 = 1 when it was skating already (no new sound).
+!zone run_skate_on
+run_skate_on
+        jsr run_robot_cell
+        lda map_work,x
+        cmp #T_ICE
+        bne .done
+        ldx run_mdir
+        lda robot_tx
+        clc
+        adc run_dx_tab,x
+        cmp #MAP_COLS           ; also catches $FF
+        bcs .done
+        sta run_tx
+        sta tmp0
+        lda robot_ty
+        clc
+        adc run_dy_tab,x
+        cmp #MAP_ROWS
+        bcs .done
+        sta run_ty
+        sta tmp1
+        jsr map_index
+        lda map_work,x
+        beq .go                 ; floor
+        cmp #T_GOAL
+        beq .go
+        cmp #T_ICE
+        beq .go
+        cmp #T_WATER            ; open water: the robot skates in and sinks
+        beq .wat
+        cmp #T_BROKEN
+        bne .done               ; blocked: stays on the ice
+.wat    lda #2
+        sta run_break
+.go     lda run_tx
+        sta robot_tx
+        lda run_ty
+        sta robot_ty
+        ldx run_mdir
+        lda run_dx_tab,x
+        asl
+        asl                     ; 4 pixels per frame
+        sta run_vx
+        lda run_dy_tab,x
+        asl
+        asl
+        sta run_vy
+        lda #RUN_SKATE_FRAMES
+        sta run_steps
+        lda #1
+        sta run_phase
+        sta run_skate
+        lda #0
+        sta run_timer
+        sta run_walk
+        jsr run_set_robot_image
+        lda tmp3
+        bne .done
+        jmp sound_throw         ; whoosh when the skating starts
+.done   rts
 
 ; Field two steps ahead (Jump / Throw). Carry set when it is inside the field;
 ; then run_tx/run_ty = that field, X = its map index, and run_mid = tile id of
@@ -984,7 +1119,12 @@ run_far_cell
 ; free goal field. The robot may carry a package while jumping.
 !zone run_do_jump
 run_do_jump
-        jsr run_far_cell
+        jsr run_robot_cell      ; jumping off the ice breaks it
+        lda map_work,x
+        cmp #T_ICE
+        bne .land
+        jmp run_break_robot
+.land   jsr run_far_cell
         bcc .noland
         lda run_mid
         cmp #T_WALL
@@ -992,7 +1132,11 @@ run_do_jump
         lda map_work,x
         beq .go                 ; free floor
         cmp #T_GOAL
+        beq .go
+        cmp #T_ICE              ; landing on ice: it breaks when the robot arrives
         bne .noland
+        lda #1
+        sta run_break
 .go     lda run_tx
         sta robot_tx
         lda run_ty
@@ -1033,8 +1177,12 @@ run_do_throw
         lda map_work,x
         beq .floor              ; free floor
         cmp #T_GOAL
+        beq .goal
+        cmp #T_ICE              ; on ice the package breaks through (on landing)
         bne .cant
-        lda #T_BOXG
+        lda #T_BROKEN
+        bne .fly
+.goal   lda #T_BOXG
         bne .fly
 .floor  lda #T_BOX
 .fly    sta run_ftile
@@ -1168,6 +1316,13 @@ draw_run_cell
         lda map_work,x
         sta ui_save             ; cell type 0..3 = display tile
         beq .floor
+        cmp #T_ICE              ; ice / broken ice: own display cells
+        bcc .not_ice
+        clc
+        adc #RUN_CELL_ICE-T_ICE
+        sta ui_save
+        bne .typed
+.not_ice
         cmp #T_BOXG
         bne .typed
         lda #T_BOX              ; chest on a goal field: shown as a gold chest

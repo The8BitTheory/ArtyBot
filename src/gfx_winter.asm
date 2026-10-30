@@ -2,8 +2,8 @@
 ; edit the ASCII art there and re-run the script instead of editing this file.
 ;
 ; winter_cells: RUN_CELL_TYPES cells of 4 characters (TL, TR, BL, BR), order as
-; gen_gfx_run.CELL_ORDER: grass, tree, chest, goal, flowers, water, path, gate_l, gate_r, arch.
-; winter_plan: the 5 planning tiles (floor, goal, package, blocker, water).
+; gen_gfx_run.CELL_ORDER: grass, tree, chest, goal, flowers, water, path, gate_l, gate_r, arch, ice, broken.
+; winter_plan: the PLAN_TILE_COUNT planning tiles (floor, goal, package, blocker, water, ice).
 ;   . = $D021 black   g = $D022 snow   l = $D023 shadow   c = colour RAM
 winter_cells
 ; --- grass
@@ -216,6 +216,48 @@ winter_cells
         !byte $F0,$FC,$0F,$03,$03,$03,$03,$03
         !byte $C0,$C0,$C0,$C0,$C0,$C5,$D5,$FF
         !byte $03,$03,$03,$03,$03,$53,$57,$FF
+; --- ice
+;   cccccccc
+;   ccgccccc
+;   cgcclccc
+;   cccccccc
+;   ccccccgc
+;   cccclgcc
+;   cccccccc
+;   cclccccc
+;   cccccccc
+;   cgcccccc
+;   gcccclcc
+;   cccccccc
+;   ccccgccc
+;   cccgcccc
+;   cclccccc
+;   cccccccc
+        !byte $FF,$F7,$DF,$FF,$FF,$FF,$FF,$FB
+        !byte $FF,$FF,$BF,$FF,$F7,$9F,$FF,$FF
+        !byte $FF,$DF,$7F,$FF,$FF,$FD,$FB,$FF
+        !byte $FF,$FF,$EF,$FF,$7F,$FF,$FF,$FF
+; --- broken
+;   gg.cccc.
+;   g.cc.gg.
+;   .ccc.gl.
+;   cc.gg.c.
+;   c.gllg.c
+;   cc.gg.cc
+;   .ccccccc
+;   gg.cc.gg
+;   gl.cc.gl
+;   .gg.cc..
+;   c..ccccc
+;   ccc.gg.c
+;   cc.glgg.
+;   .c.gg.cc
+;   gg.cc.cg
+;   gl.c.ggc
+        !byte $53,$4F,$3F,$F1,$C6,$F1,$3F,$53
+        !byte $FC,$14,$18,$4C,$93,$4F,$FF,$C5
+        !byte $63,$14,$C3,$FC,$F1,$31,$53,$63
+        !byte $C6,$F0,$FF,$53,$94,$4F,$CD,$17
 winter_cells_end
 !if winter_cells_end - winter_cells != RUN_CELL_TYPES * 32 {
     !error "gfx_winter: Anzahl Zelltypen passt nicht zu RUN_CELL_TYPES"
@@ -271,7 +313,17 @@ winter_plan
 ;   cgcc
 ;   cccc
         !byte $FF,$DF,$F7,$FF,$FF,$F3,$DF,$FF
+; ice
+;   cccc
+;   cgcc
+;   gccc
+;   cccc
+;   ccgc
+;   cgcc
+;   cccc
+;   cccc
+        !byte $FF,$DF,$7F,$FF,$F7,$DF,$FF,$FF
 winter_plan_end
-!if winter_plan_end - winter_plan != 5 * 8 {
-    !error "gfx_winter: 5 Plan-Kacheln erwartet"
+!if winter_plan_end - winter_plan != PLAN_TILE_COUNT * 8 {
+    !error "gfx_winter: Anzahl Plan-Kacheln passt nicht zu PLAN_TILE_COUNT"
 }

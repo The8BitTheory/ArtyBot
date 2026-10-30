@@ -2,7 +2,7 @@
 ; edit the ASCII art there and re-run the script instead of editing this file.
 ;
 ; Multicolour field cells (16x16 px = 2x2 characters TL,TR,BL,BR) from
-; RUN_CHAR_BASE: grass, tree, chest, goal, flowers, water, path, gate_l, gate_r, arch.
+; RUN_CHAR_BASE: grass, tree, chest, goal, flowers, water, path, gate_l, gate_r, arch, ice, broken.
 ;   . = $D021 black   g = $D022 green   l = $D023 light green   c = colour RAM
 ; Then hires UI characters: tl, top, tr, left, right, bl, bottom, br, hand.
 gfx_run
@@ -216,6 +216,48 @@ gfx_run
         !byte $F0,$FC,$0F,$03,$03,$03,$03,$03
         !byte $C0,$C0,$C0,$C0,$C0,$C5,$D5,$FF
         !byte $03,$03,$03,$03,$03,$53,$57,$FF
+; --- ice
+;   cccccccc
+;   ccgccccc
+;   cgcclccc
+;   cccccccc
+;   ccccccgc
+;   cccclgcc
+;   cccccccc
+;   cclccccc
+;   cccccccc
+;   cgcccccc
+;   gcccclcc
+;   cccccccc
+;   ccccgccc
+;   cccgcccc
+;   cclccccc
+;   cccccccc
+        !byte $FF,$F7,$DF,$FF,$FF,$FF,$FF,$FB
+        !byte $FF,$FF,$BF,$FF,$F7,$9F,$FF,$FF
+        !byte $FF,$DF,$7F,$FF,$FF,$FD,$FB,$FF
+        !byte $FF,$FF,$EF,$FF,$7F,$FF,$FF,$FF
+; --- broken
+;   gg.cccc.
+;   g.cc.gg.
+;   .ccc.gl.
+;   cc.gg.c.
+;   c.gllg.c
+;   cc.gg.cc
+;   .ccccccc
+;   gg.cc.gg
+;   gl.cc.gl
+;   .gg.cc..
+;   c..ccccc
+;   ccc.gg.c
+;   cc.glgg.
+;   .c.gg.cc
+;   gg.cc.cg
+;   gl.c.ggc
+        !byte $53,$4F,$3F,$F1,$C6,$F1,$3F,$53
+        !byte $FC,$14,$18,$4C,$93,$4F,$FF,$C5
+        !byte $63,$14,$C3,$FC,$F1,$31,$53,$63
+        !byte $C6,$F0,$FF,$53,$94,$4F,$CD,$17
 ; --- tl
 ;   ........
 ;   ........
