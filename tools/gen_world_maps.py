@@ -55,18 +55,21 @@ TTTTTTTTTTTTTTTTTTT
 """))
 
 
-# World 2: winter (levels 5-9). The archway at the bottom left leads back to
-# the meadow, the path winds round the frozen lake up to the gate at the top.
+# World 2: winter (levels 1-9: ice). The path forks right behind level 1: the
+# western branch climbs past levels 2 and 4, the southern one runs past level 3;
+# both meet again at level 5 / 6 (a loop round the frozen lake). From level 5 the
+# eastern trail has two side spurs (levels 7 and 8) and leads up to level 9 and
+# the gate. The archway at the bottom left leads back to the meadow.
 WORLDS.append(('winter', """
 TTTTTTTTTTTTTTT[]TT
-T,T,*,T,T,*,T,,..,T
-T,,T,......5....,,T
-T,,,T.,*,T,,,*T,,TT
-T,T,,...4.....,,,,T
-T,,~~~~~~~~~,.*,T,T
-TT*~~~~~~~~~,3,,,*T
-T,,,~~~~~~~,,.,T*,T
-<S.1......2...,,,,T
+T,4.......6,,T,.,,T
+T,.,,T,*,,.,,,,9,,T
+T,.~~~~~,,.,T,,.,,T
+T,.~~~~~~,5......8T
+T,2~~~~~~,.,,.,*,,T
+T,.,~~~~,,.,,7,T,,T
+T,.,*,T,,,.,T,,,*,T
+<S1.......3,,,*,,,T
 TTTTTTTTTTTTTTTTTTT
 """))
 

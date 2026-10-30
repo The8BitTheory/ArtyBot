@@ -55,8 +55,8 @@ world1_levels                           ; world 1: Meadow
         !word map14                     ; key, lock and door
 WORLD1_LEVELS = (* - world1_levels) / 2
 world2_levels                           ; world 2: Winter
-        !word map21, map22, map23
-        !word map24, map25              ; ice
+        !word map21                     ; ice: skating (taught level by level)
+        !word map22, map23, map24, map25, map26, map27, map28, map29 ; PLACEHOLDERS
 WORLD2_LEVELS = (* - world2_levels) / 2
 plan_level_count = (* - plan_level_table) / 2
 !if WORLD1_LEVELS > 9 | WORLD2_LEVELS > 9 {
@@ -268,187 +268,82 @@ map14
 
 
 
-; map21 (Winter 1, "Ice bridge"): a frozen lake (rows 4-5) cuts the field in two,
-; only the ice bridge at x = 4, 5 leads across. Three packages down south, three
-; goals up north: carry them over the bridge or throw them across the bridge ends.
+; map21 (Winter 1, "Slippery bridge"): a lake of open water cuts the field in two,
+; only a strip of ice (x = 3..5) leads across. Stepping onto the ice carries the
+; robot over to the other bank in one move (forwards or backwards). Both packages
+; lie on the north bank, both goals on the south bank: cross three times.
+;
+;    T........T
+;    ...P..P.T.
+;    ..........
+;    ~~~###~~~~
+;    ~~~###~~~~
+;    ~~~###~~~~
+;    ~~~###~~~~
+;    .T........
+;    ...G^G....
+;    T........T
+;    (. snow  # ice  ~ water  T pine  P package  G goal  ^ robot)
 map21
         !byte 4, 8, ROBOT_DIR_UP
-        !byte 3                         ; goal fields (x, y)
-        !byte 3, 1
-        !byte 4, 1
-        !byte 5, 1
-        !byte 3                         ; packages (x, y)
-        !byte 3, 7
-        !byte 4, 6
-        !byte 5, 7
-        !byte 6                         ; blockers (x, y)
-        !byte 1, 1
-        !byte 8, 1
-        !byte 2, 7
-        !byte 7, 7
-        !byte 0, 3
-        !byte 9, 3
-        !byte 16                         ; water fields
-        !byte 0, 4
-        !byte 1, 4
-        !byte 2, 4
-        !byte 3, 4
-        !byte 6, 4
-        !byte 7, 4
-        !byte 8, 4
-        !byte 9, 4
-        !byte 0, 5
-        !byte 1, 5
-        !byte 2, 5
-        !byte 3, 5
-        !byte 6, 5
-        !byte 7, 5
-        !byte 8, 5
-        !byte 9, 5
-        !byte 0                         ; ice fields (frozen water)
+        !byte 2                       ; goal fields (x, y)
+        !byte 3, 8, 5, 8
+        !byte 2                       ; packages (x, y)
+        !byte 3, 1, 6, 1
+        !byte 6                       ; blockers (x, y)
+        !byte 0, 0, 9, 0, 0, 9, 9, 9, 8, 1, 1, 7
+        !byte 28                      ; water fields
+        !byte 0, 3, 1, 3, 2, 3, 6, 3, 7, 3, 8, 3, 9, 3
+        !byte 0, 4, 1, 4, 2, 4, 6, 4, 7, 4, 8, 4, 9, 4
+        !byte 0, 5, 1, 5, 2, 5, 6, 5, 7, 5, 8, 5, 9, 5
+        !byte 0, 6, 1, 6, 2, 6, 6, 6, 7, 6, 8, 6, 9, 6
+        !byte 12                      ; ice fields (frozen water)
+        !byte 3, 3, 4, 3, 5, 3, 3, 4, 4, 4, 5, 4
+        !byte 3, 5, 4, 5, 5, 5, 3, 6, 4, 6, 5, 6
         !byte 0, 0                      ; keys, locks
 
-
-; map22 (Winter 2, "Pine forest"): two walls of pines (x = 4 and x = 6), each with a
-; single gap, form a zigzag corridor. Trees block jumping and throwing, so both
-; packages have to be carried through both gaps.
+; map22..map29: PLACEHOLDERS until the ice levels are built (package in front of
+; the robot, goal one field further: Pick Up, Move Fwd, Drop Off).
 map22
-        !byte 2, 4, ROBOT_DIR_RIGHT
-        !byte 2                         ; goal fields (x, y)
-        !byte 8, 5
-        !byte 7, 8
-        !byte 2                         ; packages (x, y)
-        !byte 2, 2
-        !byte 1, 7
-        !byte 21                        ; blockers (x, y)
-        !byte 4, 0
-        !byte 4, 1
-        !byte 4, 2
-        !byte 4, 3
-        !byte 4, 5
-        !byte 4, 6
-        !byte 4, 7
-        !byte 4, 8
-        !byte 4, 9
-        !byte 6, 0
-        !byte 6, 1
-        !byte 6, 2
-        !byte 6, 3
-        !byte 6, 4
-        !byte 6, 5
-        !byte 6, 7
-        !byte 6, 8
-        !byte 6, 9
-        !byte 9, 0
-        !byte 0, 0
-        !byte 8, 9
-        !byte 0                         ; water fields
-        !byte 0                         ; ice fields (frozen water)
-        !byte 0, 0                      ; keys, locks
-
-; map23 (Winter 3, "Frozen lake"): three ice floes with a goal each lie in a lake.
-; Nothing can walk or drop there, the packages have to be thrown across the water.
+        !byte 4, 8, ROBOT_DIR_UP
+        !byte 1, 4, 6                   ; goal
+        !byte 1, 4, 7                   ; package
+        !byte 0, 0, 0, 0, 0             ; trees, water, ice, keys, locks
 map23
-        !byte 0, 4, ROBOT_DIR_RIGHT
-        !byte 3                         ; goal fields (x, y)
-        !byte 4, 4
-        !byte 5, 5
-        !byte 4, 5
-        !byte 3                         ; packages (x, y)
-        !byte 1, 2
-        !byte 1, 6
-        !byte 8, 3
-        !byte 5                         ; blockers (x, y)
-        !byte 2, 0
-        !byte 7, 0
-        !byte 8, 8
-        !byte 0, 8
-        !byte 9, 6
-        !byte 13                         ; water fields
-        !byte 3, 3
-        !byte 4, 3
-        !byte 5, 3
-        !byte 6, 3
-        !byte 3, 4
-        !byte 5, 4
-        !byte 6, 4
-        !byte 3, 5
-        !byte 6, 5
-        !byte 3, 6
-        !byte 4, 6
-        !byte 5, 6
-        !byte 6, 6
-        !byte 0                         ; ice fields (frozen water)
-        !byte 0, 0                      ; keys, locks
-
-; map24 (Winter 4, "Skating rink"): a big ice rink between two snow banks. On ice
-; the robot skates on until it reaches land or the next field is blocked. The goal
-; in the middle of the rink can only be served from the ice: the pine at (5,4) stops
-; the robot right above it. Jumping or throwing onto the ice breaks it.
-;
-;    ..........
-;    ..######..
-;    P.######.G
-;    ..######..
-;    .>###T##..
-;    ..##G###..
-;    ..######..
-;    P.######..
-;    ..######..
-;    ..........
-;    (. snow  # ice  ~ water  T pine  P package  G goal  > robot)
+        !byte 4, 8, ROBOT_DIR_UP
+        !byte 1, 4, 6                   ; goal
+        !byte 1, 4, 7                   ; package
+        !byte 0, 0, 0, 0, 0             ; trees, water, ice, keys, locks
 map24
-        !byte 1, 4, ROBOT_DIR_RIGHT
-        !byte 2                       ; goal fields (x, y)
-        !byte 9, 2, 4, 5
-        !byte 2                       ; packages (x, y)
-        !byte 0, 2, 0, 7
-        !byte 1                       ; blockers (x, y)
-        !byte 5, 4
-        !byte 0                       ; water fields
-        !byte 46                      ; ice fields (frozen water)
-        !byte 2, 1, 3, 1, 4, 1, 5, 1, 6, 1, 7, 1, 2, 2, 3, 2
-        !byte 4, 2, 5, 2, 6, 2, 7, 2, 2, 3, 3, 3, 4, 3, 5, 3
-        !byte 6, 3, 7, 3, 2, 4, 3, 4, 4, 4, 6, 4, 7, 4, 2, 5
-        !byte 3, 5, 5, 5, 6, 5, 7, 5, 2, 6, 3, 6, 4, 6, 5, 6
-        !byte 6, 6, 7, 6, 2, 7, 3, 7, 4, 7, 5, 7, 6, 7, 7, 7
-        !byte 2, 8, 3, 8, 4, 8, 5, 8, 6, 8, 7, 8
-        !byte 0, 0                      ; keys, locks
-
-; map25 (Winter 5, "Ice maze"): an ice field with pines and a hole of open water
-; as stoppers. Both goals are small snow islands in the ice: skate so that the
-; robot stops next to them (or throw from the ice, two fields ahead).
-;
-;    P.........
-;    .#####T##.
-;    .##T#####.
-;    .#####~##.
-;    .#G######.
-;    .######T#.
-;    .#T###G##.
-;    .########.
-;    .####T###.
-;    >........P
-;    (. snow  # ice  ~ water  T pine  P package  G goal  > robot)
+        !byte 4, 8, ROBOT_DIR_UP
+        !byte 1, 4, 6                   ; goal
+        !byte 1, 4, 7                   ; package
+        !byte 0, 0, 0, 0, 0             ; trees, water, ice, keys, locks
 map25
-        !byte 0, 9, ROBOT_DIR_RIGHT
-        !byte 2                       ; goal fields (x, y)
-        !byte 2, 4, 6, 6
-        !byte 2                       ; packages (x, y)
-        !byte 0, 0, 9, 9
-        !byte 5                       ; blockers (x, y)
-        !byte 2, 6, 3, 2, 5, 8, 6, 1, 7, 5
-        !byte 1                       ; water fields
-        !byte 6, 3
-        !byte 56                      ; ice fields (frozen water)
-        !byte 1, 1, 2, 1, 3, 1, 4, 1, 5, 1, 7, 1, 8, 1, 1, 2
-        !byte 2, 2, 4, 2, 5, 2, 6, 2, 7, 2, 8, 2, 1, 3, 2, 3
-        !byte 3, 3, 4, 3, 5, 3, 7, 3, 8, 3, 1, 4, 3, 4, 4, 4
-        !byte 5, 4, 6, 4, 7, 4, 8, 4, 1, 5, 2, 5, 3, 5, 4, 5
-        !byte 5, 5, 6, 5, 8, 5, 1, 6, 3, 6, 4, 6, 5, 6, 7, 6
-        !byte 8, 6, 1, 7, 2, 7, 3, 7, 4, 7, 5, 7, 6, 7, 7, 7
-        !byte 8, 7, 1, 8, 2, 8, 3, 8, 4, 8, 6, 8, 7, 8, 8, 8
-        !byte 0, 0                      ; keys, locks
+        !byte 4, 8, ROBOT_DIR_UP
+        !byte 1, 4, 6                   ; goal
+        !byte 1, 4, 7                   ; package
+        !byte 0, 0, 0, 0, 0             ; trees, water, ice, keys, locks
+map26
+        !byte 4, 8, ROBOT_DIR_UP
+        !byte 1, 4, 6                   ; goal
+        !byte 1, 4, 7                   ; package
+        !byte 0, 0, 0, 0, 0             ; trees, water, ice, keys, locks
+map27
+        !byte 4, 8, ROBOT_DIR_UP
+        !byte 1, 4, 6                   ; goal
+        !byte 1, 4, 7                   ; package
+        !byte 0, 0, 0, 0, 0             ; trees, water, ice, keys, locks
+map28
+        !byte 4, 8, ROBOT_DIR_UP
+        !byte 1, 4, 6                   ; goal
+        !byte 1, 4, 7                   ; package
+        !byte 0, 0, 0, 0, 0             ; trees, water, ice, keys, locks
+map29
+        !byte 4, 8, ROBOT_DIR_UP
+        !byte 1, 4, 6                   ; goal
+        !byte 1, 4, 7                   ; package
+        !byte 0, 0, 0, 0, 0             ; trees, water, ice, keys, locks
 
 ; A = level number. Copies its record into the game variables and builds the
 ; field layer including the blockers. Invalid numbers fall back to level 0.
