@@ -1041,7 +1041,107 @@ draw_map_panel
         lda #MAP_ROWS+2
         jsr draw_window
         ; Level layer, goal, package, blockers and robot.
-        jmp draw_map_objects
+        jsr draw_map_objects
+        jmp draw_legend
+
+; Legend right of the field (columns LEG_X.., rows of the field): ArtyBot with its
+; facing direction, then only the tile types that occur in the loaded level
+; (grass is left out). Icon in column LEG_X, text from LEG_X+2 (8 characters).
+LEG_X     = MAP_SCR_X + MAP_COLS + 1
+LEG_COUNT = 8
+!zone draw_legend
+draw_legend
+        lda #MAP_SCR_Y
+        sta ui_row
+        lda theme_plan_robot    ; ArtyBot, then "looking" / direction indented below
+        sta cur_col
+        ldx #LEG_X
+        ldy ui_row
+        jsr set_cursor
+        lda robot_dir
+        clc
+        adc #ROBOT_CHAR_BASE
+        jsr put_char
+        lda #COL_WHITE
+        sta cur_col
+        ldx #LEG_X+2
+        ldy ui_row
+        jsr set_cursor
+        lda #<str_leg_robot
+        ldx #>str_leg_robot
+        jsr put_str
+        inc ui_row
+        ldx #LEG_X+2
+        ldy ui_row
+        jsr set_cursor
+        lda #<str_leg_looking
+        ldx #>str_leg_looking
+        jsr put_str
+        inc ui_row
+        ldx #LEG_X+3
+        ldy ui_row
+        jsr set_cursor
+        lda robot_dir
+        asl
+        tax
+        lda leg_dir_ptrs,x
+        pha
+        lda leg_dir_ptrs+1,x
+        tax
+        pla
+        jsr put_str
+        inc ui_row
+        lda #0
+        sta ui_index
+.next   ldx ui_index
+        cpx #LEG_COUNT
+        beq .done
+        lda leg_ids,x
+        sta tmp0
+        ldx #MAP_COLS*MAP_ROWS-1
+.scan   lda map_work,x
+        cmp tmp0
+        beq .found
+        dex
+        bpl .scan
+        inc ui_index            ; tile type not in this level
+        jmp .next
+.found  lda ui_row
+        cmp #MAP_SCR_Y+MAP_ROWS
+        bcs .done               ; out of room
+        ldx tmp0
+        lda map_tile_colors,x
+        sta cur_col
+        lda map_tile_chars,x
+        pha
+        ldx #LEG_X
+        ldy ui_row
+        jsr set_cursor
+        pla
+        jsr put_char
+        lda #COL_WHITE
+        sta cur_col
+        ldx #LEG_X+2
+        ldy ui_row
+        jsr set_cursor
+        lda ui_index
+        asl
+        tax
+        lda leg_text,x
+        pha
+        lda leg_text+1,x
+        tax
+        pla
+        jsr put_str
+        inc ui_row
+        inc ui_index
+        jmp .next
+.done   rts
+
+leg_ids   !byte T_GOAL, T_BOX, T_WALL, T_WATER, T_ICE, T_KEY, T_LOCK, T_DOOR
+leg_text  !word str_leg_goal, str_leg_box, str_leg_tree, str_leg_water
+          !word str_leg_ice, str_leg_key, str_leg_lock, str_leg_door
+leg_dir_ptrs !word str_leg_right, str_leg_left, str_leg_up, str_leg_down
 
 !zone draw_palette_panel
 draw_palette_panel

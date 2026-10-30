@@ -22,6 +22,21 @@ str_ice !text "Ice: you slide",0
 str_key !text "Key: pick it up",0
 str_lock !text "Lock: drop key",0
 str_door !text "Door: needs key",0
+; Plan screen legend (editor.asm draw_legend), max. 8 characters
+str_leg_robot !text "ArtyBot",0
+str_leg_looking !text "looking",0
+str_leg_right !text "right",0
+str_leg_left !text "left",0
+str_leg_up !text "up",0
+str_leg_down !text "down",0
+str_leg_goal !text "Target",0
+str_leg_box !text "Package",0
+str_leg_tree !text "Tree",0
+str_leg_water !text "Water",0
+str_leg_ice !text "Ice",0
+str_leg_key !text "Key",0
+str_leg_lock !text "Lock",0
+str_leg_door !text "Door",0
 str_bottom_commands !text "F1:Run F7:Map F8:Quit",0
 str_quit_confirm !text "Really quit?",0
 str_clear_confirm !text "Really clear",0
