@@ -377,13 +377,43 @@ map23
         !byte 0                     ; keys (x, y)
         !byte 0                     ; lock/door pairs: lock x, y, door x, y
 
-; map24..map29: PLACEHOLDERS until the ice levels are built (package in front of
-; the robot, goal one field further: Pick Up, Move Fwd, Drop Off).
+; map24 (Winter 4, "Thin ice"):
+; the trap: right in front of the robot a narrow ditch, behind it the ice and the
+; goal. Jumping across the ditch lands on the ice and breaks it. The way that works
+; is the snow bridge at (7,6): step onto the ice from there and skate up to the bank.
+;
+;    T........T
+;    ..G.......
+;    ..........
+;    ##########
+;    ##########
+;    ##########
+;    ~~~~~~~.~~
+;    ..........
+;    ..P^......
+;    T........T
+;    (. snow  # ice  ~ water  T pine  P package  G goal  K key  L/M lock  D/E door)
 map24
-        !byte 4, 8, ROBOT_DIR_UP
-        !byte 1, 4, 6                   ; goal
-        !byte 1, 4, 7                   ; package
-        !byte 0, 0, 0, 0, 0             ; trees, water, ice, keys, locks
+        !byte 3, 8, ROBOT_DIR_UP
+        !byte 1                     ; goal fields (x, y)
+        !byte 2, 1
+        !byte 1                     ; packages (x, y)
+        !byte 2, 8
+        !byte 4                     ; blockers (x, y)
+        !byte 0, 0, 9, 0, 0, 9, 9, 9
+        !byte 9                     ; water fields (x, y)
+        !byte 0, 6, 1, 6, 2, 6, 3, 6, 4, 6, 5, 6, 6, 6, 8, 6
+        !byte 9, 6
+        !byte 30                    ; ice fields (frozen water) (x, y)
+        !byte 0, 3, 1, 3, 2, 3, 3, 3, 4, 3, 5, 3, 6, 3, 7, 3
+        !byte 8, 3, 9, 3, 0, 4, 1, 4, 2, 4, 3, 4, 4, 4, 5, 4
+        !byte 6, 4, 7, 4, 8, 4, 9, 4, 0, 5, 1, 5, 2, 5, 3, 5
+        !byte 4, 5, 5, 5, 6, 5, 7, 5, 8, 5, 9, 5
+        !byte 0                     ; keys (x, y)
+        !byte 0                     ; lock/door pairs: lock x, y, door x, y
+
+; map25..map29: PLACEHOLDERS until the ice levels are built (package in front of
+; the robot, goal one field further: Pick Up, Move Fwd, Drop Off).
 map25
         !byte 4, 8, ROBOT_DIR_UP
         !byte 1, 4, 6                   ; goal
