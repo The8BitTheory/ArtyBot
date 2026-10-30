@@ -52,7 +52,7 @@ MAP_CELLS       = MAP_COLS * MAP_ROWS
 plan_level_table
 world1_levels                           ; world 1: Meadow
         !word map11, map12, map13
-        !word map14, map15                     ; key, lock and door
+        !word map14                     ; key, lock and door
 WORLD1_LEVELS = (* - world1_levels) / 2
 world2_levels                           ; world 2: Winter
         !word map21, map22, map23
@@ -266,39 +266,6 @@ map14
         !byte 5, 4, 5, 3
 
 
-; map15 (Meadow 5)
-;
-;    ..........
-;    ..........
-;    ..........
-;    ...####...
-;    ..........
-;    .>P..P....
-;    ...k..k...
-;    TTTLDTLDTT
-;    .G~..T~..G
-;    ..~..T~~~~
-;    (. floor  T tree  ~ water  # ice  G goal  P package  * package on goal
-;     k key  L lock  D door  > < ^ v robot)
-map15
-        !byte 1, 5, ROBOT_DIR_RIGHT
-        !byte 2                         ; goal fields (x, y)
-        !byte 1, 8, 9, 8
-        !byte 2                         ; packages (x, y)
-        !byte 2, 5, 5, 5
-        !byte 8                         ; blockers (x, y)
-        !byte 0, 7, 1, 7, 2, 7, 5, 7
-        !byte 8, 7, 9, 7, 5, 8, 5, 9
-        !byte 7                         ; water fields (x, y)
-        !byte 2, 8, 6, 8, 2, 9, 6, 9
-        !byte 7, 9, 8, 9, 9, 9
-        !byte 4                         ; ice fields (frozen water)
-        !byte 3, 3, 4, 3, 5, 3, 6, 3
-        !byte 2                         ; keys (x, y)
-        !byte 3, 6, 6, 6
-        !byte 2                         ; lock/door pairs: lock x, y, door x, door y
-        !byte 3, 7, 4, 7
-        !byte 6, 7, 7, 7
 
 
 ; map21 (Winter 1, "Ice bridge"): a frozen lake (rows 4-5) cuts the field in two,
