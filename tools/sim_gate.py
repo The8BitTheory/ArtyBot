@@ -10,7 +10,7 @@ import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from c64sim import C64
 
-K = dict(W=9, A=10, S=13, D=18, Q=62, E=14, SPACE=60, F1=4, F3=5, F5=6)
+K = dict(W=9, A=10, S=13, D=18, Q=62, E=14, X=23, Z=12, SPACE=60, F1=4, F3=5, F5=6)
 prg = open(sys.argv[1], 'rb').read(); out = sys.argv[2]
 lbl = {}
 for line in open(os.path.join(os.path.dirname(os.path.abspath(sys.argv[1])), '..', 'Test.map')):
@@ -35,7 +35,7 @@ m.ram[lbl['level_done']] = 0x0E           # levels 2-4 solved
 press('A', 2, 14); press('A', 2, 14)       # back to node 1 (2,1)
 info('at node 1')
 press('SPACE'); m.run_frames(20)
-for ch in 'WWWDWWWWQAWWDE': press(ch)
+for ch in 'WZDQXEDZAQXEAZDQXE': press(ch)
 press('F1'); m.run_frames(20); press('SPACE')
 for _ in range(60):
     m.run_frames(20)

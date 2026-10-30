@@ -57,21 +57,41 @@ plan_level_table
 plan_level_count = (* - plan_level_table) / 2
 
 plan_level_1
-        !byte 0, 0, ROBOT_DIR_RIGHT     ; robot: top-left, facing right
-        !byte 1                         ; goal fields (x, y)
-        !byte 5, 5                      ; centre of the 10x10 field
-        !byte 1                         ; packages (x, y)
-        !byte 3, 5                      ; two tiles left of the goal
-        !byte 6                         ; blockers (x, y), fixed part of the level
+        !byte 0, 4, ROBOT_DIR_RIGHT     ; robot: left edge, facing right
+        !byte 3                         ; # goal fields (x, y)
+        !byte 3, 3
+        !byte 7, 3
+        !byte 5, 5
+        !byte 3                         ; # packages (x, y)
+        !byte 5, 3
+        !byte 3, 5
+        !byte 7, 5
+        !byte 22                         ; # blockers (x, y): trees
         !byte 2, 2
+        !byte 3, 2
+        !byte 4, 2
+        !byte 5, 2
+        !byte 6, 2
         !byte 7, 2
+        !byte 8, 2
+        !byte 2, 3
+        !byte 4, 3
+        !byte 6, 3
+        !byte 8, 3
+        !byte 2, 5
+        !byte 4, 5
+        !byte 6, 5
         !byte 8, 5
-        !byte 2, 7
-        !byte 6, 7
-        !byte 9, 9
-        !byte 0                         ; water fields
-        !byte 0                         ; ice fields (frozen water)
-        !byte 0, 0                      ; keys, locks
+        !byte 2, 6
+        !byte 3, 6
+        !byte 4, 6
+        !byte 5, 6
+        !byte 6, 6
+        !byte 7, 6
+        !byte 8, 6
+        !byte 0                         ; # water fields
+        !byte 0                         ; # ice fields (frozen water)
+        !byte 0, 0                      ; # keys, locks
 
 plan_level_2
         !byte 0, 5, ROBOT_DIR_RIGHT     ; robot: left edge, facing right

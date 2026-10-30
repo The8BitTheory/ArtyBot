@@ -3,14 +3,14 @@
 
   python -B tools/sim_world.py build/roboter.prg out/prefix
 
-Start (world map) -> Space on node 1 -> plan: enters the 14-command solution of
+Start (world map) -> Space on node 1 -> plan: enters the 18-command solution of
 level 1 -> F1 run -> Space -> waits for the fanfare -> Space (world map, node 1
 is a gold chest) -> walks to node 2 -> Space (plan of level 2) -> F7 (map)."""
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from c64sim import C64
 
-K = dict(W=9, A=10, S=13, D=18, Q=62, E=14, SPACE=60, RETURN=1, F1=4, F7=3)
+K = dict(W=9, A=10, S=13, D=18, Q=62, E=14, X=23, Z=12, SPACE=60, RETURN=1, F1=4, F7=3)
 prg = open(sys.argv[1], 'rb').read()
 out = sys.argv[2]
 m = C64(prg)
@@ -41,7 +41,7 @@ m.run_frames(40)
 shot('1_world'); state('start')
 press('SPACE'); m.run_frames(20)
 shot('2_plan'); state('plan')
-for ch in 'WWWDWWWWQAWWDE':
+for ch in 'WZDQXEDZAQXEAZDQXE':
     press(ch)
 shot('3_plan_prog')
 press('F1'); m.run_frames(20)

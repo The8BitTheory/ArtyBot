@@ -16,7 +16,7 @@ import gen_world_maps as W
 K = dict(w=9, s=13, d=18, a=10, q=62, e=14, x=23, z=12, c=20)
 SPACE, F1, F5, F3 = 60, 4, 6, 5
 PROGS = {
-    0: 'wzdzzqwac',
+    0: 'wzdqxedzaqxeazdqxe',
     1: 'zqzcsdwqwazeazzawqxc',
     2: 'wdsaqazcdwzzdqxzc',
     3: 'aqxessaqwcqaedwqwcqsezaqcxzqwdc',

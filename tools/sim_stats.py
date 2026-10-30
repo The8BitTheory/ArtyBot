@@ -6,7 +6,7 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from c64sim import C64
-K = dict(W=9, A=10, S=13, D=18, Q=62, E=14, SPACE=60, RETURN=1, F1=4, F7=3, R=17)
+K = dict(W=9, A=10, S=13, D=18, Q=62, E=14, X=23, Z=12, SPACE=60, RETURN=1, F1=4, F7=3, R=17)
 prg = open(sys.argv[1], 'rb').read(); out = sys.argv[3]
 lab = {}
 for line in open(sys.argv[2]):
@@ -28,13 +28,13 @@ m.run_frames(40)
 press('F1'); m.run_frames(10); shot('1_stats_empty'); st('empty')
 press('F1'); m.run_frames(20); shot('2_back')
 press('SPACE'); m.run_frames(20)
-for ch in 'WW': press(ch)
-press('F1'); m.run_frames(20); press('SPACE'); wait_stop(); st('run1 (WW)')
+for ch in 'WZ': press(ch)
+press('F1'); m.run_frames(20); press('SPACE'); wait_stop(); st('run1 (WZ)')
 press('SPACE'); wait_stop(); st('retry')            # same plan: no count
 press('R'); wait_stop(); st('R restart')            # no count
 press('F1'); m.run_frames(10); press('F1'); m.run_frames(20); press('SPACE'); wait_stop(); st('F1 F1 same')
 press('F1'); m.run_frames(10)
-for ch in 'WDWWWWQAWWDE': press(ch)
+for ch in 'DQXEDZAQXEAZDQXE': press(ch)
 press('F1'); m.run_frames(20); press('SPACE'); wait_stop(); st('run2 full')
 m.run_frames(110)
 press('SPACE'); m.run_frames(30)
