@@ -94,7 +94,7 @@ editor_handle_input
 .no_repeat
         jmp .keyboard
 .click
-        ; Bottom line (screen row 24): Run at columns 0..11, X: Exit at columns 12..18.
+        ; Bottom line (screen row 24): "F1: Run plan" at columns 0..11, "F8: Exit" from column 12.
         lda mouse_y
         cmp #192
         bcc .palette_click
@@ -105,7 +105,7 @@ editor_handle_input
         lda mouse_x_lo
         cmp #96
         bcc .run_click          ; columns 0..11: "R: Run plan"
-        cmp #152
+        cmp #240                ; "Stop: Exit Artybot" spans columns 12..29
         bcs .palette_click
         jmp editor_request_exit
 .run_click
@@ -168,10 +168,20 @@ editor_handle_input
         bne .has_key
         rts
 .has_key
-        cmp #23                 ; X key
+        cmp #KEY_F7             ; F8 (= Shift+F7) exits (X is Turn 180)
         bne .not_exit_key
+        ldx key_shift
+        beq .not_exit_key
         jmp editor_request_exit
 .not_exit_key
+        cmp #KEY_F1             ; F1 (unshifted): switch to the run screen
+        bne .not_f1
+        ldx key_repeat
+        bne .not_f1
+        ldx key_shift
+        bne .not_f1
+        jmp editor_run_plan
+.not_f1
         cmp #17                 ; R key (with or without Shift): run plan
         bne .not_run_key
         ldx key_repeat
@@ -265,7 +275,7 @@ editor_handle_input
         rts
 .first_palette_press
         lda key_new
-        jsr key_to_palette
+        jsr key_to_command
         bcs .palette_key_valid
         rts
 .palette_key_valid
@@ -544,41 +554,55 @@ editor_clear_palette_interior
         bne .clear_row
         inc ui_row
         lda ui_row
-        cmp #20
+        cmp #23
         bne .clear_rows
         rts
 
-; Return palette index in A and carry set when the pointer is over an entry.
+; Pointer over a palette icon (or its key label)? Carry set and A = command
+; index if so. The icons form a 3x3 grid (see pal_grid_cmd): 16 px wide, pitch
+; 40 px from x = 32; three character rows (24 px) per grid row from y = 112.
 !zone palette_hit_test
 palette_hit_test
-        lda mouse_y
-        cmp #112                ; first palette row starts at screen row 14
-        bcc .miss
-        cmp #160                ; include the label row under both icon rows
-        bcs .miss
-        cmp #136
-        bcc .top_row
-        lda #9
-        bne .row_ready
-.top_row
-        lda #0
-.row_ready
-        sta selected_command
         lda mouse_x_hi
         bne .miss
         lda mouse_x_lo
-        cmp #8                  ; first tile starts in column 1
-        bcc .miss
-        cmp #152                ; nine 16-pixel palette slots
-        bcs .miss
         sec
-        sbc #8
-        lsr
-        lsr
-        lsr
-        lsr                     ; (x - 8) / 16
+        sbc #32                 ; first icon starts in column 4
+        bcc .miss
+        ldx #0
+.col    cmp #16                 ; inside a 2-character icon?
+        bcc .col_ok
+        cmp #40                 ; icon pitch is 5 characters
+        bcc .miss
+        sbc #40
+        inx
+        cpx #3
+        bcc .col
+        bcs .miss
+.col_ok stx tmp0                ; grid column
+        lda mouse_y
+        sec
+        sbc #112                ; first palette row = screen row 14
+        bcc .miss
+        ldx #0
+.row    cmp #24
+        bcc .row_ok
+        sbc #24
+        inx
+        cpx #3
+        bcc .row
+        bcs .miss
+.row_ok stx tmp1                ; grid row
+        txa
+        asl
         clc
-        adc selected_command
+        adc tmp1                ; row * 3
+        clc
+        adc tmp0
+        tax
+        lda pal_grid_cmd,x
+        cmp #$FF
+        beq .miss
         sec
         rts
 .miss   clc
@@ -780,11 +804,11 @@ editor_show_selection_help
         beq .move_help
         lda #<str_delete_help
         ldx #>str_delete_help
-        jmp editor_draw_message
+        jmp editor_draw_message2
 .move_help
         lda #<str_select_help
         ldx #>str_select_help
-        jmp editor_draw_message
+        jmp editor_draw_message2
 
 !zone editor_move_selected_up
 editor_move_selected_up
@@ -931,7 +955,27 @@ draw_title_and_counters
         lda #<str_title
         ldx #>str_title
         jsr put_str
-
+        lda #COL_CYAN           ; colour the title parts
+        sta cur_col
+        ldx #0
+        ldy #0
+        jsr set_cursor
+        lda #7
+        jsr paint
+        lda #COL_YELLOW
+        sta cur_col
+        ldx #10
+        ldy #0
+        jsr set_cursor
+        lda #4
+        jsr paint
+        lda #COL_GREEN
+        sta cur_col
+        ldx #17
+        ldy #0
+        jsr set_cursor
+        lda #16
+        jsr paint
         rts
 
 !zone draw_map_panel
@@ -951,54 +995,38 @@ draw_map_panel
 
 !zone draw_palette_panel
 draw_palette_panel
-        ; Window: columns 0..20, rows 13..20.
+        ; Window: columns 0..20, rows 13..23 (3x3 grid of 2x2 icons, WASD layout).
         lda #COL_WHITE
         sta cur_col
         lda #21
         sta win_w
         ldx #0
         ldy #13
-        lda #8
+        lda #11
         jsr draw_window
         ldx #0
         stx ui_index
 .icons jsr draw_palette_icon
         inc ui_index
         lda ui_index
-        cmp #PALETTE_NUM
+        cmp #AVAILABLE_COMMANDS
         bne .icons
         rts
 
 !zone draw_palette_icon
 draw_palette_icon
-        ; 18 two-by-two command tiles, nine per row.
-        lda ui_index
-        cmp #AVAILABLE_COMMANDS
+        ; ui_index = command; pal_col/pal_row give the 2x2 tile position, the
+        ; key label sits in the row below it.
+        ldx ui_index
+        cpx #AVAILABLE_COMMANDS
         bcc .active
         rts
-.active
-        lda ui_index
-        cmp #9
-        bcc .first
-        sec
-        sbc #9
-        sta ui_col
-        lda #17
-        sta ui_row
-        jmp .position
-.first sta ui_col
-        lda #14
-        sta ui_row
-.position
-        lda ui_col
-        asl
-        clc
-        adc #1
+.active lda pal_col,x
         sta tmp0                 ; tile start column
-        lda #COL_WHITE
+        lda pal_row,x
+        sta ui_row               ; tile top row
+        lda cmd_colors,x         ; icon colour by command type
         sta cur_col
-        ; Each palette tile uses four glyphs from the inverse charset range.
-        ldx ui_index
         lda palette_icon_ids,x
         cmp #$FF
         beq .key_label
@@ -1006,8 +1034,7 @@ draw_palette_icon
         asl
         clc
         adc #ICON_CHAR_BASE
-        tax
-        stx tmp1                 ; icon table offset
+        sta tmp1                 ; first of the four icon glyphs
         ldx tmp0
         ldy ui_row
         jsr set_cursor
@@ -1038,19 +1065,18 @@ draw_palette_icon
         clc
         adc #3
         jsr put_char
-        ; A-R key labels below the 2x2 icon.
 .key_label
+        lda #COL_WHITE
+        sta cur_col
         ldx tmp0
         lda ui_row
         clc
         adc #2
         tay
         jsr set_cursor
-        lda ui_index
-        clc
-        adc #1
-        jsr put_char
-        rts
+        ldx ui_index
+        lda pal_label,x          ; lowercase key letter
+        jmp put_char
 
 !zone draw_program_panel
 draw_program_panel
@@ -1072,6 +1098,15 @@ draw_program_panel
         lda #<str_program_count
         ldx #>str_program_count
         jsr put_str
+        lda #COL_CYAN
+        sta cur_col
+        ldx #24
+        ldy #1
+        jsr set_cursor
+        lda #8
+        jsr paint
+        lda #COL_WHITE
+        sta cur_col
 
         ldx #38
         ldy #1
@@ -1175,13 +1210,21 @@ draw_list_row
         jsr set_cursor
         ldx tmp0
         lda program,x
+        sta tmp1
+        lda cur_col
+        cmp #COL_YELLOW         ; selected row stays yellow
+        beq .name
+        ldx tmp1
+        lda cmd_colors,x        ; otherwise colour by command type
+        sta cur_col
+.name   lda tmp1
         jsr draw_short_name
 .next   rts
 
 
 !zone draw_program_counts
 draw_program_counts
-        lda #COL_WHITE
+        lda #COL_YELLOW
         sta cur_col
         ldx #33
         ldy #1
@@ -1282,14 +1325,15 @@ draw_help_areas
 draw_help_areas_str             ; A/X = text for the bottom line (row 24)
         sta ptr1
         stx ptr1+1
-        ; Info window: rows 21..23, text in row 22 (editor_draw_message).
+        ; Info window: right half under the command list, columns 22..39, rows
+        ; 20..23, two text rows (INFO_X / INFO_Y).
         lda #COL_WHITE
         sta cur_col
-        lda #40
+        lda #18
         sta win_w
-        ldx #0
-        ldy #21
-        lda #3
+        ldx #22
+        ldy #20
+        lda #4
         jsr draw_window
         lda #COL_WHITE
         sta cur_col
@@ -1299,6 +1343,18 @@ draw_help_areas_str             ; A/X = text for the bottom line (row 24)
         lda ptr1
         ldx ptr1+1
         jsr put_str
+        lda #COL_YELLOW         ; key names stand out
+        sta cur_col
+        ldx #0
+        ldy #24
+        jsr set_cursor
+        lda #3
+        jsr paint
+        ldx #13
+        ldy #24
+        jsr set_cursor
+        lda #3
+        jsr paint
         lda #$FF
         jsr editor_draw_info
         rts
@@ -1336,20 +1392,47 @@ editor_draw_info                ; A = command index, or $FF to clear
 .palette_text
         cmp #AVAILABLE_COMMANDS
         bcs .done
-        ldx #1
-        ldy #22
+        ldx selected_command
+        lda cmd_colors,x
+        sta cur_col
+        ldx #INFO_X
+        ldy #INFO_Y
         jsr set_cursor
         lda selected_command
         jsr draw_short_name
 .done   rts
 
 !zone editor_draw_message
-editor_draw_message             ; A/X = 0-terminated message address
+editor_draw_message             ; A/X = 0-terminated one-row message address
         sta ptr2
         stx ptr2+1
         jsr editor_clear_info
-        ldx #1
-        ldy #22
+        ldx #INFO_X
+        ldy #INFO_Y
+        jsr set_cursor
+        lda ptr2
+        ldx ptr2+1
+        jmp put_str
+
+!zone editor_draw_message2
+editor_draw_message2            ; A/X = two consecutive 0-terminated strings (two rows)
+        sta ptr2
+        stx ptr2+1
+        jsr editor_clear_info
+        ldx #INFO_X
+        ldy #INFO_Y
+        jsr set_cursor
+        lda ptr2
+        ldx ptr2+1
+        jsr put_str             ; tmp3 = index of the terminator
+        lda ptr2
+        sec
+        adc tmp3                ; + index + 1 = start of the second string
+        sta ptr2
+        bcc .second
+        inc ptr2+1
+.second ldx #INFO_X
+        ldy #INFO_Y+1
         jsr set_cursor
         lda ptr2
         ldx ptr2+1
@@ -1359,16 +1442,59 @@ editor_draw_message             ; A/X = 0-terminated message address
 editor_clear_info
         lda #COL_WHITE
         sta cur_col
-        ldx #1
-        ldy #22
+        ldx #INFO_X
+        ldy #INFO_Y
         jsr set_cursor
-        lda #38
+        lda #INFO_W
         sta ui_count
 .clear  lda #$20
         jsr put_char
         dec ui_count
         bne .clear
+        ldx #INFO_X
+        ldy #INFO_Y+1
+        jsr set_cursor
+        lda #INFO_W
+        sta ui_count
+.clear2 lda #$20
+        jsr put_char
+        dec ui_count
+        bne .clear2
         rts
+
+; Palette layout, indexed by command (0 Fwd, 1 Back, 2 Right, 3 Left, 4 Pick, 5 Drop,
+; 6 Turn180); WASD arrangement:     Q(pick)  W(fwd)   E(drop)
+;                                   A(left)  S(back)  D(right)
+;                                            X(180)
+pal_col  !byte 9, 9, 14, 4, 4, 14, 9
+pal_row  !byte 14, 17, 17, 17, 14, 14, 20
+pal_label !byte 23, 19, 4, 1, 17, 5, 24       ; screen codes: w s d a q e x (lowercase)
+cmd_key_codes !byte 9, 13, 18, 10, 62, 14, 23 ; keyboard matrix codes of those keys
+pal_grid_cmd                                  ; 3x3 grid, row-major, $FF = empty cell
+        !byte 4, 0, 5
+        !byte 3, 1, 2
+        !byte $FF, 6, $FF
+
+; A = matrix code -> command index (carry set) for the palette keys Q W E A S D X.
+!zone key_to_command
+key_to_command
+        sta tmp0
+        ldx #0
+.scan   lda cmd_key_codes,x
+        cmp tmp0
+        beq .found
+        inx
+        cpx #AVAILABLE_COMMANDS
+        bne .scan
+        clc
+        rts
+.found  txa
+        sec
+        rts
+
+; Colour per command type: moves white, turns cyan, pick up green, drop off purple.
+cmd_colors
+        !byte COL_WHITE, COL_WHITE, COL_CYAN, COL_CYAN, COL_GREEN, COL_PURPLE, COL_CYAN
 
 ; Seven implemented commands; later palette positions remain empty.
 palette_icon_ids

@@ -58,7 +58,7 @@ ICON_CHAR_BASE  = $E0
 ICON_CHAR_COUNT = 30            ; 24 command glyphs, Turn 180, and scrollbar arrows
 ICON_CHAR_BYTES = ICON_CHAR_COUNT * 8
 ROBOT_CHAR_BASE  = $80
-ROBOT_CHAR_COUNT = 8            ; 4 robot directions + floor, goal, package, blocker
+ROBOT_CHAR_COUNT = 8            ; 4 robot dirs + floor, goal, package, blocker (all multicolour)
 FLOOR_CHAR       = ROBOT_CHAR_BASE + 4
 GOAL_CHAR        = ROBOT_CHAR_BASE + 5
 PKG_CHAR         = ROBOT_CHAR_BASE + 6
@@ -69,6 +69,7 @@ ROBOT_CHAR_BYTES = ROBOT_CHAR_COUNT * 8
 COL_BLACK   = 0
 COL_WHITE   = 1
 COL_RED     = 2
+COL_PURPLE  = 4
 COL_CYAN    = 3
 COL_GREEN   = 5
 COL_YELLOW  = 7
@@ -80,6 +81,13 @@ MAP_COLS    = 10            ; planning field interior (tiles)
 MAP_ROWS    = 10
 MAP_SCR_X   = 1             ; screen column of field tile (0,0)
 MAP_SCR_Y   = 2             ; screen row of field tile (0,0)
+
+; --- Info window (right half, under the command list): two text rows
+INFO_X      = 23            ; first text column
+INFO_Y      = 21            ; first text row (second row = INFO_Y+1)
+INFO_W      = 16            ; characters per row
+KEY_F1      = 4             ; F1 matrix code: switch between plan and run mode
+KEY_F7      = 3             ; F7 matrix code; Shift+F7 = F8: exit (both modes)
 
 ; --- Tile-IDs
 T_FLOOR     = 0

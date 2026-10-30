@@ -102,12 +102,16 @@ run_mode
         beq .next
 .normal cmp #KEY_P
         beq .leave
+        cmp #KEY_F1             ; F1 (like P): back to the plan
+        beq .f1
         cmp #KEY_SPACE
         beq .space
         cmp #KEY_R
         beq .restart
-        cmp #KEY_X
+        cmp #KEY_F7             ; F8 (= Shift+F7) exits
         bne .loop
+        ldx key_shift
+        beq .loop
 .askquit
         lda #1
         sta run_confirm
@@ -115,6 +119,9 @@ run_mode
         ldx #>str_run_quit
         jsr run_draw_message
         jmp .loop
+.f1     ldx key_shift           ; Shift+F1 = F2: ignored
+        bne .loop
+        beq .leave
 .space  jsr run_space
         jmp .loop
 .restart
@@ -143,9 +150,9 @@ run_mode
         sta level_no
         jsr editor_init         ; fresh level: empty command list
 .leave  jsr sound_stop
-        lda #COL_DGREY           ; planning screen colours (see video_init)
+        lda #RUN_BG1            ; planning screen shares the run colours (see video_init)
         sta VIC_BG1
-        lda #COL_ORANGE
+        lda #RUN_BG2
         sta VIC_BG2
         lda level_no            ; plan view shows the untouched level again
         jsr load_plan_level
@@ -341,7 +348,7 @@ draw_run_screen
         sta win_w
         lda #3
         jsr draw_window
-        ldx #7
+        ldx #1
         ldy #24
         lda #<str_bottom_run
         sta ptr1

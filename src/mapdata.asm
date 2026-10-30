@@ -189,11 +189,10 @@ map_index
         tax
         rts
 
-; Draw the field layer and the robot from the loaded level.
+; Draw the field layer and the robot from the loaded level. All field characters are
+; multicolour (colour RAM +8) on the shared greens $D022/$D023 of the run screen.
 !zone draw_map_objects
 draw_map_objects
-        lda #COL_WHITE
-        sta cur_col
         lda #0
         sta ui_row
 .row    lda #0
@@ -211,6 +210,8 @@ draw_map_objects
         tax
         lda map_work,x
         tax
+        lda map_tile_colors,x
+        sta cur_col
         lda map_tile_chars,x
         pha
         lda ui_col
@@ -241,6 +242,8 @@ draw_map_objects
         adc #MAP_SCR_Y
         tay
         jsr set_cursor
+        lda #COL_WHITE+8
+        sta cur_col
         lda robot_dir
         clc
         adc #ROBOT_CHAR_BASE
@@ -248,6 +251,10 @@ draw_map_objects
 
 map_tile_chars                  ; indexed by tile id
         !byte FLOOR_CHAR, BLOCK_CHAR, PKG_CHAR, GOAL_CHAR, PKG_CHAR
+map_tile_colors                 ; colour RAM per tile id (+8 = multicolour)
+        !byte COL_GREEN+8, COL_RED+8, CHEST_COLOR+8, COL_CYAN+8, COL_YELLOW+8
+map_info_colors                 ; help-text colour per tile id
+        !byte COL_WHITE, COL_GREEN, COL_YELLOW, COL_CYAN, COL_YELLOW
 
 ; Hover code for the field tile under the mouse, or $FF.
 ;   $50+dir robot, $61 blocker, $62 package, $63 goal
@@ -302,8 +309,8 @@ draw_map_info
         sec
         sbc #$50                ; robot direction
         pha
-        ldx #1
-        ldy #22
+        ldx #INFO_X
+        ldy #INFO_Y
         jsr set_cursor
         lda #<str_facing
         ldx #>str_facing
@@ -319,15 +326,19 @@ draw_map_info
         jmp put_str
 .object sec
         sbc #$60
+        tay
+        lda map_info_colors,y
+        sta cur_col
+        tya
         asl
         tax
         lda map_text_ptrs,x
         pha
         lda map_text_ptrs+1,x
         tax
-        ldy #22
+        ldy #INFO_Y
         stx tmp0
-        ldx #1
+        ldx #INFO_X
         jsr set_cursor
         pla
         ldx tmp0

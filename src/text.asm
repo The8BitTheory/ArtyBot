@@ -1,13 +1,14 @@
 str_title !text "ArtyBot - Plan - Level "
 str_title_lvl !text "1: Factory",0       ; first character = level digit, patched at draw time
 str_program_count !text " PROGRAM: 00/99",0
-str_select_help !text "Cur:move Del:remove Ret:OK "
+str_select_help !text "Cur:move Ret:OK",0        ; two rows of INFO_W characters
+                !text "Del:delete "
                 !byte $1F
-                !text ":cancel",0
-str_delete_help !text "Return:delete "
+                !text ":esc",0
+str_delete_help !text "Return:delete",0
                 !byte $1F
                 !text ":keep",0
-str_facing !text "ArtyBot: Facing ",0
+str_facing !text "Facing ",0
 str_dir_right !text "Right",0
 str_dir_left !text "Left",0
 str_dir_up !text "Up",0
@@ -15,8 +16,8 @@ str_dir_down !text "Down",0
 str_target !text "Target Area",0
 str_package !text "Deliver this",0
 str_package_done !text "Delivered",0
-str_blocker !text "Blocked. Not Movable",0
-str_bottom_commands !text "R: Run plan X: Exit Artybot",0
+str_blocker !text "Blocked",0
+str_bottom_commands !text "F1: Run plan F8: Exit Artybot",0
 str_quit_confirm !text "Really quit?",0
 str_clear_confirm !text "Really clear",0
 str_clear_confirm2 !text "commandlist?",0
@@ -29,7 +30,7 @@ str_status !text "STATUS",0
 str_run_field !text " Level "
 str_run_field_lvl !text "1: Factory ",0   ; first character = level digit, patched at draw time
 str_run_list !text " ArtyBot Run ",0
-str_bottom_run !text "Space:Run/Pause R:Restart P:Plan X:Exit",0
+str_bottom_run !text "Space:Go/Pause R:Redo F1:Plan F8:Exit",0
 str_run_quit !text "Really quit? Return:yes "
              !byte $1F
              !text ":no",0

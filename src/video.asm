@@ -21,9 +21,9 @@ video_init
         lda #COL_BLACK
         sta VIC_BORDER
         sta VIC_BG0
-        lda #COL_DGREY
+        lda #RUN_BG1            ; same greens as the run screen
         sta VIC_BG1
-        lda #COL_ORANGE
+        lda #RUN_BG2
         sta VIC_BG2
         ; weiter mit clear_screen
 
@@ -71,6 +71,25 @@ put_char                        ; A = Screencode an (cur_x,cur_y) in Farbe cur_c
         lda cur_col
         sta (ptr0),y
         inc cur_x
+        rts
+
+!zone paint
+paint                           ; A = count: colour RAM from (cur_x,cur_y) set to cur_col (text stays)
+        sta tmp3
+        ldx cur_y
+        lda row_lo,x
+        clc
+        adc cur_x
+        sta ptr0
+        lda row_hi,x
+        adc #>(COLORRAM - SCREEN)
+        sta ptr0+1
+        ldy #0
+        lda cur_col
+.l      sta (ptr0),y
+        iny
+        cpy tmp3
+        bne .l
         rts
 
 !zone put_str
