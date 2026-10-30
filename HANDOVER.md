@@ -1,6 +1,6 @@
 # Projekt-Handover: ArtyBot
 
-**Stand:** 30.10.2026, 11:40 (Wien) – Welten, Weltkarte als Startbildschirm, Theme-System, Welt-Tor
+**Stand:** 30.10.2026, 12:45 (Wien) – 2 Welten (Meadow, Winter), 7 Levels, Welt-Tor und Rückweg-Bogen
 **Basis:** lokaler Arbeitsstand `C:\Users\martin\iCloudDrive\8bit\robotron\ArtyBot`.
 **Abgabe:** Sa 31.10.2026, 12:00.
 
@@ -18,8 +18,11 @@ Ein spielbarer Kreislauf **Weltkarte → Planen → Ausführen → Weltkarte** i
 - Roboter-Sprite (wie im Run-Modus, mit Laufanimation) läuft mit **WASD oder Cursor** (gehaltene Taste läuft weiter) nur auf dem **Weg** (Zelltyp 6, sandfarben); Gras, Blumen, Bäume, Wasser blockieren.
 - Levelknoten: offenes Level = Zielfeld, gelöstes = goldene Truhe, Levelnummer als Ziffer unten rechts im Knoten. Statuszeile zeigt "Meadow 3 - solved   Space: play".
 - **Space/Return** auf einem Knoten oder **Mausklick** auf einen Knoten startet das Level (Planungsbildschirm). Gleiches Level wie zuletzt → Befehlsliste bleibt, anderes Level → leere Liste (`last_level`).
+- **F2** (= Shift+F1, nur Test): markiert alle Levels der aktuellen Welt als gelöst (`world_cheat`); die Karte wird neu betreten und das Tor blinkt auf. Vor der Abgabe ggf. entfernen (Block `cmp #KEY_F1` in `world_mode` und Routine `world_cheat` in `world.asm`).
 - **F5** nächste Welt (nur Welten, die über das Tor geöffnet wurden), **F3** vorige Welt, **F8** Beenden (Rückfrage). Roboterposition wird pro Welt gemerkt (`world_pos_x/y`).
-- Welt 1 "Meadow" = Levels 1–4. Tor, Blinken, Durchgehen, F3/F5 im Simulator getestet (`tools/sim_gate.py`, Weltwechsel mit einer temporären zweiten Welt in einer Kopie).
+- Welt 1 "Meadow" = Levels 1–4, Welt 2 "Winter" = Levels 5–7 (Schnee, Kiefern, Eissee, brauner Weg).
+- **Rückweg:** Jede Welt außer der ersten hat einen Bogen (Kartenzeichen `<`, Zelltyp 9, `WM_BACK`, immer begehbar, cyan). Betreten führt in die vorige Welt (`world_check_gate`), die Figur steht dort wieder vor dem Tor. In Winter liegt er unten links neben Level 1. Der Generator verlangt genau einen `<` in jeder Welt außer Welt 1 und keinen in Welt 1.
+- Getestet im Simulator: `tools/sim_winter.py` spielt den ganzen Ablauf durch (alle 7 Levels, Tor blinkt, durch das Tor, zurück durch den Bogen, F5/F3, Winter-Tor ohne Nachfolger); `tools/sim_gate.py` prüft das Blinken Frame für Frame.
 
 **Planungsbildschirm** (`editor.asm`, Einstieg `game_main`)
 - 10×10-Kartenansicht mit Roboter, Paketen, Zielfeldern, Bäumen und Wasser (aus `mapdata.asm`), Hover-Hilfe für Objekte auf der Karte. Hilfefeld: nur rechte Hälfte unter der Befehlsliste (Spalten 22–39, Zeilen 20–23, `INFO_X/INFO_Y/INFO_W` in defs.inc), **höchstens 16 Zeichen pro Zeile**, 2 Textzeilen (`editor_draw_message2`).
@@ -47,11 +50,14 @@ Ein spielbarer Kreislauf **Weltkarte → Planen → Ausführen → Weltkarte** i
 - **Throw**: das getragene Paket landet zwei Felder voraus (eins weiter als Drop Off). Dazwischen gilt dieselbe Regel wie beim Jump; Landefeld freier Boden oder freies Zielfeld (nicht Wasser).
 - Level gewonnen, wenn jedes Zielfeld ein Paket trägt.
 
-**Level** (`mapdata.asm`): 4 Level.
+**Level** (`mapdata.asm`): 7 Level, alle mit `tools/solve_levels.py` auf Lösbarkeit geprüft (Befehlszahl = kürzeste Lösung, bei Level 4 nur eine gefundene).
 - Level 1: ein Paket, ein Ziel, 6 Bäume.
 - Level 2: drei Pakete, drei Ziele, 6 Bäume.
 - Level 3 ("Fluss"): Fluss in Spalte 5, Roboter und 2 Pakete links, 2 Ziele rechts. Ziel (6,2) ist von Bäumen eingezäunt und nur zur Wasserseite offen → dieses Paket muss geworfen werden. Kürzeste Lösung 17 Befehle (BFS-Regelmodell; ohne Throw bzw. ohne Jump unlösbar; im Simulator bis zur Fanfare durchgespielt).
-- Level 4 (Sokoban-Warehouse): Nachbau eines klassischen Sokoban-Levels (8×9, um (1,0) verschoben). Mauern = Bäume (nur der Ring um den Spielbereich), 7 Ziele, 7 Pakete (eins steht schon auf einem Ziel), Roboter bei (3,2) Richtung unten, direkt links neben dem Paket (4,2). Nicht per BFS auf Lösbarkeit geprüft; assembliert fehlerfrei (Kopie, Linux-ACME).
+- Level 4 (Sokoban-Warehouse): Nachbau eines klassischen Sokoban-Levels (8×9, um (1,0) verschoben). Mauern = Bäume (nur der Ring um den Spielbereich), 7 Ziele, 7 Pakete (eins steht schon auf einem Ziel), Roboter bei (3,2) Richtung unten, direkt links neben dem Paket (4,2). Lösbar: 31 Befehle (`solve_levels.py --greedy`, im Simulator bis zur Fanfare gespielt).
+- Level 5 (Winter 1, "Ice bridge"): zugefrorener See (Zeilen 4–5) mit 2 Feldern breiter Eisbrücke (x = 4, 5); 3 Pakete im Süden, 3 Ziele im Norden. Kürzeste Lösung 26 Befehle (Brücke nutzen oder werfen).
+- Level 6 (Winter 2, "Pine forest"): zwei Kiefernwände (x = 4 und x = 6) mit je einer Lücke → Zickzack-Gang; Bäume blockieren Springen und Werfen, 2 Pakete müssen durch beide Lücken getragen werden. Kürzeste Lösung 34 Befehle.
+- Level 7 (Winter 3, "Frozen lake"): See in der Mitte, 3 Ziele auf Eisschollen im Wasser → nur werfen (oder springen) erreicht sie. Kürzeste Lösung 26 Befehle.
 - Zuordnung zu Welten über `world_table` in `world.asm` (erstes Level + Anzahl).
 - Format: variable Datensätze – Roboter x/y/Richtung, dann Listen mit vorangestelltem Anzahl-Byte und (x, y)-Paaren: Ziele, Pakete, Bäume, **Wasserfelder**. Neue Level über `plan_level_table`.
 
@@ -63,7 +69,7 @@ Ein spielbarer Kreislauf **Weltkarte → Planen → Ausführen → Weltkarte** i
 - Kein Programmlängen-Limit pro Level (Anzeige "PROGRAM: 00/99" existiert).
 - Nur 4 Level. Bewertet werden Umfang, Qualität und Abwechslung der Level.
 - Kein Titelbild / keine Einleitung.
-- Nur eine Welt (Meadow); das Tor von Meadow führt daher noch ins Leere (Meldung "road ends here"). Der Fluss oben (Spalten 11/12) ist bewusst Wasser geblieben, nicht Tor. Zweite Welt (z. B. Winter) braucht: Tileset (7 Run-Zellen + 5 Plan-Kacheln + Farben) als Theme, Levels, Karte in `gen_world_maps.py`, Eintrag in `world_table`.
+- Das Tor der letzten Welt (Winter) führt ins Leere (Meldung "road ends here - for now"); eine dritte Welt braucht: Theme (Zellen + Plan-Kacheln + Farben), Levels, Karte in `gen_world_maps.py` (mit `<`), Eintrag in `world_table`/`theme_table`. Der Fluss oben in Meadow (Spalten 11/12) ist bewusst Wasser geblieben, nicht Tor.
 - Optik des Tors (zwei Holztüren, `gate_l/gate_r` in `gen_gfx_run.py`) ist einfach gehalten, kann verfeinert werden.
 - Mausklick auf Knoten im Simulator nicht testbar (keine Maus) – in VICE prüfen.
 - Kein DKC-artiger Ausgang am Kartenrand (bewusst weggelassen).
@@ -97,6 +103,10 @@ Ein spielbarer Kreislauf **Weltkarte → Planen → Ausführen → Weltkarte** i
 | `tools/gen_cmd_icons.py` | **Generator** der Icons Pick Up / Drop Off (`$F0-$F7`) sowie Jump / Throw (`$90-$97`, Block `gfx_icons2`); Ausgabe in `gfx_data.asm` einfügen: `python -B tools/gen_cmd_icons.py` |
 | `tools/gen_world_maps.py` | **Generator** der Weltkarten als ASCII-Art (`.` Weg, `,` Gras, `T` Baum, `*` Blumen, `~` Wasser, `1`–`9` Levelknoten); prüft Größe und Erreichbarkeit aller Knoten: `python -B tools/gen_world_maps.py` |
 | `tools/sim_world.py` | Simulator-Test des Ablaufs Weltkarte → Plan (Lösung Level 1) → Run → Sieg → Karte → Level 2 → F7; Screenshots: `python -B tools/sim_world.py build/roboter.prg out/prefix` |
+| `tools/solve_levels.py` | **Löser** (A*) für die Level aus `mapdata.asm` mit den Regeln aus `run.asm`: kürzeste Lösung als Tastenfolge (w s d a q e x z c); `--greedy` für Level mit vielen Paketen: `python -B tools/solve_levels.py [--greedy] [Levelnummern]` |
+| `tools/gen_theme_winter.py` | **Generator** von `src/gfx_winter.asm` (Winter-Zellen + Plan-Kacheln, ASCII-Art); `--preview out.png` zeichnet eine Vorschau: `python -B tools/gen_theme_winter.py` |
+| `src/gfx_winter.asm` | **generiert** von `tools/gen_theme_winter.py` – nicht von Hand ändern |
+| `tools/sim_winter.py` | Simulator-Durchlauf des ganzen Spiels (Meadow → Tor → Winter → Bogen zurück → Winter-Levels), mit Prüfungen und Screenshots: `python -B tools/sim_winter.py build/roboter.prg out/prefix` (braucht `Test.map`) |
 | `tools/sim_gate.py` | Simulator-Test des Welt-Tors: geschlossen blockiert, Level 1 lösen, Tor blinkt auf der Karte, Durchgehen; Screenshots und Frame-genaue Ausgabe von `wm_gate_open`: `python -B tools/sim_gate.py build/roboter.prg out/prefix` (braucht `Test.map` im Projektordner) |
 | `tools/sheet.py` | Vergrößerte Vorschau der Planungs-Kacheln als PNG: `python -B tools/sheet.py [out.png]` (braucht Pillow) |
 | `tools/linux_acme/` | `stubs.c` + `build_linux_acme.sh`: baut ACME aus `C:\Users\martin\programme\acme\src` für Linux (für Cloud-Chats ohne Windows). Nur in einer **Kopie** des Projekts assemblieren, sonst überschreibt `main.asm` `Test.lbl/.pdb` (`!svl`/`!pdb`) mit Stub-Ausgaben |
@@ -110,10 +120,10 @@ Ein spielbarer Kreislauf **Weltkarte → Planen → Ausführen → Weltkarte** i
 
 ## Speicher
 
-- PRG ab `$0801`, Code muss vor `$C000` enden (Assemblierzeit-Prüfung). Aktuelles PRG ca. 12,3 KB (Ende ca. `$380C`) – viel Platz frei.
+- PRG ab `$0801`, Code muss vor `$C000` enden (Assemblierzeit-Prüfung). Aktuelles PRG ca. 13 KB (Ende ca. `$3B2C`) – viel Platz frei.
 - VIC-Bank 3: Screen `$C000`, Zeichensatz `$C800`, Sprites ab `$E000`.
-- Zeichen: Planungs-Tiles `$80-$88`, Jump/Throw-Icons `$90-$97` (`ICON2_CHAR_BASE`), Scrollbar-Block `$A0` (ROM-Zeichensatz, nicht überschreiben), Run-Grafik `$A1-$CD` (`RUN_CHAR_BASE`, 9 Zelltypen inkl. Weg und Tor links/rechts + 9 UI-Zeichen), Befehls-Icons `$E0-$FD`. Überlappungen prüft `defs.inc` beim Assemblieren. Frei: `$89-$8F`, `$98-$9F`, `$CE-$DF`, `$FE-$FF`.
-- Themes: `theme_load` kopiert die 9 Run-Zellen (288 B) nach `RUN_CHAR_BASE` und die 5 Plan-Kacheln (40 B) nach `FLOOR_CHAR`, dazu Farben (`theme_bg1/2` = `$D022/$D023`, `run_cell_colors`, `map_tile_colors`, im RAM in `world.asm`). Die UI-Zeichen und Roboterpfeile bleiben gemeinsam.
+- Zeichen: Planungs-Tiles `$80-$88`, Jump/Throw-Icons `$90-$97` (`ICON2_CHAR_BASE`), Scrollbar-Block `$A0` (ROM-Zeichensatz, nicht überschreiben), Run-Grafik `$A1-$D1` (`RUN_CHAR_BASE`, 10 Zelltypen inkl. Weg, Tor links/rechts, Bogen + 9 UI-Zeichen), Befehls-Icons `$E0-$FD`. Überlappungen prüft `defs.inc` beim Assemblieren. Frei: `$89-$8F`, `$98-$9F`, `$D2-$DF`, `$FE-$FF`.
+- Themes: `theme_load` kopiert die 10 Run-Zellen (320 B) nach `RUN_CHAR_BASE` und die 5 Plan-Kacheln (40 B) nach `FLOOR_CHAR`, dazu Farben (`theme_bg1/2` = `$D022/$D023`, `run_cell_colors`, `map_tile_colors`, `theme_plan_robot` = Farbe der Roboterpfeile im Plan, im RAM in `world.asm`). Die UI-Zeichen und Roboterpfeil-Formen bleiben gemeinsam. Winter: `$D022/$D023` = weiß/hellblau, Roboterpfeile lila (weiß wäre im Schnee unsichtbar), Roboter-Sprite bleibt hellgrau mit schwarzem Rand.
 - `map_work` `$0200` (100 Bytes), `goal_list` `$0280`, Befehlsprogramm `$0300` (99 Bytes).
 - Zeropage: belegte Adressen in `zp.inc`, `editor.asm` (`$29–$2D`, `$43`, `$61`), `run.asm` (`$46–$60`, `$62–$6B` für Jump/Throw), `sound.asm` (`$F8–$FB`); Welt-Block `$6C–$6D`, `$70–$8C` in `zp.inc`. Vor neuen Variablen alle prüfen.
 
@@ -136,3 +146,4 @@ Nach erfolgreichem Build nur Bescheid geben, **VICE nicht selbst starten** (sieh
 - **30.10. Wasser, Jump, Throw:** Wasser als Kachel `T_WATER` (=5) mit eigener Liste im Level-Format; Farbe blau. Regeln siehe oben. Jump/Throw liegen auf Z/C unten im Palettenraster; Farbe Jump weiß (Bewegung), Throw lila (Ablegen). Pakete dürfen übersprungen/überworfen werden (nur Bäume blockieren in der Luft) – bewusst so festgelegt, bei Bedarf in `run_do_jump`/`run_do_throw` ändern.
 - **30.10. Welten und Weltkarte:** Welten wie DKC Returns (Welt = Tileset + Levelbereich + Karte), Weltkarte ist Startbildschirm, Levels per Laufen mit der Figur wählbar, Welt n+1 nach Lösen aller Levels von Welt n. Ausgang am Kartenrand vorerst nicht. Datenformat: Theme-Datensatz (Zeiger Run-Zellen, Zeiger Plan-Kacheln, 2 Hintergrundfarben, 7 Zellfarben, 6 Plan-Kachelfarben), Welt-Datensatz (Theme, erstes Level, Anzahl, Zeiger Karte/Name/Knoten). Neuer Zelltyp „Weg“ (sandfarben, Farb-RAM gelb), nur auf der Weltkarte begehbar. Levels bleiben in einer globalen `plan_level_table`.
 - **30.10. Welt-Tor:** Statt F5 allein öffnet das Tor die nächste Welt (DKC-Prinzip „Ausgang“ in Form eines Tors in der ersten Kartenzeile). `worlds_open` zählt die besuchbaren Welten, `gate_done` merkt sich pro Welt, dass das Blinken schon lief. Zeropage `$8D/$8E` = Zelle, von der die Figur kam (Ausgangsposition beim Verlassen durchs Tor). `RUN_CHAR_BASE` von `$B8` auf `$A1` verschoben, damit 9 Zelltypen passen (`$A0` ist der Scrollbar-Block).
+- **30.10. Winter-Welt und Rückweg:** Welt 2 mit eigenem Tileset (`gen_theme_winter.py`), 3 Levels und Bogen zurück zu Welt 1. Alle Zelltypen sind in allen Themes vorhanden (10 Stück, gleiche Reihenfolge), damit `theme_load` einfach kopiert. Für die Levelprüfung gibt es den Löser `solve_levels.py` (Regeln gegen den Simulator abgeglichen: Lösungen für Level 1–7 gewinnen im Simulator).

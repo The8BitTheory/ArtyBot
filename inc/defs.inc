@@ -125,7 +125,7 @@ COL_BLUE    = 6
 ; window frame characters and the pointing hand, all from $A1 on ($A0 is the
 ; scrollbar block of the ROM set); sprites.
 RUN_CHAR_BASE  = $A1
-RUN_CELL_TYPES = 9              ; grass, tree, chest, goal, flowers, water, path, gate left/right (last 3: world map)
+RUN_CELL_TYPES = 10             ; grass, tree, chest, goal, flowers, water, path, gate left/right, arch (last 4: world map)
 RUN_UI_BASE    = RUN_CHAR_BASE + RUN_CELL_TYPES*4
 UI_TL          = RUN_UI_BASE+0  ; window frame: rounded corners and edges
 UI_TOP         = RUN_UI_BASE+1
@@ -151,6 +151,7 @@ RUN_SPR_CHEST  = RUN_SPR_BLOCK + 16
 
 ; Run screen colours. Multicolour: $D021 black, $D022/$D023 the two grass greens.
 COL_LGREEN     = 13
+COL_LBLUE      = 14
 COL_LGREY      = 15
 RUN_BG1        = COL_GREEN
 RUN_BG2        = COL_LGREEN

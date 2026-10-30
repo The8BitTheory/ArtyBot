@@ -42,6 +42,14 @@ GOAL  = ["gggg","g..g",".cc.","c..c","c..c",".cc.","g..g","gggg"]
 CHEST = ["gggg","....",".cc.",".cc.",".ll.",".cc.","....","gggg"]
 TREE  = ["g..g",".ll.",".lg.",".gg.",".cc.",".cc.","g..g","gggg"]
 WATER = ["cccc","c.cc",".c.c","cccc","cccc","cc.c","c.c.","cccc"]
+# Winter theme (snow, pines, ice lake): same tile order as above, see
+# gen_theme_winter.py. The robot arrows are shared by all themes.
+W_FLOOR = ["gggg","gggg","gggg","gglg","gggg","gggg","gggg","gggg"]
+W_TREE  = ["g..g",".gg.",".cc.",".cc.","cccc","g..g","g..g","gggg"]
+W_WATER = ["cccc","cgcc","ccgc","cccc","cccc","cc.c","cgcc","cccc"]
+WINTER_TILES = [('snow (floor)', W_FLOOR), ('goal', GOAL), ('package (chest)', CHEST),
+                ('blocker (pine)', W_TREE), ('water (ice lake)', W_WATER)]
+
 tiles = []   # (comment, rows)
 for d in ('right','left','up','down'):
     tiles.append(('robot '+d, ROBOT[d]))

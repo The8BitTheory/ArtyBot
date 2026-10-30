@@ -26,6 +26,7 @@
 !source "src/world.asm"
 !source "src/gfx_data.asm"
 !source "src/gfx_run.asm"
+!source "src/gfx_winter.asm"
 
 ; --- Daten
 !source "src/text.asm"

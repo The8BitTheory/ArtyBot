@@ -14,7 +14,9 @@
 ; level of world n is solved: the gate at the exit of the world map (cells '['
 ; and ']' in the map) opens with a blinking effect when the player comes back
 ; to the map after the last level, and stepping through it opens the next
-; world (F3/F5 switch between the opened worlds). Progress is kept in RAM only.
+; world (F3/F5 switch between the opened worlds). Every world after the first has
+; an archway (map cell '<') that is always open and leads back to the previous
+; world. Progress is kept in RAM only.
 
 ; Zero-page variables: see zp.inc (world map block).
 
@@ -23,7 +25,8 @@ WM_Y          = 1               ; screen row of map cell (0,0)
 WM_MSG_ROW    = 23
 WM_PATH       = 6               ; map cell type of the path (walkable)
 WM_GATE_L     = 7               ; gate halves: blocked while closed, walkable when open
-WM_GATE_R     = 8              ; status text row (message box as on the run screen)
+WM_GATE_R     = 8
+WM_BACK       = 9               ; archway back to the previous world (always walkable)              ; status text row (message box as on the run screen)
 MAX_WORLDS    = 8
 MAX_LEVELS    = 64              ; size of the level_done bit mask
 KEY_W         = 9               ; keyboard matrix codes
@@ -38,36 +41,51 @@ KEY_F5        = 6
 ; ---- Themes --------------------------------------------------------------
 ; Record: +0 run cells (RUN_CELL_TYPES*32 bytes), +2 planning tiles (5*8 bytes,
 ; floor/goal/package/blocker/water), +4 $D022, +5 $D023, +6 colour RAM of the
-; RUN_CELL_TYPES run cells, then colour RAM per planning tile id (T_FLOOR..T_WATER).
+; RUN_CELL_TYPES run cells, then colour RAM per planning tile id (T_FLOOR..T_WATER),
+; then the colour of the robot arrows in the planning map.
 ; Colour RAM values +8 = multicolour.
 THEME_MEADOW  = 0
+THEME_WINTER  = 1
 TREC_CELLS    = 0
 TREC_PLAN     = 2
 TREC_COLORS   = 4
 
 theme_table
         !word theme_meadow
+        !word theme_winter
 theme_count = (* - theme_table) / 2
 
 theme_meadow
         !word gfx_run, gfx_robot + 4*8
         !byte COL_GREEN, COL_LGREEN
         !byte COL_GREEN+8, COL_RED+8, CHEST_COLOR+8, COL_CYAN+8, COL_YELLOW+8, COL_BLUE+8, COL_YELLOW+8
-        !byte COL_RED+8, COL_RED+8
+        !byte COL_RED+8, COL_RED+8, COL_WHITE+8
         !byte COL_GREEN+8, COL_RED+8, CHEST_COLOR+8, COL_CYAN+8, COL_YELLOW+8, COL_BLUE+8
+        !byte COL_WHITE+8
+
+; Winter: white snow with light-blue shadows, pines, ice-cold water, brown path.
+; Keep the colour RAM values in sync with preview() in tools/gen_theme_winter.py.
+theme_winter
+        !word winter_cells, winter_plan
+        !byte COL_WHITE, COL_LBLUE
+        !byte COL_BLUE+8, COL_GREEN+8, CHEST_COLOR+8, COL_CYAN+8, COL_CYAN+8, COL_BLUE+8, COL_RED+8
+        !byte COL_RED+8, COL_RED+8, COL_CYAN+8
+        !byte COL_BLUE+8, COL_GREEN+8, CHEST_COLOR+8, COL_CYAN+8, COL_YELLOW+8, COL_BLUE+8
+        !byte COL_PURPLE+8              ; robot arrows: white would vanish in the snow
 
 ; Colours of the loaded theme (theme_load copies them here; preset = meadow).
 theme_colors
 theme_bg1       !byte COL_GREEN         ; $D022
 theme_bg2       !byte COL_LGREEN        ; $D023
-run_cell_colors                         ; grass, tree trunk, chest, goal, flowers, water, path, gate l/r
+run_cell_colors                         ; grass, tree trunk, chest, goal, flowers, water, path, gate l/r, arch
         !byte COL_GREEN+8, COL_RED+8, CHEST_COLOR+8, COL_CYAN+8, COL_YELLOW+8, COL_BLUE+8, COL_YELLOW+8
-        !byte COL_RED+8, COL_RED+8
+        !byte COL_RED+8, COL_RED+8, COL_WHITE+8
 !if * - run_cell_colors != RUN_CELL_TYPES {
     !error "run_cell_colors: ein Eintrag pro Zelltyp"
 }
 map_tile_colors                         ; planning tiles by tile id (T_FLOOR..T_WATER)
         !byte COL_GREEN+8, COL_RED+8, CHEST_COLOR+8, COL_CYAN+8, COL_YELLOW+8, COL_BLUE+8
+theme_plan_robot !byte COL_WHITE+8      ; colour of the robot arrows in the planning map
 THEME_COLOR_BYTES = * - theme_colors
 
 ; A = theme. Copies cells, planning tiles and colours; sets $D022/$D023.
@@ -123,6 +141,7 @@ WREC_NODES    = 7
 
 world_table
         !word world_meadow
+        !word world_winter
 world_count = (* - world_table) / 2
 !if world_count > MAX_WORLDS {
     !error "Zu viele Welten (MAX_WORLDS)"
@@ -139,6 +158,14 @@ world_meadow
 }
 
 str_world_meadow !text "Meadow",0
+
+world_winter
+        !byte THEME_WINTER, 4, 3        ; levels 5-7
+        !word wmap_winter, str_world_winter, wnodes_winter
+!if WNODES_WINTER != 3 {
+    !error "Weltkarte winter: Anzahl Knoten passt nicht zur Anzahl Levels"
+}
+str_world_winter !text "Winter",0
 
 ; ---- Progress (RAM) ---------------------------------------------------------
 level_done      !fill MAX_LEVELS/8, 0   ; one bit per level of plan_level_table
@@ -333,6 +360,12 @@ world_mode
 .not_quit
         ldx wm_steps            ; the rest only while the robot stands still
         bne .loop
+        cmp #KEY_F1             ; F2 (= Shift+F1): test key, solves the whole world
+        bne .not_f2
+        ldx key_shift
+        beq .loop
+        jmp world_cheat
+.not_f2
         cmp #KEY_SPACE
         beq .enter
         cmp #KEY_RETURN
@@ -346,18 +379,19 @@ world_mode
         bmi .loop               ; not on a node
 .play   jsr world_play          ; A = node; returns after plan/run
         jmp world_mode
+.stay   jmp .loop
 .next_world
         lda world_cur           ; only worlds opened through a gate
         clc
         adc #1
         cmp #world_count
-        bcs .loop
+        bcs .stay
         cmp worlds_open
-        bcs .loop
+        bcs .stay
         jmp .switch
 .prev_world
         lda world_cur
-        beq .loop
+        beq .stay
         sec
         sbc #1
 .switch pha
@@ -375,6 +409,33 @@ world_mode
         sta wm_confirm
         jsr world_status
 .back   jmp .loop
+
+; Test key F2: marks every level of the current world as solved. The map is
+; entered again, so the gate blinks open as after a really solved last level.
+!zone world_cheat
+world_cheat
+        jsr world_save_pos
+        lda #0
+        sta wm_tmp
+.l      lda wm_tmp
+        cmp world_nlev
+        beq .done
+        clc
+        adc world_first         ; level number
+        pha
+        lsr
+        lsr
+        lsr
+        tax
+        pla
+        and #7
+        tay
+        lda level_done,x
+        ora run_bit_tab,y
+        sta level_done,x
+        inc wm_tmp
+        jmp .l
+.done   jmp world_mode
 
 ; A = node index: start that level in plan mode, back when the player leaves.
 !zone world_play
@@ -503,6 +564,8 @@ world_redraw_gates
 ; A = map cell type: draw it at map cell (wm_dx, wm_dy); an open gate shows the path.
 !zone wm_draw_type
 wm_draw_type
+        cmp #WM_BACK            ; the archway is always shown
+        bcs .draw
         cmp #WM_GATE_L
         bcc .draw
         ldx wm_gate_open
@@ -514,12 +577,15 @@ wm_draw_type
         txa
         jmp wm_put_map_cell
 
-; The robot arrived on a gate cell (open gate): through it into the next world.
+; The robot arrived on an exit cell: the open gate leads into the next world, the
+; archway back to the previous one. The robot is left in front of the exit.
 !zone world_check_gate
 world_check_gate
         ldx wm_cx
         ldy wm_cy
         jsr wm_cell
+        cmp #WM_BACK
+        beq .back
         cmp #WM_GATE_L
         bcc .no
         lda world_cur
@@ -531,9 +597,15 @@ world_check_gate
         clc
         adc #1
         cmp worlds_open         ; worlds_open = max(worlds_open, next + 1)
-        bcc .keep
+        bcc .go
         sta worlds_open
-.keep   lda wm_prevx            ; leave the robot in front of the gate
+        bcs .go
+.back   lda world_cur
+        beq .no                 ; (the generator forbids an archway in world 1)
+        sec
+        sbc #1                  ; the previous world
+        pha
+.go     lda wm_prevx            ; leave the robot in front of the exit
         sta wm_cx
         lda wm_prevy
         sta wm_cy
@@ -947,6 +1019,8 @@ world_tick
         ldy tmp1
         jsr wm_cell
         cmp #WM_PATH
+        beq .walk
+        cmp #WM_BACK
         beq .walk
         cmp #WM_GATE_L          ; gate halves: only when open
         bcc .done

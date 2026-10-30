@@ -203,7 +203,28 @@ CELLS['gate_r'] = """
 ........
 """
 
-CELL_ORDER = ['grass', 'tree', 'chest', 'goal', 'flowers', 'water', 'path', 'gate_l', 'gate_r']
+# Archway (world map): the way back to the previous world. Dark passage in a
+# frame (colour RAM), the ground shows through at the bottom.
+CELLS['arch'] = """
+..cccc..
+.cccccc.
+cc....cc
+c......c
+c......c
+c......c
+c......c
+c......c
+c......c
+c......c
+c......c
+c......c
+c......c
+c.gggg.c
+cggggggc
+cccccccc
+"""
+
+CELL_ORDER = ['grass', 'tree', 'chest', 'goal', 'flowers', 'water', 'path', 'gate_l', 'gate_r', 'arch']
 
 # ---------------------------------------------------------------- UI chars
 # NES Final Fantasy window frame (rounded corners) and the pointing hand.

@@ -39,6 +39,9 @@ plan_level_table
         !word plan_level_2
         !word plan_level_3
         !word plan_level_4
+        !word plan_level_5
+        !word plan_level_6
+        !word plan_level_7
 plan_level_count = (* - plan_level_table) / 2
 
 plan_level_1
@@ -186,6 +189,113 @@ plan_level_4
         !byte 8, 7
         !byte 8, 8
         !byte 0                         ; water fields
+
+; Level 5 (Winter 1, "Ice bridge"): a frozen lake (rows 4-5) cuts the field in two,
+; only the ice bridge at x = 4, 5 leads across. Three packages down south, three
+; goals up north: carry them over the bridge or throw them across the bridge ends.
+plan_level_5
+        !byte 4, 8, ROBOT_DIR_UP
+        !byte 3                         ; goal fields (x, y)
+        !byte 3, 1
+        !byte 4, 1
+        !byte 5, 1
+        !byte 3                         ; packages (x, y)
+        !byte 3, 7
+        !byte 4, 6
+        !byte 5, 7
+        !byte 6                         ; blockers (x, y)
+        !byte 1, 1
+        !byte 8, 1
+        !byte 2, 7
+        !byte 7, 7
+        !byte 0, 3
+        !byte 9, 3
+        !byte 16                         ; water fields
+        !byte 0, 4
+        !byte 1, 4
+        !byte 2, 4
+        !byte 3, 4
+        !byte 6, 4
+        !byte 7, 4
+        !byte 8, 4
+        !byte 9, 4
+        !byte 0, 5
+        !byte 1, 5
+        !byte 2, 5
+        !byte 3, 5
+        !byte 6, 5
+        !byte 7, 5
+        !byte 8, 5
+        !byte 9, 5
+
+
+; Level 6 (Winter 2, "Pine forest"): two walls of pines (x = 4 and x = 6), each with a
+; single gap, form a zigzag corridor. Trees block jumping and throwing, so both
+; packages have to be carried through both gaps.
+plan_level_6
+        !byte 2, 4, ROBOT_DIR_RIGHT
+        !byte 2                         ; goal fields (x, y)
+        !byte 8, 5
+        !byte 7, 8
+        !byte 2                         ; packages (x, y)
+        !byte 2, 2
+        !byte 1, 7
+        !byte 21                        ; blockers (x, y)
+        !byte 4, 0
+        !byte 4, 1
+        !byte 4, 2
+        !byte 4, 3
+        !byte 4, 5
+        !byte 4, 6
+        !byte 4, 7
+        !byte 4, 8
+        !byte 4, 9
+        !byte 6, 0
+        !byte 6, 1
+        !byte 6, 2
+        !byte 6, 3
+        !byte 6, 4
+        !byte 6, 5
+        !byte 6, 7
+        !byte 6, 8
+        !byte 6, 9
+        !byte 9, 0
+        !byte 0, 0
+        !byte 8, 9
+        !byte 0                         ; water fields
+
+; Level 7 (Winter 3, "Frozen lake"): three ice floes with a goal each lie in a lake.
+; Nothing can walk or drop there, the packages have to be thrown across the water.
+plan_level_7
+        !byte 0, 4, ROBOT_DIR_RIGHT
+        !byte 3                         ; goal fields (x, y)
+        !byte 4, 4
+        !byte 5, 5
+        !byte 4, 5
+        !byte 3                         ; packages (x, y)
+        !byte 1, 2
+        !byte 1, 6
+        !byte 8, 3
+        !byte 5                         ; blockers (x, y)
+        !byte 2, 0
+        !byte 7, 0
+        !byte 8, 8
+        !byte 0, 8
+        !byte 9, 6
+        !byte 13                         ; water fields
+        !byte 3, 3
+        !byte 4, 3
+        !byte 5, 3
+        !byte 6, 3
+        !byte 3, 4
+        !byte 5, 4
+        !byte 6, 4
+        !byte 3, 5
+        !byte 6, 5
+        !byte 3, 6
+        !byte 4, 6
+        !byte 5, 6
+        !byte 6, 6
 
 ; A = level number. Copies its record into the game variables and builds the
 ; field layer including the blockers. Invalid numbers fall back to level 0.
@@ -380,7 +490,7 @@ draw_map_objects
         adc #MAP_SCR_Y
         tay
         jsr set_cursor
-        lda #COL_WHITE+8
+        lda theme_plan_robot
         sta cur_col
         lda robot_dir
         clc

@@ -2,7 +2,7 @@
 ; edit the ASCII art there and re-run the script instead of editing this file.
 ;
 ; Multicolour field cells (16x16 px = 2x2 characters TL,TR,BL,BR) from
-; RUN_CHAR_BASE: grass, tree, chest, goal, flowers, water, path, gate_l, gate_r.
+; RUN_CHAR_BASE: grass, tree, chest, goal, flowers, water, path, gate_l, gate_r, arch.
 ;   . = $D021 black   g = $D022 green   l = $D023 light green   c = colour RAM
 ; Then hires UI characters: tl, top, tr, left, right, bl, bottom, br, hand.
 gfx_run
@@ -195,6 +195,27 @@ gfx_run
         !byte $00,$FC,$FC,$00,$FC,$FC,$FC,$FC
         !byte $3F,$3C,$3C,$3C,$3C,$00,$3F,$00
         !byte $FC,$FC,$FC,$FC,$FC,$00,$FC,$00
+; --- arch
+;   ..cccc..
+;   .cccccc.
+;   cc....cc
+;   c......c
+;   c......c
+;   c......c
+;   c......c
+;   c......c
+;   c......c
+;   c......c
+;   c......c
+;   c......c
+;   c......c
+;   c.gggg.c
+;   cggggggc
+;   cccccccc
+        !byte $0F,$3F,$F0,$C0,$C0,$C0,$C0,$C0
+        !byte $F0,$FC,$0F,$03,$03,$03,$03,$03
+        !byte $C0,$C0,$C0,$C0,$C0,$C5,$D5,$FF
+        !byte $03,$03,$03,$03,$03,$53,$57,$FF
 ; --- tl
 ;   ........
 ;   ........
