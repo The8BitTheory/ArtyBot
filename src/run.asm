@@ -35,6 +35,16 @@ run_gold      = $5D             ; 1: draw the chest cell gold (chest on a goal f
 run_gcol      = $5E             ; goal shimmer colour of this step
 run_gi        = $5F             ; goal_list offset while shimmering
 run_won_wait  = $60             ; frames of fanfare before a key leaves the won level
+run_jump      = $62             ; 1 while the robot is in the air (Jump)
+run_fly       = $63             ; 1 while a thrown package is in the air (Throw)
+run_fx        = $64             ; thrown package: pixel position inside the field area
+run_fy        = $65
+run_fvx       = $66             ; thrown package: movement per frame (signed pixels)
+run_fvy       = $67
+run_fsteps    = $68             ; thrown package: flight frames left
+run_mid       = $69             ; tile id of the field jumped over / thrown across
+run_ftile     = $6A             ; tile the thrown package becomes when it lands
+run_fidx      = $6B             ; map index of that landing field
 
 RUN_FIELD_X = 1                 ; screen column of the first cell
 RUN_FIELD_Y = 1                 ; screen row of the first cell
@@ -42,6 +52,7 @@ RUN_MSG_ROW = 23                ; text row inside the message box
 RUN_ROBOT_DY = 2                ; robot art starts 2 lines above its cell
 RUN_CHEST_DY = 3                ; chest sprite sits this far above the robot
 RUN_MOVE_FRAMES = 8             ; 2 pixels per frame = one 16 pixel cell
+RUN_JUMP_FRAMES = 16            ; 2 pixels per frame = two cells (jump and throw)
 KEY_P       = 41                ; C64 keyboard matrix codes
 KEY_X       = 23
 KEY_SPACE   = 60
@@ -226,6 +237,8 @@ run_reset
         sta run_timer
         sta run_carry
         sta run_walk
+        sta run_jump
+        sta run_fly
         sta scroll_offset
         lda #$FF
         sta run_cur
@@ -478,7 +491,12 @@ run_update_sprites
         lda run_spy
         clc
         adc #50-RUN_ROBOT_DY
-        sta VIC_SPR0X+7
+        ldx run_jump            ; in the air: lift by the jump arc
+        beq .ground
+        ldx run_steps
+        sec
+        sbc run_arc,x
+.ground sta VIC_SPR0X+7
         ldx run_carry
         beq .robot_only
         sec
@@ -492,9 +510,33 @@ run_update_sprites
         lda #$0C
         bne .enable
 .robot_only
-        lda #$08
+        lda run_fly             ; a thrown package flies on its own
+        beq .alone
+        lda run_fx
+        clc
+        adc #24
+        sta VIC_SPR0X+4
+        lda run_fy
+        clc
+        adc #50-RUN_ROBOT_DY-RUN_CHEST_DY
+        ldx run_fsteps
+        sec
+        sbc run_throw_arc,x
+        sta VIC_SPR0X+5
+        lda #$0C
+        bne .enable
+.alone  lda #$08
 .enable sta VIC_SPR_EN
         rts
+
+; Height above the ground (pixels) by frames left, RUN_JUMP_FRAMES..0:
+; s*(16-s)/6, peak 10 pixels in the middle of the jump.
+run_arc
+        !byte 0, 2, 4, 6, 8, 9, 10, 10, 10, 10, 10, 9, 8, 6, 4, 2, 0
+; Thrown package: the same arc, sinking 5 pixels over the flight from the
+; carrying height down to the ground (signed).
+run_throw_arc
+        !byte 256-5, 256-2, 1, 3, 5, 7, 8, 8, 9, 9, 9, 9, 8, 6, 4, 2, 0
 
 ; The goal circles shimmer: every 8 frames the colour RAM of every free goal
 ; field cycles (fields that hold a chest keep the chest colour).
@@ -576,6 +618,8 @@ run_tick
         beq .moving
         cmp #2
         beq .turning
+        cmp #3
+        beq .flying
         jmp run_fetch
 .moving lda run_spx
         clc
@@ -587,15 +631,19 @@ run_tick
         sta run_spy
         dec run_steps
         beq .arrived
+        lda run_jump            ; in the air: legs stay apart (step frame)
+        bne .air
         lda run_steps           ; walk cycle: step frame for 4 of 8 frames
         and #4
         asl                     ; 0 or 8
         sta run_walk
         jmp run_set_robot_image
+.air    rts
 .arrived
         lda #0
         sta run_phase
         sta run_walk
+        sta run_jump
         lda #3
         sta run_timer
         jmp run_set_robot_image
@@ -619,6 +667,23 @@ run_tick
         lda #0
         sta run_phase
         rts
+.flying                         ; thrown package in the air
+        lda run_fx
+        clc
+        adc run_fvx
+        sta run_fx
+        lda run_fy
+        clc
+        adc run_fvy
+        sta run_fy
+        dec run_fsteps
+        bne .air
+        lda #0                  ; landed: the field shows the package again
+        sta run_fly
+        sta run_phase
+        lda run_ftile
+        ldx run_fidx
+        jmp run_land
 
 run_dx_tab !byte 1,$FF,0,0      ; right, left, up, down
 run_dy_tab !byte 0,0,$FF,1
@@ -654,6 +719,10 @@ run_fetch
         beq .pick
         cmp #5
         beq .drop
+        cmp #7
+        beq .jump
+        cmp #8
+        beq .throw
         lda #0                  ; 6: turn 180 = two right turns
         ldx #2
         jmp run_start_turn
@@ -670,6 +739,8 @@ run_fetch
         jmp run_start_turn
 .pick   jmp run_pickup
 .drop   jmp run_drop
+.jump   jmp run_do_jump
+.throw  jmp run_do_throw
 
 ; Keep the running command visible in the list and highlighted.
 !zone run_follow_cursor
@@ -730,6 +801,8 @@ run_do_move
         beq .blocked
         cmp #T_BOXG
         beq .blocked
+        cmp #T_WATER
+        beq .water
         lda run_tx
         sta robot_tx
         lda run_ty
@@ -750,6 +823,7 @@ run_do_move
         jmp sound_move
 .blocked
         +run_fail str_run_blocked
+.water  +run_fail str_run_water
 
 ; Cell in front of the robot: carry set and X = map index when inside the field.
 ; run_tx/run_ty hold the cell.
@@ -828,7 +902,14 @@ run_drop
         lda #T_BOXG             ; chest on a goal field
         bne .store
 .floor  lda #T_BOX
-.store  sta map_work,x
+.store  jmp run_land
+.cant   +run_fail str_run_cantdrop
+
+; A = new tile (T_BOX / T_BOXG), X = map index of the field run_tx/run_ty: the
+; package is put down there (Drop Off, or the end of a Throw).
+!zone run_land
+run_land
+        sta map_work,x
         pha
         jsr run_redraw_front
         lda #0
@@ -857,7 +938,131 @@ run_drop
 .more   lda #3
         sta tmp3
         jmp sound_move
-.cant   +run_fail str_run_cantdrop
+
+; Field two steps ahead (Jump / Throw). Carry set when it is inside the field;
+; then run_tx/run_ty = that field, X = its map index, and run_mid = tile id of
+; the field in between (always inside the field then).
+!zone run_far_cell
+run_far_cell
+        ldx robot_dir
+        lda run_dx_tab,x
+        asl                     ; two steps: +2 / -2 ($FE)
+        clc
+        adc robot_tx
+        cmp #MAP_COLS           ; also catches negative results
+        bcs .out
+        sta run_tx
+        lda run_dy_tab,x
+        asl
+        clc
+        adc robot_ty
+        cmp #MAP_ROWS
+        bcs .out
+        sta run_ty
+        lda robot_tx            ; the field in between
+        clc
+        adc run_dx_tab,x
+        sta tmp0
+        lda robot_ty
+        clc
+        adc run_dy_tab,x
+        sta tmp1
+        jsr map_index
+        lda map_work,x
+        sta run_mid
+        lda run_tx
+        sta tmp0
+        lda run_ty
+        sta tmp1
+        jsr map_index
+        sec
+        rts
+.out    clc
+        rts
+
+; Jump: over the next field onto the one behind it. Trees block the jump, water
+; and packages can be jumped over; the landing field must be free floor or a
+; free goal field. The robot may carry a package while jumping.
+!zone run_do_jump
+run_do_jump
+        jsr run_far_cell
+        bcc .noland
+        lda run_mid
+        cmp #T_WALL
+        beq .tree
+        lda map_work,x
+        beq .go                 ; free floor
+        cmp #T_GOAL
+        bne .noland
+.go     lda run_tx
+        sta robot_tx
+        lda run_ty
+        sta robot_ty
+        ldx robot_dir
+        lda run_dx_tab,x
+        asl                     ; 2 pixels per frame
+        sta run_vx
+        lda run_dy_tab,x
+        asl
+        sta run_vy
+        lda #RUN_JUMP_FRAMES
+        sta run_steps
+        lda #1
+        sta run_phase
+        sta run_jump
+        lda #8                  ; legs apart in the air
+        sta run_walk
+        jsr run_set_robot_image
+        jmp sound_jump
+.tree   +run_fail str_run_tree
+.noland +run_fail str_run_noland
+
+; Throw: the carried package flies over the next field and lands on the one
+; behind it (one field further than Drop Off). Trees block the throw, water
+; and packages can be thrown across; it lands on free floor or a free goal field.
+!zone run_do_throw
+run_do_throw
+        lda run_carry
+        bne .carrying
+        +run_fail str_run_nothrow
+.carrying
+        jsr run_far_cell
+        bcc .cant
+        lda run_mid
+        cmp #T_WALL
+        beq .tree
+        lda map_work,x
+        beq .floor              ; free floor
+        cmp #T_GOAL
+        bne .cant
+        lda #T_BOXG
+        bne .fly
+.floor  lda #T_BOX
+.fly    sta run_ftile
+        stx run_fidx
+        lda #0                  ; the robot lets go, the chest sprite flies on
+        sta run_carry
+        jsr run_set_robot_image
+        lda run_spx
+        sta run_fx
+        lda run_spy
+        sta run_fy
+        ldx robot_dir
+        lda run_dx_tab,x
+        asl
+        sta run_fvx
+        lda run_dy_tab,x
+        asl
+        sta run_fvy
+        lda #RUN_JUMP_FRAMES
+        sta run_fsteps
+        lda #1
+        sta run_fly
+        lda #3                  ; phase 3: package in the air
+        sta run_phase
+        jmp sound_throw
+.tree   +run_fail str_run_tree
+.cant   +run_fail str_run_cantthrow
 
 ; Carry set when no goal field without a chest is left on the field.
 !zone run_all_delivered
@@ -996,8 +1201,8 @@ run_flower_rows                 ; decorative flower cells, one mask per row
 run_bit_tab
         !byte $01, $02, $04, $08, $10, $20, $40, $80
 
-run_cell_colors                 ; grass, tree trunk, chest, goal, flowers
-        !byte COL_GREEN+8, COL_RED+8, CHEST_COLOR+8, COL_CYAN+8, COL_YELLOW+8
+run_cell_colors                 ; grass, tree trunk, chest, goal, flowers, water
+        !byte COL_GREEN+8, COL_RED+8, CHEST_COLOR+8, COL_CYAN+8, COL_YELLOW+8, COL_BLUE+8
 
 ; ---- Command list ------------------------------------------------------
 ; Without selection letters: "nn Text"; the running command is yellow.

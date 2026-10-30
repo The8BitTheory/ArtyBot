@@ -17,6 +17,7 @@ str_target !text "Target Area",0
 str_package !text "Deliver this",0
 str_package_done !text "Delivered",0
 str_blocker !text "Blocked",0
+str_water !text "Water: jump it",0
 str_bottom_commands !text "F1: Run plan F8: Exit Artybot",0
 str_quit_confirm !text "Really quit?",0
 str_clear_confirm !text "Really clear",0
@@ -45,3 +46,8 @@ str_run_cantdrop !text "Can't drop here. Space: retry",0
 str_run_done !text "All packages delivered!",0
 str_run_next !text "Done! Space: next level  R: replay",0
 str_run_end !text "Not delivered. Space: retry",0
+str_run_water !text "ArtyBot can't swim. Space: retry",0
+str_run_tree !text "A tree is in the way. Space: retry",0
+str_run_noland !text "Can't land there. Space: retry",0
+str_run_nothrow !text "Nothing to throw. Space: retry",0
+str_run_cantthrow !text "Can't throw there. Space: retry",0

@@ -9,7 +9,7 @@ ui_col   = $2D
 exit_confirm = $43
 arrow_rep = $61              ; auto-repeat counter for scrollbar arrow clicks
 PALETTE_NUM = 18
-AVAILABLE_COMMANDS = 7
+AVAILABLE_COMMANDS = 9
 PROGRAM_ROWS = 17
 
 !zone game_main
@@ -661,7 +661,7 @@ key_to_palette
         rts
 
 !zone editor_insert
-editor_insert                  ; A = command index (0..6)
+editor_insert                  ; A = command index (0..AVAILABLE_COMMANDS-1)
         cmp #AVAILABLE_COMMANDS
         bcs .done
         sta selected_command
@@ -1027,13 +1027,9 @@ draw_palette_icon
         sta ui_row               ; tile top row
         lda cmd_colors,x         ; icon colour by command type
         sta cur_col
-        lda palette_icon_ids,x
+        lda palette_icon_chars,x
         cmp #$FF
         beq .key_label
-        asl
-        asl
-        clc
-        adc #ICON_CHAR_BASE
         sta tmp1                 ; first of the four icon glyphs
         ldx tmp0
         ldy ui_row
@@ -1463,17 +1459,18 @@ editor_clear_info
         rts
 
 ; Palette layout, indexed by command (0 Fwd, 1 Back, 2 Right, 3 Left, 4 Pick, 5 Drop,
-; 6 Turn180); WASD arrangement:     Q(pick)  W(fwd)   E(drop)
+; 6 Turn180, 7 Jump, 8 Throw); WASD arrangement:
+;                                   Q(pick)  W(fwd)   E(drop)
 ;                                   A(left)  S(back)  D(right)
-;                                            X(180)
-pal_col  !byte 9, 9, 14, 4, 4, 14, 9
-pal_row  !byte 14, 17, 17, 17, 14, 14, 20
-pal_label !byte 23, 19, 4, 1, 17, 5, 24       ; screen codes: w s d a q e x (lowercase)
-cmd_key_codes !byte 9, 13, 18, 10, 62, 14, 23 ; keyboard matrix codes of those keys
+;                                   Z(jump)  X(180)   C(throw)
+pal_col  !byte 9, 9, 14, 4, 4, 14, 9, 4, 14
+pal_row  !byte 14, 17, 17, 17, 14, 14, 20, 20, 20
+pal_label !byte 23, 19, 4, 1, 17, 5, 24, 26, 3      ; screen codes: w s d a q e x z c
+cmd_key_codes !byte 9, 13, 18, 10, 62, 14, 23, 12, 20 ; keyboard matrix codes of those keys
 pal_grid_cmd                                  ; 3x3 grid, row-major, $FF = empty cell
         !byte 4, 0, 5
         !byte 3, 1, 2
-        !byte $FF, 6, $FF
+        !byte 7, 6, 8
 
 ; A = matrix code -> command index (carry set) for the palette keys Q W E A S D X.
 !zone key_to_command
@@ -1492,14 +1489,17 @@ key_to_command
         sec
         rts
 
-; Colour per command type: moves white, turns cyan, pick up green, drop off purple.
+; Colour per command type: moves (incl. jump) white, turns cyan, pick up green,
+; drop off and throw purple.
 cmd_colors
         !byte COL_WHITE, COL_WHITE, COL_CYAN, COL_CYAN, COL_GREEN, COL_PURPLE, COL_CYAN
+        !byte COL_WHITE, COL_PURPLE
 
-; Seven implemented commands; later palette positions remain empty.
-palette_icon_ids
-        !byte 0,1,2,3,4,5,6,$FF,$FF,$FF,$FF,$FF
-        !byte $FF,$FF,$FF,$FF,$FF,$FF
+; First of the four icon glyphs per command; $FF = no icon.
+palette_icon_chars
+        !byte ICON_CHAR_BASE+0, ICON_CHAR_BASE+4, ICON_CHAR_BASE+8, ICON_CHAR_BASE+12
+        !byte ICON_CHAR_BASE+16, ICON_CHAR_BASE+20, ICON_CHAR_BASE+24
+        !byte ICON2_CHAR_BASE+0, ICON2_CHAR_BASE+4
 
 palette_key_codes            ; C64 keyboard matrix positions for A-R
         !byte 10,28,20,18,14,21,26,29,33,34,37,42,36,39,38,41,62,17
@@ -1507,6 +1507,7 @@ palette_key_codes            ; C64 keyboard matrix positions for A-R
 short_name_ptrs
         !word short_forward,short_backward,short_turn_right,short_turn_left
         !word short_pick_up,short_drop_off,short_turn_180
+        !word short_jump,short_throw
 short_pick_up !text "Pick Up",0
 short_drop_off !text "Drop Off",0
 short_forward !text "Move Fwd",0
@@ -1514,3 +1515,5 @@ short_backward !text "Move Back",0
 short_turn_right !text "Turn Right",0
 short_turn_left !text "Turn Left",0
 short_turn_180 !text "Turn 180",0
+short_jump !text "Jump",0
+short_throw !text "Throw",0

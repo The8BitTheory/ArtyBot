@@ -41,6 +41,7 @@ GRASS = ["gggg","gggg","gggg","gg.g","gggg","gggg","gggg","gggg"]
 GOAL  = ["gggg","g..g",".cc.","c..c","c..c",".cc.","g..g","gggg"]
 CHEST = ["gggg","....",".cc.",".cc.",".ll.",".cc.","....","gggg"]
 TREE  = ["g..g",".ll.",".lg.",".gg.",".cc.",".cc.","g..g","gggg"]
+WATER = ["cccc","c.cc",".c.c","cccc","cccc","cc.c","c.c.","cccc"]
 tiles = []   # (comment, rows)
 for d in ('right','left','up','down'):
     tiles.append(('robot '+d, ROBOT[d]))
@@ -48,6 +49,7 @@ tiles.append(('grass (floor)', GRASS))
 tiles.append(('goal', GOAL))
 tiles.append(('package (chest)', CHEST))
 tiles.append(('blocker (tree)', TREE))
+tiles.append(('water', WATER))
 
 if __name__ == '__main__':
     for name, rows in tiles:

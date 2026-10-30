@@ -142,6 +142,18 @@ sound_place
         ldx #>seq_place
         jmp snd_play
 
+; Jump: a rising "boing" over the 16 frames in the air, dropping at the landing.
+sound_jump
+        lda #<seq_jump
+        ldx #>seq_jump
+        jmp snd_play
+
+; Throw: a falling "whoosh" while the package flies.
+sound_throw
+        lda #<seq_throw
+        ldx #>seq_throw
+        jmp snd_play
+
 ; All packages delivered: fanfare of exactly 100 frames (2 seconds).
 sound_celebrate
         lda #<seq_celebrate
@@ -158,6 +170,24 @@ seq_move1 +snd_note $0C00, 3, SND_SAW
 seq_move2 +snd_note $0E00, 3, SND_SAW
           +snd_end
 seq_move3 +snd_note $1000, 3, SND_SAW
+          +snd_end
+
+seq_jump  +snd_note $0C00, 2, SND_TRI
+          +snd_note $1000, 2, SND_TRI
+          +snd_note $1500, 2, SND_TRI
+          +snd_note $1C00, 2, SND_TRI
+          +snd_note $2400, 2, SND_TRI
+          +snd_note $2E00, 2, SND_TRI
+          +snd_note $2400, 2, SND_TRI
+          +snd_note $1800, 2, SND_TRI
+          +snd_end
+
+seq_throw +snd_note $3800, 2, SND_SAW
+          +snd_note $3000, 2, SND_SAW
+          +snd_note $2800, 2, SND_SAW
+          +snd_note $2000, 2, SND_SAW
+          +snd_note $1800, 2, SND_SAW
+          +snd_note $1200, 3, SND_SAW
           +snd_end
 
 seq_error +snd_note $0340, 10, SND_TRI

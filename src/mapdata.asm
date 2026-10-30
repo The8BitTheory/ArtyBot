@@ -4,14 +4,18 @@
 ;   +0 robot x, +1 robot y, +2 robot direction (ROBOT_DIR_*),
 ;   +3 number of goal fields G (1..MAX_GOALS), followed by G pairs (x, y),
 ;   then the number of packages P, followed by P pairs (x, y),
-;   then the number of blockers N, followed by N pairs (x, y).
+;   then the number of blockers N (trees: block the space, cannot be jumped
+;   over or thrown across), followed by N pairs (x, y),
+;   then the number of water fields W (block the ground: cannot be walked on
+;   or dropped onto, but can be jumped over and thrown across), followed by
+;   W pairs (x, y).
 ; A level is won when every goal field holds a package, so give it at least as
 ; many packages as goal fields. More levels: add a record below and an entry in
 ; plan_level_table.
 ;
 ; load_plan_level builds the static field layer in map_work (MAP_COLS*MAP_ROWS
 ; bytes, row-major, tile ids T_FLOOR/T_WALL(blocker)/T_BOX(package)/T_GOAL
-; (free goal field)/T_BOXG(package standing on a goal field)) and the goal list
+; (free goal field)/T_BOXG(package standing on a goal field)/T_WATER) and the goal list
 ; goal_list (goal_count pairs x, y).
 ; The robot is not stored in that layer; it lives in robot_tx/robot_ty/robot_dir.
 
@@ -33,6 +37,7 @@ MAP_CELLS       = MAP_COLS * MAP_ROWS
 plan_level_table
         !word plan_level_1
         !word plan_level_2
+        !word plan_level_3
 plan_level_count = (* - plan_level_table) / 2
 
 plan_level_1
@@ -48,6 +53,7 @@ plan_level_1
         !byte 2, 7
         !byte 6, 7
         !byte 9, 9
+        !byte 0                         ; water fields
 
 plan_level_2
         !byte 0, 5, ROBOT_DIR_RIGHT     ; robot: left edge, facing right
@@ -66,6 +72,49 @@ plan_level_2
         !byte 4, 6
         !byte 1, 9
         !byte 8, 9
+        !byte 0                         ; water fields
+
+; Level 3: a river (column 5) splits the field. Robot and packages start on the
+; left bank, both goals are on the right bank. The upper goal (6,2) is fenced in
+; by trees and only open towards the river: its package has to be thrown across.
+;   .....~....
+;   .R.T.~T...
+;   .....~GT..
+;   ..P..~T...
+;   .....~..T.
+;   T....~....
+;   .....~....
+;   ...P.~..G.
+;   .T...~....
+;   .....~...T
+plan_level_3
+        !byte 1, 1, ROBOT_DIR_DOWN      ; robot: left bank, facing down
+        !byte 2                         ; goal fields (x, y): right bank
+        !byte 6, 2                      ; only reachable from the water side
+        !byte 8, 7
+        !byte 2                         ; packages (x, y): left bank
+        !byte 2, 3
+        !byte 3, 7
+        !byte 8                         ; blockers (x, y)
+        !byte 6, 1                      ; trees fencing in the upper goal
+        !byte 7, 2
+        !byte 6, 3
+        !byte 3, 1
+        !byte 0, 5
+        !byte 1, 8
+        !byte 8, 4
+        !byte 9, 9
+        !byte 10                        ; water fields (x, y): the river
+        !byte 5, 0
+        !byte 5, 1
+        !byte 5, 2
+        !byte 5, 3
+        !byte 5, 4
+        !byte 5, 5
+        !byte 5, 6
+        !byte 5, 7
+        !byte 5, 8
+        !byte 5, 9
 
 ; A = level number. Copies its record into the game variables and builds the
 ; field layer including the blockers. Invalid numbers fall back to level 0.
@@ -160,7 +209,7 @@ load_plan_level
         iny
         sta cnt
 .blk    lda cnt
-        beq .done
+        beq .water
         lda (ptr0),y
         sta tmp0
         iny
@@ -172,6 +221,24 @@ load_plan_level
         sta map_work,x
         dec cnt
         jmp .blk
+
+        ; Water fields from the level record.
+.water  lda (ptr0),y
+        iny
+        sta cnt
+.wat    lda cnt
+        beq .done
+        lda (ptr0),y
+        sta tmp0
+        iny
+        lda (ptr0),y
+        sta tmp1
+        iny
+        jsr map_index           ; keeps Y
+        lda #T_WATER
+        sta map_work,x
+        dec cnt
+        jmp .wat
 .done   rts
 
 ; tmp0 = x, tmp1 = y -> X = row-major index into map_work.
@@ -250,14 +317,14 @@ draw_map_objects
         jmp put_char
 
 map_tile_chars                  ; indexed by tile id
-        !byte FLOOR_CHAR, BLOCK_CHAR, PKG_CHAR, GOAL_CHAR, PKG_CHAR
+        !byte FLOOR_CHAR, BLOCK_CHAR, PKG_CHAR, GOAL_CHAR, PKG_CHAR, WATER_CHAR
 map_tile_colors                 ; colour RAM per tile id (+8 = multicolour)
-        !byte COL_GREEN+8, COL_RED+8, CHEST_COLOR+8, COL_CYAN+8, COL_YELLOW+8
+        !byte COL_GREEN+8, COL_RED+8, CHEST_COLOR+8, COL_CYAN+8, COL_YELLOW+8, COL_BLUE+8
 map_info_colors                 ; help-text colour per tile id
-        !byte COL_WHITE, COL_GREEN, COL_YELLOW, COL_CYAN, COL_YELLOW
+        !byte COL_WHITE, COL_GREEN, COL_YELLOW, COL_CYAN, COL_YELLOW, COL_CYAN
 
 ; Hover code for the field tile under the mouse, or $FF.
-;   $50+dir robot, $61 blocker, $62 package, $63 goal
+;   $50+dir robot, $61 blocker, $62 package, $63 goal, $64 delivered, $65 water
 !zone map_hover_code
 map_hover_code
         lda mouse_x_hi
@@ -347,4 +414,4 @@ draw_map_info
 dir_name_ptrs
         !word str_dir_right, str_dir_left, str_dir_up, str_dir_down
 map_text_ptrs                   ; indexed by tile id (floor unused)
-        !word 0, str_blocker, str_package, str_target, str_package_done
+        !word 0, str_blocker, str_package, str_target, str_package_done, str_water

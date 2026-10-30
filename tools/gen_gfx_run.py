@@ -121,7 +121,28 @@ gggggggg
 gggggggg
 """
 
-CELL_ORDER = ['grass', 'tree', 'chest', 'goal', 'flowers']
+# Water (river): blue body (colour RAM) with dark ripples. Blocks walking and
+# dropping, but can be jumped over and thrown across.
+CELLS['water'] = """
+cccccccc
+cccccccc
+cc..cccc
+c.cc.ccc
+cccccccc
+cccccccc
+ccccc..c
+cccc.cc.
+cccccccc
+cccccccc
+c..ccccc
+.cc.cccc
+cccccccc
+cccccccc
+cccc..cc
+ccc.cc.c
+"""
+
+CELL_ORDER = ['grass', 'tree', 'chest', 'goal', 'flowers', 'water']
 
 # ---------------------------------------------------------------- UI chars
 # NES Final Fantasy window frame (rounded corners) and the pointing hand.

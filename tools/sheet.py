@@ -10,7 +10,7 @@ from c64sim import RGB
 import gen_plan_tiles as t
 out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, '..', 'build', 'sheet.png')
 COL = {'.': RGB[0], 'g': RGB[5], 'l': RGB[13]}
-CC = {'robot': RGB[1], 'goal': RGB[3], 'package': RGB[2], 'blocker': RGB[2], 'flowers': RGB[7]}
+CC = {'robot': RGB[1], 'goal': RGB[3], 'package': RGB[2], 'blocker': RGB[2], 'flowers': RGB[7], 'water': RGB[6]}
 Z = 14
 im = Image.new('RGB', (len(t.tiles) * (8 * Z + 10) + 10, 8 * Z + 20), (0, 0, 0))
 for i, (name, rows) in enumerate(t.tiles):

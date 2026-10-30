@@ -1,9 +1,10 @@
 # Projekt-Handover: ArtyBot
 
-**Stand:** 30.10.2026, 08:00 (Wien)
-**Basis:** lokaler Arbeitsstand `C:\Users\martin\iCloudDrive\8bit\robotron\ArtyBot` = letzter Commit `8e4e64c` ("run mode", 29.10. 16:55) **plus nicht committete Änderungen** in `editor.asm`, `run.asm`, `mapdata.asm`, `sound.asm`, `text.asm`, `defs.inc`, `zp.inc` (zuletzt 30.10. 07:33). Das GitHub-Repo hinkt diesem Stand hinterher.
+**Stand:** 30.10.2026, 10:20 (Wien) – Wasser, Jump/Throw und Level 3 eingebaut
+**Basis:** lokaler Arbeitsstand `C:\Users\martin\iCloudDrive\8bit\robotron\ArtyBot`.
 **Abgabe:** Sa 31.10.2026, 12:00.
 
+> **Source of Truth ist der lokale Ordner**, nicht GitHub. Martin committet und pusht selbst in unregelmäßigen Abständen; das Repo kann hinterherhinken.
 > Regel für neue Chats: Dieses Dokument zuerst lesen. Ist der lokale Code neuer als das Datum oben, den Code als Wahrheit nehmen und dieses Dokument danach aktualisieren.
 
 ## Was das Spiel heute kann
@@ -11,39 +12,48 @@
 Ein spielbarer Kreislauf **Planen → Ausführen → nächstes Level** ist im Build enthalten.
 
 **Planungsbildschirm** (`editor.asm`, Einstieg `game_main`)
-- 10×10-Kartenansicht mit Roboter, Paketen, Zielfeldern und Blockern (aus `mapdata.asm`), Hover-Hilfe für Objekte auf der Karte. Hilfefeld: nur rechte Hälfte unter der Befehlsliste (Spalten 22–39, Zeilen 20–23, `INFO_X/INFO_Y/INFO_W` in defs.inc), **höchstens 16 Zeichen pro Zeile**, 2 Textzeilen (`editor_draw_message2`).
-- Befehlspalette (3×3-Raster aus 2×2-Icons, Fenster Zeilen 13–23, **WASD-Layout**): `Q`=Pick Up, `W`=Move Fwd, `E`=Drop Off / `A`=Turn Left, `S`=Move Back, `D`=Turn Right / `X`=Turn 180 (unter S). Tasten und Mausflächen stehen in `editor.asm` (`pal_col/pal_row/pal_label`, `cmd_key_codes`, `pal_grid_cmd`); Befehlsnummern 0–6 unverändert (run.asm).
+- 10×10-Kartenansicht mit Roboter, Paketen, Zielfeldern, Bäumen und Wasser (aus `mapdata.asm`), Hover-Hilfe für Objekte auf der Karte. Hilfefeld: nur rechte Hälfte unter der Befehlsliste (Spalten 22–39, Zeilen 20–23, `INFO_X/INFO_Y/INFO_W` in defs.inc), **höchstens 16 Zeichen pro Zeile**, 2 Textzeilen (`editor_draw_message2`).
+- Befehlspalette (3×3-Raster aus 2×2-Icons, Fenster Zeilen 13–23, **WASD-Layout**): `Q`=Pick Up, `W`=Move Fwd, `E`=Drop Off / `A`=Turn Left, `S`=Move Back, `D`=Turn Right / `Z`=Jump, `X`=Turn 180, `C`=Throw. Tasten und Mausflächen stehen in `editor.asm` (`pal_col/pal_row/pal_label`, `cmd_key_codes`, `pal_grid_cmd`, Icon-Zeichen in `palette_icon_chars`). Befehlsnummern: 0 Fwd, 1 Back, 2 Right, 3 Left, 4 Pick, 5 Drop, 6 Turn 180, 7 Jump, 8 Throw (run.asm `run_fetch`). Das 3×3-Raster ist damit voll.
 - Befehlsliste bis 99 Einträge, 17 sichtbare Zeilen, Scrollbar mit Pfeilen.
-- Maus (1351, Port 1) und Tastatur: Palette über Q W E A S D X (klein = einfügen; Shift+Buchstabe A–Q wählt Listenzeile), Cursor bewegt die Einfügemarke, Shift+Cursor wählt/verschiebt, Backspace löscht (mit Bestätigung), Shift+CLR/HOME leert die Liste (mit Bestätigung), Return bestätigt, ← bricht ab.
+- Maus (1351, Port 1) und Tastatur: Palette über Q W E A S D Z X C (klein = einfügen; Shift+Buchstabe A–Q wählt Listenzeile), Cursor bewegt die Einfügemarke, Shift+Cursor wählt/verschiebt, Backspace löscht (mit Bestätigung), Shift+CLR/HOME leert die Liste (mit Bestätigung), Return bestätigt, ← bricht ab. Tasten 1–9 wählen das Level.
 - **F1** (oder **R**) startet den Run-Modus; **F8** (= Shift+F7) beendet in beiden Modi (mit Rückfrage, Soft-Reset). `X` ist im Plan Turn 180.
 
 **Run-Bildschirm** (`run.asm`, Grafik aus `gfx_run.asm`)
-- RPG-Look (NES/SNES-Stil): Multicolour-Feld aus 2×2-Zeichen-Zellen (Gras, Baum = Blocker, Truhe = Paket, schimmerndes Zielfeld, Blumen als Deko), Fensterrahmen, Zeigehand.
+- RPG-Look (NES/SNES-Stil): Multicolour-Feld aus 2×2-Zeichen-Zellen (Gras, Baum = Blocker, Truhe = Paket, schimmerndes Zielfeld, Blumen als Deko, Wasser), Fensterrahmen, Zeigehand.
 - Roboter als Multicolour-Sprite mit 2-Frame-Laufanimation in 4 Richtungen, getragene Truhe als eigenes Sprite über dem Kopf.
+- Jump: Roboter fliegt 16 Frames im Bogen (Tabelle `run_arc`, 10 px hoch) zwei Felder weit. Throw: die Truhe fliegt als eigenes Sprite im Bogen (`run_throw_arc`, Phase 3) und wird erst bei der Landung ins Feld geschrieben (`run_land`, gemeinsam mit Drop Off).
 - Befehlsliste rechts, der laufende Befehl wird hervorgehoben und mitgescrollt.
 - Steuerung: Space = Start/Pause/Weiter, R = Neustart, **F1** (oder P) = zurück zum Planen, **F8** = Beenden.
-- Fehlermeldungen mit Fehlerton: blockiert, nichts aufzuheben, Hände voll, nichts abzulegen, hier nicht ablegbar, Programm zu Ende ohne Lieferung.
+- Fehlermeldungen mit Fehlerton: blockiert, nichts aufzuheben, Hände voll, nichts abzulegen, hier nicht ablegbar, Programm zu Ende ohne Lieferung, "can't swim" (ins Wasser gelaufen), Baum im Weg (Jump/Throw), nicht landbar (Jump), nichts zu werfen, hierhin nicht werfbar.
 - Erfolg: Ton pro geliefertem Paket, 2-Sekunden-Fanfare wenn alle Zielfelder belegt sind, dann Space = nächstes Level (leere Befehlsliste), R = Wiederholen.
 
 **Regeln**
-- Vorwärts/Rückwärts bewegen ein Feld; Blocker, Pakete und Feldrand blockieren (kein Schieben).
+- Vorwärts/Rückwärts bewegen ein Feld; Bäume, Pakete, Wasser und Feldrand blockieren (kein Schieben).
 - Pick Up / Drop Off wirken auf das Feld vor dem Roboter. Ein Paket kann auch von einem Zielfeld wieder aufgenommen werden.
+- **Baum** blockiert den Raum: nicht betretbar, nicht überspringbar, nicht überwerfbar. **Wasser** blockiert den Boden: nicht betretbar, kein Ablegen darauf, aber überspringbar und überwerfbar.
+- **Jump**: über das nächste Feld auf das übernächste. Nur ein Baum dazwischen verhindert den Sprung (Wasser und Pakete dürfen dazwischen liegen). Das Landefeld muss im Feld liegen und freier Boden oder ein freies Zielfeld sein. Springen mit Paket in der Hand ist erlaubt.
+- **Throw**: das getragene Paket landet zwei Felder voraus (eins weiter als Drop Off). Dazwischen gilt dieselbe Regel wie beim Jump; Landefeld freier Boden oder freies Zielfeld (nicht Wasser).
 - Level gewonnen, wenn jedes Zielfeld ein Paket trägt.
 
-**Level** (`mapdata.asm`): 2 Level. Level 1: ein Paket, ein Ziel, 6 Blocker. Level 2: drei Pakete, drei Ziele, 6 Blocker. Nach dem letzten geht es wieder zu Level 1. Format: variable Datensätze (Roboter x/y/Richtung, Ziele, Pakete, Blocker), neue Level über `plan_level_table`.
+**Level** (`mapdata.asm`): 3 Level.
+- Level 1: ein Paket, ein Ziel, 6 Bäume.
+- Level 2: drei Pakete, drei Ziele, 6 Bäume.
+- Level 3 ("Fluss"): Fluss in Spalte 5, Roboter und 2 Pakete links, 2 Ziele rechts. Ziel (6,2) ist von Bäumen eingezäunt und nur zur Wasserseite offen → dieses Paket muss geworfen werden. Kürzeste Lösung 17 Befehle (BFS-Regelmodell; ohne Throw bzw. ohne Jump unlösbar; im Simulator bis zur Fanfare durchgespielt).
+- Nach dem letzten Level geht es wieder zu Level 1.
+- Format: variable Datensätze – Roboter x/y/Richtung, dann Listen mit vorangestelltem Anzahl-Byte und (x, y)-Paaren: Ziele, Pakete, Bäume, **Wasserfelder**. Neue Level über `plan_level_table`.
 
-**Sound** (`sound.asm`): kleiner Notensequenzer im Raster-IRQ (Stimme 1): Schritt-Blips je Richtung, Fehler, "Ding-Ding" beim Liefern, Fanfare.
+**Sound** (`sound.asm`): kleiner Notensequenzer im Raster-IRQ (Stimme 1): Schritt-Blips je Richtung, Fehler, "Ding-Ding" beim Liefern, Fanfare, Sprung-"Boing" (`sound_jump`, steigende Dreiecksnoten über die 16 Sprungframes), Wurf-"Whoosh" (`sound_throw`, fallende Sägezahnnoten).
 
 ## Was fehlt / offen
 
 - Keine Zählung von Versuchen, Schritten oder Befehlen als Wertung. Die Aufgabe nennt ausdrücklich "weniger Befehle oder weniger Versuche".
 - Kein Programmlängen-Limit pro Level (Anzeige "PROGRAM: 00/99" existiert).
-- Nur 2 Level. Bewertet werden Umfang, Qualität und Abwechslung der Level.
+- Nur 3 Level. Bewertet werden Umfang, Qualität und Abwechslung der Level.
 - Kein Titelbild / keine Einleitung, kein Level-Auswahlbildschirm.
 - Level-Titel ist fest "Factory"; nur die Ziffer wird gepatcht.
 - README beschreibt ein altes Konzept (Joystick, 20 Slots, "ROBOTRON") und die KI-Angaben nennen Codex; vor Abgabe neu schreiben.
 - `plan layout.txt` zeigt noch das alte 8×8-Layout.
-- Nicht committete Änderungen sichern (Commit + Push), damit das Repo dem Stand entspricht.
+- `tools/sim_screenshots.py` nutzt noch die alte Tastenbelegung (A–G).
 
 ## Dateien
 
@@ -52,9 +62,9 @@ Ein spielbarer Kreislauf **Planen → Ausführen → nächstes Level** ist im Bu
 | `src/main.asm` | Einstieg, Include-Reihenfolge, Größenprüfung `< $C000` |
 | `src/startup.asm` | BASIC-Stub `SYS 2061`, Hardware/IRQ-Setup, Grafik nach VIC-Bank 3 kopieren |
 | `src/editor.asm` | Planungsbildschirm, Palette, Befehlsliste, Eingabe, Aufruf von `run_mode` |
-| `src/run.asm` | Run-Bildschirm, Ausführung, Regeln, Sprites, Sieg/Fehler, Levelwechsel |
+| `src/run.asm` | Run-Bildschirm, Ausführung, Regeln (inkl. Jump/Throw), Sprites, Sieg/Fehler, Levelwechsel |
 | `src/mapdata.asm` | Leveldaten, `load_plan_level`, Kartenzeichnung und Hover-Texte im Planungsmodus |
-| `src/gfx_data.asm` | Befehls-Icons, Planungs-Tiles, Zeiger-Sprites |
+| `src/gfx_data.asm` | Befehls-Icons (`gfx_icons`, `gfx_icons2`), Planungs-Tiles, Zeiger-Sprites |
 | `src/gfx_run.asm` | **generiert** von `tools/gen_gfx_run.py` – nicht von Hand ändern |
 | `src/sound.asm` | SID-Sequenzer und Effekte |
 | `src/input.asm` | Tastaturmatrix, Shift/Repeat, 1351-Maus |
@@ -62,26 +72,28 @@ Ein spielbarer Kreislauf **Planen → Ausführen → nächstes Level** ist im Bu
 | `src/text.asm` | Alle UI-Texte (englisch) |
 | `inc/defs.inc`, `inc/zp.inc`, `inc/macros.inc` | Konstanten, Zeropage/RAM, Makros |
 | `tools/c64sim.py` | Minimaler C64-Emulator (6502, IRQ, Tastatur, VIC-Renderer) für automatische Tests/Screenshots |
-| `tools/sim_screenshots.py` | Baut einen Testplan per Tastendruck ein, startet ihn, speichert Screenshots |
-| `tools/preview_art.py` | Vorschau der Run-Grafik |
-| `tools/gen_plan_tiles.py` | **Generator** der Planungs-Kacheln `$80-$8A` (Roboter, Gras, Ziel, Truhe, Baum); Ausgabe der `!byte`-Zeilen in `gfx_data.asm` einfügen. |
-| `tools/gen_cmd_icons.py` | **Generator** der Icons Pick Up / Drop Off (Paket + Pfeil, `$F0-$F7`); Ausgabe in `gfx_data.asm` einfügen: `python -B tools/gen_cmd_icons.py` |
+| `tools/sim_screenshots.py` | Baut einen Testplan per Tastendruck ein, startet ihn, speichert Screenshots (alte Tastenbelegung, s. oben) |
+| `tools/preview_art.py` | Vorschau der Run-Grafik (inkl. Wasser) |
+| `tools/gen_gfx_run.py` | **Generator** von `src/gfx_run.asm` (Run-Zellen inkl. Wasser, UI-Zeichen, Sprites): `python -B tools/gen_gfx_run.py` |
+| `tools/gen_plan_tiles.py` | **Generator** der Planungs-Kacheln `$80-$88` (Roboter, Gras, Ziel, Truhe, Baum, Wasser); Ausgabe der `!byte`-Zeilen in `gfx_data.asm` einfügen. |
+| `tools/gen_cmd_icons.py` | **Generator** der Icons Pick Up / Drop Off (`$F0-$F7`) sowie Jump / Throw (`$90-$97`, Block `gfx_icons2`); Ausgabe in `gfx_data.asm` einfügen: `python -B tools/gen_cmd_icons.py` |
 | `tools/sheet.py` | Vergrößerte Vorschau der Planungs-Kacheln als PNG: `python -B tools/sheet.py [out.png]` (braucht Pillow) |
 | `tools/linux_acme/` | `stubs.c` + `build_linux_acme.sh`: baut ACME aus `C:\Users\martin\programme\acme\src` für Linux (für Cloud-Chats ohne Windows). Nur in einer **Kopie** des Projekts assemblieren, sonst überschreibt `main.asm` `Test.lbl/.pdb` (`!svl`/`!pdb`) mit Stub-Ausgaben |
 
 ## Werkzeug-Regel (für neue Chats)
 
 - **Vor jedem neuen Skript zuerst `tools/` ansehen** und vorhandene Werkzeuge nutzen oder erweitern; neue Werkzeuge immer in `tools/` ablegen und hier in der Dateitabelle eintragen (Zweck + Aufruf).
-- Grafik nie von Hand in `gfx_run.asm` ändern (generiert); Planungs-Kacheln über `gen_plan_tiles.py`, Run-Grafik über `gen_gfx_run.py`.
+- Grafik nie von Hand in `gfx_run.asm` ändern (generiert); Planungs-Kacheln über `gen_plan_tiles.py`, Run-Grafik über `gen_gfx_run.py`, Befehls-Icons über `gen_cmd_icons.py`.
 - Screenshots/Tests: `tools/c64sim.py` + `tools/sim_screenshots.py` (Simulator, kein VICE nötig). Nicht im Projektordner ausführen, ohne `__pycache__` zu bedenken (`python -B` verwenden).
+- Zeilenenden beibehalten: `defs.inc`, `zp.inc`, `gfx_data.asm` sind CRLF, die übrigen Quellen LF.
 
 ## Speicher
 
-- PRG ab `$0801`, Code muss vor `$C000` enden (Assemblierzeit-Prüfung). Aktuelles PRG ca. 8,8 KB – viel Platz frei.
+- PRG ab `$0801`, Code muss vor `$C000` enden (Assemblierzeit-Prüfung). Aktuelles PRG ca. 10 KB – viel Platz frei.
 - VIC-Bank 3: Screen `$C000`, Zeichensatz `$C800`, Sprites ab `$E000`.
-- Zeichen: Planungs-Tiles ab `$80`, Run-Grafik ab `$C0`, Befehls-Icons ab `$E0`.
+- Zeichen: Planungs-Tiles `$80-$88`, Jump/Throw-Icons `$90-$97` (`ICON2_CHAR_BASE`), Run-Grafik `$B8-$D8` (`RUN_CHAR_BASE`, 6 Zelltypen + 9 UI-Zeichen; für Wasser von `$C0` nach `$B8` verschoben), Befehls-Icons `$E0-$FD`. Überlappungen prüft `defs.inc` beim Assemblieren. Frei: `$89-$8F`, `$98-$B7`, `$D9-$DF`, `$FE-$FF`.
 - `map_work` `$0200` (100 Bytes), `goal_list` `$0280`, Befehlsprogramm `$0300` (99 Bytes).
-- Zeropage: belegte Adressen in `zp.inc`, `editor.asm` (`$29–$2D`, `$43`, `$61`), `run.asm` (`$46–$60`), `sound.asm` (`$F8–$FB`). Vor neuen Variablen alle drei prüfen.
+- Zeropage: belegte Adressen in `zp.inc`, `editor.asm` (`$29–$2D`, `$43`, `$61`), `run.asm` (`$46–$60`, `$62–$6B` für Jump/Throw), `sound.asm` (`$F8–$FB`). Vor neuen Variablen alle drei prüfen.
 
 ## Build
 
@@ -95,7 +107,8 @@ Nach erfolgreichem Build nur Bescheid geben, **VICE nicht selbst starten** (sieh
 
 ## Entscheidungen und Ideen
 
-- Brainstorming 30.10. zu weiteren Level-Elementen (Wasser + Springen/Werfen, zerbrechliche Pakete, Schlüssel/Tore, Schalter, Laser/Spiegel, zeitkritische Elemente, Schleifen) sowie Wertung (Befehle, Schritte, Versuche; Programmlänge als Limit/Belohnung). Noch nichts entschieden. Empfehlung aus dem Chat: zuerst Wertung und mehr Level, dann Schleife (`WIEDERHOLE n` / `ENDE`), dann Wasser mit Springen; Laser und Zeitmechanik eher streichen.
+- Brainstorming 30.10. zu weiteren Level-Elementen (Wasser + Springen/Werfen, zerbrechliche Pakete, Schlüssel/Tore, Schalter, Laser/Spiegel, zeitkritische Elemente, Schleifen) sowie Wertung (Befehle, Schritte, Versuche; Programmlänge als Limit/Belohnung). Empfehlung aus dem Chat: zuerst Wertung und mehr Level, dann Schleife (`WIEDERHOLE n` / `ENDE`); Laser und Zeitmechanik eher streichen.
 - _(Hier Entscheidungen aus anderen Chats ergänzen.)_
 
-- **30.10. Planungsmodus-Optik:** Karte als Multicolour-Kacheln im Run-Stil (Gras/Baum/Truhe/Ziel, Roboter = weißer Pfeil), `$D022/$D023` in beiden Modi = `RUN_BG1/2`. Befehlsfarben über `cmd_colors` (editor.asm): Bewegen weiß, Drehen cyan, Aufheben grün, Ablegen lila (Gelb = Auswahl). Zeichen `$80-$8A` werden von `tools/gen_plan_tiles.py` erzeugt (Ausgabe in `gfx_data.asm` einfügen). Neue Routine `paint` (video.asm) färbt nur Farb-RAM. Text nur mit Farben 0-7 (>=8 = Multicolour).
+- **30.10. Planungsmodus-Optik:** Karte als Multicolour-Kacheln im Run-Stil (Gras/Baum/Truhe/Ziel, Roboter = weißer Pfeil), `$D022/$D023` in beiden Modi = `RUN_BG1/2`. Befehlsfarben über `cmd_colors` (editor.asm): Bewegen weiß, Drehen cyan, Aufheben grün, Ablegen lila (Gelb = Auswahl). Zeichen `$80-$88` werden von `tools/gen_plan_tiles.py` erzeugt (Ausgabe in `gfx_data.asm` einfügen). Neue Routine `paint` (video.asm) färbt nur Farb-RAM. Text nur mit Farben 0-7 (>=8 = Multicolour).
+- **30.10. Wasser, Jump, Throw:** Wasser als Kachel `T_WATER` (=5) mit eigener Liste im Level-Format; Farbe blau. Regeln siehe oben. Jump/Throw liegen auf Z/C unten im Palettenraster; Farbe Jump weiß (Bewegung), Throw lila (Ablegen). Pakete dürfen übersprungen/überworfen werden (nur Bäume blockieren in der Luft) – bewusst so festgelegt, bei Bedarf in `run_do_jump`/`run_do_throw` ändern.

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Pick Up / Drop Off command icons (2x2 hires characters = 16x16 pixels, X = pixel set):
+"""Pick Up / Drop Off / Jump / Throw command icons (2x2 hires characters = 16x16 pixels, X = pixel set):
 a package with an arrow next to it (up = pick up, down = drop off).
-Prints the !byte blocks for $F0-$F7 in src/gfx_data.asm (order TL, TR, BL, BR per icon).
+Prints the !byte blocks for $F0-$F7 (pick up, drop off) and ICON2_CHAR_BASE $90-$97
+(jump, throw) in src/gfx_data.asm (order TL, TR, BL, BR per icon).
 Usage: python -B tools/gen_cmd_icons.py"""
 
 BOX = [
@@ -37,6 +38,53 @@ def arrow(c, up):
     for y, x in pts:
         c[y][x] = 1
 
+# Jump: arc arrow over water waves. Throw: small package, dotted flight arc, landing arrow.
+JUMP = [
+    "................",
+    "................",
+    "......XXXX......",
+    "....XX....XX....",
+    "...X........X...",
+    "..X..........X..",
+    "..X........X.X.X",
+    ".X..........XXX.",
+    ".X...........X..",
+    "................",
+    "................",
+    ".XX...XX...XX...",
+    "X..X.X..X.X..X.X",
+    "....X....X....X.",
+    "................",
+    "................",
+]
+THROW = [
+    "................",
+    "................",
+    "........X.X.....",
+    "......X.....X...",
+    ".....X.......X..",
+    "................",
+    "XXXXX........X..",
+    "X.X.X...........",
+    "XXXXX........X..",
+    "X.X.X...........",
+    "XXXXX......X.X.X",
+    "............XXX.",
+    ".............X..",
+    "................",
+    "................",
+    "................",
+]
+
+def from_art(art):
+    c = canvas()
+    for y, row in enumerate(art):
+        for x, ch in enumerate(row):
+            assert len(row) == 16, row
+            if ch == 'X':
+                c[y][x] = 1
+    return c
+
 def encode(c):
     out = []
     for (y0, x0) in ((0, 0), (0, 8), (8, 0), (8, 8)):      # TL, TR, BL, BR
@@ -51,6 +99,16 @@ if __name__ == '__main__':
                             ('DROP OFF (package, arrow down)', False, 0xF4)):
         c = canvas(); put_box(c); arrow(c, up)
         print('; $%02X-$%02X - %s' % (base, base + 3, title))
+        for i, ch in enumerate(encode(c)):
+            print('; $%02X' % (base + i))
+            print('        !byte ' + ','.join('$%02X' % b for b in ch))
+    print()
+    print('; ---- second icon block at ICON2_CHAR_BASE ($90-$97)')
+    for title, art, base in (('JUMP (arc over water)', JUMP, 0x90),
+                             ('THROW (package flies over one field)', THROW, 0x94)):
+        c = from_art(art)
+        print('; $%02X-$%02X - %s' % (base, base + 3, title))
+        print(show(c))
         for i, ch in enumerate(encode(c)):
             print('; $%02X' % (base + i))
             print('        !byte ' + ','.join('$%02X' % b for b in ch))

@@ -58,12 +58,20 @@ ICON_CHAR_BASE  = $E0
 ICON_CHAR_COUNT = 30            ; 24 command glyphs, Turn 180, and scrollbar arrows
 ICON_CHAR_BYTES = ICON_CHAR_COUNT * 8
 ROBOT_CHAR_BASE  = $80
-ROBOT_CHAR_COUNT = 8            ; 4 robot dirs + floor, goal, package, blocker (all multicolour)
+ROBOT_CHAR_COUNT = 9            ; 4 robot dirs + floor, goal, package, blocker, water (all multicolour)
 FLOOR_CHAR       = ROBOT_CHAR_BASE + 4
 GOAL_CHAR        = ROBOT_CHAR_BASE + 5
 PKG_CHAR         = ROBOT_CHAR_BASE + 6
 BLOCK_CHAR       = ROBOT_CHAR_BASE + 7
+WATER_CHAR       = ROBOT_CHAR_BASE + 8
 ROBOT_CHAR_BYTES = ROBOT_CHAR_COUNT * 8
+; Second command-icon block (the $E0 block is full): Jump $90-$93, Throw $94-$97.
+ICON2_CHAR_BASE  = $90
+ICON2_CHAR_COUNT = 8
+ICON2_CHAR_BYTES = ICON2_CHAR_COUNT * 8
+!if ROBOT_CHAR_BASE + ROBOT_CHAR_COUNT > ICON2_CHAR_BASE {
+    !error "Planungs-Kacheln ueberlappen die Icon2-Zeichen"
+}
 
 ; --- Farben
 COL_BLACK   = 0
@@ -95,6 +103,7 @@ T_WALL      = 1
 T_BOX       = 2
 T_GOAL      = 3             ; goal field without a package
 T_BOXG      = 4             ; package standing on a goal field (map_work only)
+T_WATER     = 5             ; water: blocks walking/dropping, can be jumped over/thrown across
 SPRITE_BYTES= 128           ; mouse pointer plus insertion marker
 PROGRAM_MAX = 99
 
@@ -113,9 +122,9 @@ RASTER_LINE = 250
 COL_BLUE    = 6
 
 ; --- Run screen (RPG look): multicolour 2x2-character field cells, NES-style
-; window frame characters and the pointing hand, all from $C0 on; sprites.
-RUN_CHAR_BASE  = $C0
-RUN_CELL_TYPES = 5              ; grass, tree, chest, goal, grass with flowers
+; window frame characters and the pointing hand, all from $B8 on; sprites.
+RUN_CHAR_BASE  = $B8
+RUN_CELL_TYPES = 6              ; grass, tree, chest, goal, grass with flowers, water
 RUN_UI_BASE    = RUN_CHAR_BASE + RUN_CELL_TYPES*4
 UI_TL          = RUN_UI_BASE+0  ; window frame: rounded corners and edges
 UI_TOP         = RUN_UI_BASE+1
@@ -130,6 +139,9 @@ RUN_CHAR_COUNT = RUN_CELL_TYPES*4 + 9
 RUN_CHAR_BYTES = RUN_CHAR_COUNT * 8
 !if RUN_CHAR_BASE + RUN_CHAR_COUNT > ICON_CHAR_BASE {
     !error "Run-Zeichen ueberlappen die Icon-Zeichen"
+}
+!if ICON2_CHAR_BASE + ICON2_CHAR_COUNT > RUN_CHAR_BASE {
+    !error "Icon2-Zeichen ueberlappen die Run-Zeichen"
 }
 RUN_SPR_COUNT  = 17             ; robot 4 dirs x (normal, carrying) x 2 walk frames, chest
 RUN_SPR_BYTES  = RUN_SPR_COUNT * 64
