@@ -6,6 +6,7 @@ sys.path.insert(0,'tools')
 from c64sim import C64
 prg = open(sys.argv[1],'rb').read(); out = sys.argv[2]
 m = C64(prg)
+m.start_game()                # title screen -> Start New Game
 def press(k, frames=3):
     m.keys.add(k); m.run_frames(frames); m.keys.discard(k); m.run_frames(5)
 m.run_frames(30)

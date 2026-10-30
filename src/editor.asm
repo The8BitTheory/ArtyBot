@@ -17,7 +17,7 @@ game_main
         jsr input_init
         jsr editor_init
         jsr world_init
-        jmp world_mode          ; the game starts on the world map (world.asm)
+        jmp title_mode          ; title screen; "Start New Game" opens the world map
 
 ; Planning screen for level_no (called from the world map). Returns when the
 ; player goes back to the map: F7 here, or Space after a won level.

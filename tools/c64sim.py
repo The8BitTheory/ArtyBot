@@ -244,6 +244,11 @@ class C64:
         target = self.frames + n
         while self.frames < target:
             self.step()
+    def start_game(self):
+        """Title screen -> "Start New Game" (Return) -> world map of world 1."""
+        self.run_frames(40)
+        self.keys.add(1); self.run_frames(3); self.keys.discard(1)
+        self.run_frames(20)
     # ---- VIC render
     def render(self, scale=3):
         bank = (3 - (self.io[0xD00] & 3)) * 0x4000

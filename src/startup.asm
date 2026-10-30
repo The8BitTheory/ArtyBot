@@ -34,6 +34,13 @@ start
         +copy gfx_ui_extra, CHARSET + UI_HAND*8, 2*8
         +copy gfx_sprites, SPRITES, SPRITE_BYTES
         +copy gfx_run_sprites, SPRITES + SPRITE_BYTES, RUN_SPR_BYTES
+        ; Title charset in the RAM below the char ROM ($D000): writes there go
+        ; to RAM while the ROM is visible. Lower/uppercase set + title graphics,
+        ; plus window frame and hand from the game charset (same codes).
+        +copy $D800, TITLE_CHARSET, $0800
+        jsr title_charset_init
+        +copy gfx_ui_frame, TITLE_CHARSET + UI_FRAME_BASE*8, 8*8
+        +copy gfx_ui_extra, TITLE_CHARSET + UI_HAND*8, 2*8
 
         ; Ab jetzt: alle ROMs aus, nur I/O (eigene Vektoren in $FFFA-$FFFF)
         lda #$35

@@ -14,6 +14,7 @@ K = dict(W=9, A=10, S=13, D=18, Q=62, E=14, X=23, Z=12, SPACE=60, RETURN=1, F1=4
 prg = open(sys.argv[1], 'rb').read()
 out = sys.argv[2]
 m = C64(prg)
+m.start_game()                # title screen -> Start New Game
 
 
 def press(k, hold=3, after=6):

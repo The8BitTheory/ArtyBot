@@ -18,6 +18,7 @@ for line in open(os.path.join(os.path.dirname(os.path.abspath(sys.argv[1])), '..
         n, v = line.split('=$')
         lbl[n.strip()] = int(v.split(';')[0].strip(), 16)
 m = C64(prg)
+m.start_game()                # title screen -> Start New Game
 
 def press(k, hold=3, after=6):
     m.keys.add(K[k]); m.run_frames(hold); m.keys.discard(K[k]); m.run_frames(after)

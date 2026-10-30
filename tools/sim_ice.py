@@ -24,6 +24,7 @@ for line in open(os.path.join(os.path.dirname(os.path.abspath(sys.argv[1])), '..
     if '=$' in line:
         n, v = line.split('=$'); lbl[n.strip()] = int(v.split(';')[0].strip(), 16)
 m = C64(prg)
+m.start_game()                # title screen -> Start New Game
 MAPS = [W.parse(n, a, i) for i, (n, a) in enumerate(W.WORLDS)]
 ok = True
 

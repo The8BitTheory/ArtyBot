@@ -14,6 +14,7 @@ for line in open(sys.argv[2]):
     if len(p) >= 2 and p[0] in ('level_runs', 'level_cmds', 'level_done'):
         lab[p[0]] = int(p[1], 16)
 m = C64(prg)
+m.start_game()                # title screen -> Start New Game
 def press(k, hold=3, after=6):
     m.keys.add(K[k]); m.run_frames(hold); m.keys.discard(K[k]); m.run_frames(after)
 def shot(n): m.render(2).save('%s_%s.png' % (out, n))
