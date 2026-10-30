@@ -223,36 +223,48 @@ map13
 ; block jumping and throwing, so keys and packages have to be carried through the
 ; doors. A key can be dropped or thrown onto its lock.
 ;   T tree  k key  L lock  D door  P package  G goal  R robot
-;    T..T..TT..
-;    ...T..T...
-;    .L.T.LT.G.
-;    ...TP.T...
-;    .P.T..T.T.
-;    ...D..D..T
-;    ...T..T...
-;    ..kT..T.G.
-;    R..Tk.T...
-;    ...T..T..T
+;
+;    TTTTTTTTTT
+;    T........T
+;    T.TTTTTT.T
+;    T.T..D.T.T
+;    T.T.GL.T.T
+;    T.TTTTkT.T
+;    T......T.T
+;    TTTTTTTT.T
+;    P........T
+;    ^TTTTTTTTT
+;    (. floor  T tree  ~ water  # ice  G goal  P package  * package on goal
+;     k key  L lock  D door  > < ^ v robot)
 map14
-        !byte 0, 8, ROBOT_DIR_RIGHT
-        !byte 2                         ; goal fields (x, y)
-        !byte 8, 2, 8, 7
-        !byte 2                         ; packages (x, y)
-        !byte 1, 4, 4, 3
-        !byte 23                         ; blockers (x, y)
-        !byte 3, 0, 3, 1, 3, 2, 3, 3
-        !byte 3, 4, 3, 6, 3, 7, 3, 8
-        !byte 3, 9, 6, 0, 6, 1, 6, 2
-        !byte 6, 3, 6, 4, 6, 6, 6, 7
-        !byte 6, 8, 6, 9, 0, 0, 9, 9
-        !byte 8, 4, 7, 0, 9, 5
-        !byte 0                         ; water fields
-        !byte 0                         ; ice fields
-        !byte 2                         ; keys (x, y)
-        !byte 2, 7, 4, 8
-        !byte 2                         ; lock/door pairs: lock x, y, door x, door y
-        !byte 1, 2, 3, 5
-        !byte 5, 2, 6, 5
+        !byte 0, 9, ROBOT_DIR_UP
+        !byte 1                         ; goal fields (x, y)
+        !byte 4, 4
+        !byte 1                         ; packages (x, y)
+        !byte 0, 8
+        !byte 57                        ; blockers (x, y)
+        !byte 0, 0, 1, 0, 2, 0, 3, 0
+        !byte 4, 0, 5, 0, 6, 0, 7, 0
+        !byte 8, 0, 9, 0, 0, 1, 9, 1
+        !byte 0, 2, 2, 2, 3, 2, 4, 2
+        !byte 5, 2, 6, 2, 7, 2, 9, 2
+        !byte 0, 3, 2, 3, 7, 3, 9, 3
+        !byte 0, 4, 2, 4, 7, 4, 9, 4
+        !byte 0, 5, 2, 5, 3, 5, 4, 5
+        !byte 5, 5, 7, 5, 9, 5, 0, 6
+        !byte 7, 6, 9, 6, 0, 7, 1, 7
+        !byte 2, 7, 3, 7, 4, 7, 5, 7
+        !byte 6, 7, 7, 7, 9, 7, 9, 8
+        !byte 1, 9, 2, 9, 3, 9, 4, 9
+        !byte 5, 9, 6, 9, 7, 9, 8, 9
+        !byte 9, 9
+        !byte 0                         ; water fields (x, y)
+        !byte 0                         ; ice fields (frozen water)
+        !byte 1                         ; keys (x, y)
+        !byte 6, 5
+        !byte 1                         ; lock/door pairs: lock x, y, door x, door y
+        !byte 5, 4, 5, 3
+
 
 ; map15 (Meadow 5)
 ;
