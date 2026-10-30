@@ -4,7 +4,7 @@
         {
             "label": "Build with ACME 1.01mp",
             "type": "process",
-            "command": "C:\\Users\\martin\\programme\\acme\\Release\\ACME.exe",
+            "command": "d:\\git\\acme\\Release\\ACME.exe",
             "args": [
                 "-f", "cbm",
                 "--cpu", "6510",
@@ -27,7 +27,7 @@
             "args": [
                 "-NoProfile",
                 "-Command",
-                "Start-Process -FilePath 'C:\\Users\\martin\\programme\\acme\\VICEPDBMonitor\\bin\\Release\\VICEPDBMonitor.exe' -ArgumentList '\"${workspaceFolder}\\Test.pdb\"'; Start-Process -FilePath 'C:\\Users\\martin\\programme\\GTK3VICE-3.10-win64\\bin\\x64sc.exe' -ArgumentList @('-pal', '-autostartprgmode', '1', '-remotemonitor', '\"${workspaceFolder}\\build\\roboter.prg\"')"
+                "Start-Process -FilePath 'd:\\git\\acme\\VICEPDBMonitor\\bin\\Release\\VICEPDBMonitor.exe' -ArgumentList '\"${workspaceFolder}\\Test.pdb\"'; Start-Process -FilePath 'C:\\Users\\martin\\programme\\GTK3VICE-3.10-win64\\bin\\x64sc.exe' -ArgumentList @('-pal', '-autostartprgmode', '1', '-remotemonitor', '\"${workspaceFolder}\\build\\roboter.prg\"')"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
