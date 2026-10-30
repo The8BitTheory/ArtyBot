@@ -156,7 +156,6 @@ title_draw
         ldx #>str_title_menu
         jsr put_str
         jsr title_draw_items
-        jsr title_hint
         lda #COL_CYAN           ; tagline under the logo
         sta cur_col
         lda #<str_title_tag
@@ -267,18 +266,6 @@ title_select
         jmp title_draw_items
 .same   rts
 
-; Hint row under the window (also clears an old message).
-!zone title_hint
-title_hint
-        ldx #TITLE_WIN_X
-        ldy #TITLE_HINT_Y
-        jsr set_cursor
-        lda #COL_PURPLE
-        sta cur_col
-        lda #<str_title_hint
-        ldx #>str_title_hint
-        jmp put_str
-
 ; A/X = message for the hint row, shown for about 2 seconds.
 !zone title_message
 title_message
@@ -305,7 +292,6 @@ title_anim
         beq .blink
         dec title_msg
         bne .blink
-        jsr title_hint
 .blink  lda frame
         and #$1F
         bne .done

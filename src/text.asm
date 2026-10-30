@@ -80,7 +80,7 @@ str_title_menu  !text " Menu ",0
 str_title_new   !text "Start New Game",0
 str_title_cont  !text "Continue Game",0
 str_title_cred  !text "Credits",0
-str_title_hint  !text "W/S:choose Ret:go  ",0
+
 str_title_nocont !text "Not available yet ",0
 str_title_tag   !text "- a robot programming puzzle -",0
 str_title_by    !text "by Goodwell",0
@@ -90,11 +90,8 @@ str_title_credits !text " Credits ",0
 str_credits     !text "ArtyBot",0
                 !text " ",0
                 !text "Idea, design, levels:  Goodwell",0
-                !text "Code and graphics:     Goodwell",0
-                !text "                       + AI help",0
+                !text "Code, Art, Sound:      Claude 5.5",0
                 !text "Assembler:             ACME",0
                 !text " ",0
-                !text "Title screen in the style of",0
-                !text "Attack of the PETSCII Robots",0
-                !text "by David Murray.",0
+                !text "Dedicated to  Julia, Ben & Silvia",0
                 !byte $FF
