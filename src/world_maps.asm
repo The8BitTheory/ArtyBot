@@ -9,14 +9,14 @@ WMAP_BYTES = 95
 
 ; --- meadow
 ;   TTTT[]TTTTT~~TTTTTT
-;   T,1....*T,,~~*T,4.T
+;   T,1....*T,,~~*T,3.T
 ;   T,*T,,.,TT,~~,,T*.T
 ;   T,TT*,.,,T*~~,TT,.T
-;   TT,....T,*~~,,T,5.T
+;   TT,....T,*~~,,T,4.T
 ;   T*,.TTT,,~~,*T,..,T
 ;   T,..,T*,~~,T,,..T,T
 ;   T,.,*T,,,~*,TT,.,*T
-;   T,.2.........3..TTT
+;   T,...........2..TTT
 ;   TTTTTTTTTTTTTTTTTTT
 wmap_meadow
         !byte $11,$11,$78,$11,$11,$15,$51,$11,$11,$11,$06,$66,$66,$41,$00,$55
@@ -26,8 +26,8 @@ wmap_meadow
         !byte $66,$10,$11,$06,$04,$10,$00,$54,$01,$10,$60,$41,$10,$66,$66,$66
         !byte $66,$66,$66,$66,$11,$11,$11,$11,$11,$11,$11,$11,$11,$11,$11
 wnodes_meadow
-        !byte 2,1, 3,8, 13,8, 16,1, 16,4
-WNODES_MEADOW = 5
+        !byte 2,1, 13,8, 16,1, 16,4
+WNODES_MEADOW = 4
 
 ; --- winter
 ;   TTTTTTTTTTTTTTT[]TT

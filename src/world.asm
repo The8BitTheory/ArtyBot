@@ -162,9 +162,9 @@ world_count = (* - world_table) / 2
 }
 
 world_meadow
-        !byte THEME_MEADOW, 0, 5        ; levels 1-5 (5: key, lock and door)
+        !byte THEME_MEADOW, 0, 4        ; levels 1-4 (4: key, lock and door)
         !word wmap_meadow, str_world_meadow, wnodes_meadow
-!if WNODES_MEADOW != 5 {
+!if WNODES_MEADOW != 4 {
     !error "Weltkarte meadow: Anzahl Knoten passt nicht zur Anzahl Levels"
 }
 !if plan_level_count > MAX_LEVELS {
@@ -174,7 +174,7 @@ world_meadow
 str_world_meadow !text "Meadow",0
 
 world_winter
-        !byte THEME_WINTER, 5, 5        ; levels 6-10 (9 and 10: ice)
+        !byte THEME_WINTER, 4, 5        ; levels 5-9 (8 and 9: ice)
         !word wmap_winter, str_world_winter, wnodes_winter
 !if WNODES_WINTER != 5 {
     !error "Weltkarte winter: Anzahl Knoten passt nicht zur Anzahl Levels"

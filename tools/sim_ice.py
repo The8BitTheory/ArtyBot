@@ -78,43 +78,43 @@ m.run_frames(40)
 press([LSHIFT, F1]); m.run_frames(130)          # F2: meadow solved, gate opens
 walk_to({(15, 0), (16, 0), (4, 0), (5, 0)}, (6, 7, 8))
 check(m.ram[0x7A] == 1, 'in the winter world')
-press([SPACE]); m.run_frames(20)                 # node 1 -> plan of level 5
+press([SPACE]); m.run_frames(20)                 # node 1 -> first winter level
 
 st = run_program(3, 'w')
-check(st == 0 or st == 2 or st == 4, 'L8: skate run finished (state %d)' % st)
-check(robot() == (4, 4), 'L8: skating stops in front of the pine on the ice %s' % (robot(),))
-check(tile(4, 4) == T_ICE, 'L8: the robot stands on intact ice')
+check(st == 0 or st == 2 or st == 4, 'L7: skate run finished (state %d)' % st)
+check(robot() == (4, 4), 'L7: skating stops in front of the pine on the ice %s' % (robot(),))
+check(tile(4, 4) == T_ICE, 'L7: the robot stands on intact ice')
 m.render(2).save(out + '_1_skate_stop.png'); back_to_plan()
 
 st = run_program(3, 'z')
 check(st == 2 and tile(3, 4) == T_BROKEN and m.ram[lbl['run_sunk']] == 1,
-      'L8: jump onto the ice breaks it (state %d, tile %d)' % (st, tile(3, 4)))
+      'L7: jump onto the ice breaks it (state %d, tile %d)' % (st, tile(3, 4)))
 m.render(2).save(out + '_2_jump_on_ice.png'); back_to_plan()
 
 st = run_program(3, 'wz')
-check(st == 2 and tile(4, 4) == T_BROKEN, 'L8: jump off the ice breaks it (state %d, tile %d)' % (st, tile(4, 4)))
+check(st == 2 and tile(4, 4) == T_BROKEN, 'L7: jump off the ice breaks it (state %d, tile %d)' % (st, tile(4, 4)))
 back_to_plan()
 
 st = run_program(3, 'awwaqxc')
 check(st == 2 and tile(3, 2) == T_BROKEN and m.ram[lbl['run_sunk']] == 0 and m.ram[0x4C] == 0,
-      'L8: package thrown onto the ice breaks it, package gone (tile %d)' % tile(3, 2))
+      'L7: package thrown onto the ice breaks it, package gone (tile %d)' % tile(3, 2))
 m.render(2).save(out + '_3_throw_on_ice.png'); back_to_plan()
 
 st = run_program(3, 'awwaqxe')
-check(st == 2 and tile(2, 2) == T_ICE and m.ram[0x4C] == 1, 'L8: drop on the ice is refused (state %d)' % st)
+check(st == 2 and tile(2, 2) == T_ICE and m.ram[0x4C] == 1, 'L7: drop on the ice is refused (state %d)' % st)
 back_to_plan()
 
 st = run_program(3, 'azaqsxessdzzqssdssae')
-check(st == 4, 'L8: solution wins (state %d)' % st)
-m.render(2).save(out + '_4_L8_won.png'); back_to_plan()
+check(st == 4, 'L7: solution wins (state %d)' % st)
+m.render(2).save(out + '_4_L7_won.png'); back_to_plan()
 
 st = run_program(4, 'awwwwwwdw')
 check(st == 2 and m.ram[lbl['run_sunk']] == 1 and robot() == (6, 3),
-      'L9: skating into open water drowns the robot (state %d, robot %s)' % (st, robot()))
+      'L8: skating into open water drowns the robot (state %d, robot %s)' % (st, robot()))
 m.render(2).save(out + '_5_drown.png'); back_to_plan()
 
 st = run_program(4, 'wdsdqsdssedwdwwazqsdsde')
-check(st == 4, 'L9: solution wins (state %d)' % st)
-m.render(2).save(out + '_6_L9_won.png')
+check(st == 4, 'L8: solution wins (state %d)' % st)
+m.render(2).save(out + '_6_L8_won.png')
 print('RESULT', 'ALL OK' if ok else 'FAILED')
 sys.exit(0 if ok else 1)
