@@ -509,10 +509,9 @@ stats_run_start
         sta stat_s1
         lda tmp1
         sta stat_s2
-        lda level_no
-        jsr level_is_done
-        bne .same               ; solved already: runs are frozen
         ldx level_no
+        lda level_cmds,x
+        bne .same               ; really solved already: runs are frozen (F2 does not count)
         inc level_runs,x
         bne .same
         dec level_runs,x        ; saturate at 255
@@ -684,6 +683,16 @@ world_stats
 .show   jsr world_select
         jmp .draw
 
+; Three characters "  -" (no value).
+!zone stats_put_dash
+stats_put_dash
+        lda #' '
+        jsr put_char
+        lda #' '
+        jsr put_char
+        lda #'-'
+        jmp put_char
+
 ; Draws the overlay for world_cur.
 !zone stats_draw
 stats_draw
@@ -828,7 +837,11 @@ stats_draw
         jsr set_cursor
         ldx stat_lvl
         lda level_runs,x
+        beq .nodash             ; no run yet (or solved with F2)
         jsr stats_put_num
+        jmp .cmds
+.nodash jsr stats_put_dash
+.cmds
         ldx #31                 ; commands (only for solved levels)
         lda wm_tmp
         clc
@@ -840,12 +853,7 @@ stats_draw
         beq .dash
         jsr stats_put_num
         jmp .next
-.dash   lda #' '
-        jsr put_char
-        lda #' '
-        jsr put_char
-        lda #'-'
-        jsr put_char
+.dash   jsr stats_put_dash
 .next   inc wm_tmp
         jmp .row
 
