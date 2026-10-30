@@ -142,7 +142,68 @@ cccc..cc
 ccc.cc.c
 """
 
-CELL_ORDER = ['grass', 'tree', 'chest', 'goal', 'flowers', 'water']
+# Path (world map only): sandy dirt road in colour RAM (yellow) with pebbles.
+# The only walkable cell of the world maps besides the level nodes.
+CELLS['path'] = """
+cccccccc
+ccccc.cc
+cccccccc
+c.cccccc
+cccccccc
+cccccccc
+cccc.ccc
+cccccccc
+cccccccc
+cc.ccccc
+cccccccc
+cccccc.c
+cccccccc
+c.cccccc
+cccccccc
+cccccccc
+"""
+
+# Wooden double gate (world map): closes the exit of a world until all its
+# levels are solved. Left and right half, wood in colour RAM.
+CELLS['gate_l'] = """
+........
+.cccccc.
+.cccccc.
+........
+.ccc.cc.
+.ccc.cc.
+.ccc.cc.
+.cccccc.
+.cccccc.
+.ccc.cc.
+.ccc.cc.
+.ccc.cc.
+.ccc.cc.
+........
+.cccccc.
+........
+"""
+
+CELLS['gate_r'] = """
+........
+.cccccc.
+.cccccc.
+........
+.cc.ccc.
+.cc.ccc.
+.cc.ccc.
+.cccccc.
+.cccccc.
+.cc.ccc.
+.cc.ccc.
+.cc.ccc.
+.cc.ccc.
+........
+.cccccc.
+........
+"""
+
+CELL_ORDER = ['grass', 'tree', 'chest', 'goal', 'flowers', 'water', 'path', 'gate_l', 'gate_r']
 
 # ---------------------------------------------------------------- UI chars
 # NES Final Fantasy window frame (rounded corners) and the pointing hand.

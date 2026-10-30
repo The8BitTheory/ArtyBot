@@ -21,9 +21,9 @@ video_init
         lda #COL_BLACK
         sta VIC_BORDER
         sta VIC_BG0
-        lda #RUN_BG1            ; same greens as the run screen
+        lda theme_bg1           ; multicolour colours of the loaded theme
         sta VIC_BG1
-        lda #RUN_BG2
+        lda theme_bg2
         sta VIC_BG2
         ; weiter mit clear_screen
 

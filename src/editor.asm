@@ -16,17 +16,51 @@ PROGRAM_ROWS = 17
 game_main
         jsr input_init
         jsr editor_init
-        lda #0                  ; default level; others are loaded the same way
+        jsr world_init
+        jmp world_mode          ; the game starts on the world map (world.asm)
+
+; Planning screen for level_no (called from the world map). Returns when the
+; player goes back to the map: F7 here, or Space after a won level.
+!zone plan_mode
+plan_mode
+        lda #0
+        sta plan_exit
+        sta run_to_map
+        sta selection_active
+        sta delete_pending
+        sta exit_confirm
+        lda #$FF
+        sta hover_command
+        lda level_no
         jsr load_plan_level
+        jsr editor_calc_scroll  ; keep the insertion marker in view
+        sta scroll_offset
         jsr draw_planning_screen
         jsr draw_program_list
+        jsr draw_program_counts
         jsr spr_init
 .loop   jsr wait_frame
         jsr input_update
         jsr editor_update_hover
         jsr editor_handle_input
+        lda plan_exit
+        bne .leave
         jsr spr_update
         jmp .loop
+.leave  lda #0
+        sta VIC_SPR_EN
+        rts
+
+; F7: back to the world map (not while a list move/delete is pending).
+!zone editor_to_map
+editor_to_map
+        lda selection_active
+        bne .done
+        lda key_repeat
+        bne .done
+        lda #1
+        sta plan_exit
+.done   rts
 
 !zone editor_init
 editor_init
@@ -94,7 +128,8 @@ editor_handle_input
 .no_repeat
         jmp .keyboard
 .click
-        ; Bottom line (screen row 24): "F1: Run plan" at columns 0..11, "F8: Exit" from column 12.
+        ; Bottom line (screen row 24): "F1:Run" columns 0..6, "F7:Map" 7..13,
+        ; "F8:Quit" 14..21.
         lda mouse_y
         cmp #192
         bcc .palette_click
@@ -103,11 +138,15 @@ editor_handle_input
         lda mouse_x_hi
         bne .palette_click
         lda mouse_x_lo
-        cmp #96
-        bcc .run_click          ; columns 0..11: "R: Run plan"
-        cmp #240                ; "Stop: Exit Artybot" spans columns 12..29
+        cmp #56
+        bcc .run_click          ; columns 0..6: "F1:Run"
+        cmp #112
+        bcc .map_click          ; columns 7..13: "F7:Map"
+        cmp #176                ; columns 14..21: "F8:Quit"
         bcs .palette_click
         jmp editor_request_exit
+.map_click
+        jmp editor_to_map
 .run_click
         jmp editor_run_plan
 .palette_click
@@ -168,10 +207,12 @@ editor_handle_input
         bne .has_key
         rts
 .has_key
-        cmp #KEY_F7             ; F8 (= Shift+F7) exits (X is Turn 180)
+        cmp #KEY_F7             ; F7: world map, F8 (= Shift+F7): exit (X is Turn 180)
         bne .not_exit_key
         ldx key_shift
-        beq .not_exit_key
+        bne .exit_key
+        jmp editor_to_map
+.exit_key
         jmp editor_request_exit
 .not_exit_key
         cmp #KEY_F1             ; F1 (unshifted): switch to the run screen
@@ -188,7 +229,7 @@ editor_handle_input
         bne .not_run_key
         jmp editor_run_plan
 .not_run_key
-        ldx #8                  ; digit keys 1..9 switch the level
+        ldx #8                  ; digit keys 1..9 switch the level inside the world
 .digit  cmp level_key_codes,x
         bne .next_digit
         jmp editor_level_key    ; X = level index
@@ -347,7 +388,12 @@ editor_run_plan
         lda selection_active
         bne .done
         jsr run_mode
-        lda #$FF
+        lda run_to_map          ; won level left with Space: back to the world map
+        beq .stay
+        lda #1
+        sta plan_exit
+        rts
+.stay   lda #$FF
         sta hover_command
         jsr editor_calc_scroll  ; keep the insertion marker in view
         sta scroll_offset
@@ -387,22 +433,26 @@ arrow_hit_test
 .miss   clc
         rts
 
-; Keyboard matrix codes of the digit keys 1..9 = levels 1..9.
+; Keyboard matrix codes of the digit keys 1..9 = levels 1..9 of the current world.
 level_key_codes
         !byte 56, 59, 8, 11, 16, 19, 24, 27, 32
 
-; X = level index (0..8). Not while a list entry is being moved or deleted.
+; X = level index inside the world (0..8). Not while a list entry is being
+; moved or deleted. The command list is kept.
 !zone editor_level_key
 editor_level_key
         lda selection_active
         bne .done
         lda key_repeat
         bne .done
-        txa
-        cmp #plan_level_count
+        cpx world_nlev
         bcs .done
+        txa
+        clc
+        adc world_first
         cmp level_no
         beq .done
+        sta last_level
         jsr load_plan_level
         lda #$FF
         sta hover_command
@@ -948,12 +998,12 @@ draw_title_and_counters
         ldx #0
         ldy #0
         jsr set_cursor
-        lda level_no            ; patch the level digit into the title
-        clc
-        adc #$31
-        sta str_title_lvl
-        lda #<str_title
+        lda #<str_title         ; "ArtyBot - Plan - <world> <n>"
         ldx #>str_title
+        jsr put_str
+        jsr put_level_name
+        lda #<str_title_pad
+        ldx #>str_title_pad
         jsr put_str
         lda #COL_CYAN           ; colour the title parts
         sta cur_col
@@ -1346,7 +1396,12 @@ draw_help_areas_str             ; A/X = text for the bottom line (row 24)
         jsr set_cursor
         lda #3
         jsr paint
-        ldx #13
+        ldx #7
+        ldy #24
+        jsr set_cursor
+        lda #3
+        jsr paint
+        ldx #14
         ldy #24
         jsr set_cursor
         lda #3

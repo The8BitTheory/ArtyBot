@@ -74,9 +74,9 @@ run_mode
         sta run_confirm
         sta run_gtimer
         sta run_gphase
-        lda #RUN_BG1            ; multicolour grass greens for the field cells
+        lda theme_bg1           ; multicolour colours of the world's theme
         sta VIC_BG1
-        lda #RUN_BG2
+        lda theme_bg2
         sta VIC_BG2
         jsr run_reset
         jsr draw_run_screen
@@ -106,8 +106,8 @@ run_mode
         ldx run_state
         cpx #4
         bne .normal
-        cmp #KEY_SPACE          ; level won: Space (after the fanfare) goes to the
-        bne .normal             ; next level; P, R and X work as usual
+        cmp #KEY_SPACE          ; level won: Space (after the fanfare) goes back to
+        bne .normal             ; the world map; P, R and F8 work as usual
         ldx run_won_wait
         bne .loop
         beq .next
@@ -151,26 +151,19 @@ run_mode
         jsr run_draw_message
         jmp .loop
 .quit   jmp system_reset
-.next   lda level_no            ; next level, back to the first one after the last
-        clc
-        adc #1
-        cmp #plan_level_count
-        bcc .set_level
-        lda #0
-.set_level
-        sta level_no
-        jsr editor_init         ; fresh level: empty command list
+.next   lda #1                  ; won level: back to the world map (see editor_run_plan)
+        sta run_to_map
 .leave  jsr sound_stop
-        lda #RUN_BG1            ; planning screen shares the run colours (see video_init)
+        lda theme_bg1           ; planning screen shares the run colours
         sta VIC_BG1
-        lda #RUN_BG2
+        lda theme_bg2
         sta VIC_BG2
         lda level_no            ; plan view shows the untouched level again
         jsr load_plan_level
         rts
 
 ; While the level-won fanfare plays Space is ignored; afterwards the message
-; points to Space (next level), R (replay) and P (plan).
+; points to Space (world map), R (replay) and P (plan).
 !zone run_won_tick
 run_won_tick
         lda run_state
@@ -308,17 +301,16 @@ draw_run_screen
         sta win_w
         lda #22
         jsr draw_window
-        lda level_no            ; patch the level digit into the label
-        clc
-        adc #$31
-        sta str_run_field_lvl
+        lda #COL_WHITE          ; label " <world> <n> " in the top edge
+        sta cur_col
         ldx #2
         ldy #0
-        lda #<str_run_field
-        sta ptr1
-        lda #>str_run_field
-        sta ptr1+1
-        jsr run_label
+        jsr set_cursor
+        lda #' '
+        jsr put_char
+        jsr put_level_name
+        lda #' '
+        jsr put_char
         jsr draw_run_delivered
         ; Command window (cols 22-39, rows 0-21).
         ldx #22
@@ -933,6 +925,7 @@ run_land
         lda #<str_run_done
         ldx #>str_run_done
         jsr run_stop
+        jsr progress_mark       ; solved (world map shows a gold chest)
         lda #4                  ; level won
         sta run_state
         lda #100                ; the fanfare takes 2 seconds
@@ -1241,8 +1234,7 @@ run_flower_rows                 ; decorative flower cells, one mask per row
 run_bit_tab
         !byte $01, $02, $04, $08, $10, $20, $40, $80
 
-run_cell_colors                 ; grass, tree trunk, chest, goal, flowers, water
-        !byte COL_GREEN+8, COL_RED+8, CHEST_COLOR+8, COL_CYAN+8, COL_YELLOW+8, COL_BLUE+8
+; run_cell_colors (colour RAM per cell type) comes from the theme, see world.asm.
 
 ; ---- Command list ------------------------------------------------------
 ; Without selection letters: "nn Text"; the running command is yellow.

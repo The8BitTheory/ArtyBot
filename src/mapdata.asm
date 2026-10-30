@@ -389,8 +389,7 @@ draw_map_objects
 
 map_tile_chars                  ; indexed by tile id
         !byte FLOOR_CHAR, BLOCK_CHAR, PKG_CHAR, GOAL_CHAR, PKG_CHAR, WATER_CHAR
-map_tile_colors                 ; colour RAM per tile id (+8 = multicolour)
-        !byte COL_GREEN+8, COL_RED+8, CHEST_COLOR+8, COL_CYAN+8, COL_YELLOW+8, COL_BLUE+8
+; map_tile_colors (colour RAM per tile id) comes from the theme, see world.asm.
 map_info_colors                 ; help-text colour per tile id
         !byte COL_WHITE, COL_GREEN, COL_YELLOW, COL_CYAN, COL_YELLOW, COL_CYAN
 

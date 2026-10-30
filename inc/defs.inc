@@ -122,9 +122,10 @@ RASTER_LINE = 250
 COL_BLUE    = 6
 
 ; --- Run screen (RPG look): multicolour 2x2-character field cells, NES-style
-; window frame characters and the pointing hand, all from $B8 on; sprites.
-RUN_CHAR_BASE  = $B8
-RUN_CELL_TYPES = 6              ; grass, tree, chest, goal, grass with flowers, water
+; window frame characters and the pointing hand, all from $A1 on ($A0 is the
+; scrollbar block of the ROM set); sprites.
+RUN_CHAR_BASE  = $A1
+RUN_CELL_TYPES = 9              ; grass, tree, chest, goal, flowers, water, path, gate left/right (last 3: world map)
 RUN_UI_BASE    = RUN_CHAR_BASE + RUN_CELL_TYPES*4
 UI_TL          = RUN_UI_BASE+0  ; window frame: rounded corners and edges
 UI_TOP         = RUN_UI_BASE+1

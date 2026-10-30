@@ -58,3 +58,32 @@ program     = $0300
 
 map_work    = $0200
 goal_count  = $23            ; number of goal fields of the loaded level (mapdata.asm)
+; --- World map, worlds and plan/run hand-over (world.asm)
+run_to_map    = $6C             ; set by run_mode: won level left with Space
+plan_exit     = $6D             ; set in plan mode: return to the world map
+wm_cx         = $70             ; robot cell on the world map
+wm_cy         = $71
+wm_px         = $72             ; robot pixel x on the screen (16 bit, $72/$73)
+wm_py         = $74             ; robot pixel y on the screen
+wm_vx         = $75             ; movement per frame (signed pixels)
+wm_vy         = $76
+wm_steps      = $77             ; movement frames left
+wm_confirm    = $78             ; 1 while "Really quit?" is shown
+wm_node       = $79             ; node under the robot ($FF = none)
+world_cur     = $7A             ; current world
+world_first   = $7B             ; its first level (index into plan_level_table)
+world_nlev    = $7C             ; its number of levels
+world_rec     = $7D             ; its record ($7D/$7E)
+wm_map        = $80             ; its overview map ($80/$81)
+wm_nodes      = $82             ; its node list ($82/$83)
+wm_sx         = $84             ; put_cell: screen column / row / first character
+wm_sy         = $85
+wm_ch         = $86
+wm_tmp        = $87
+wm_tmp2       = $88
+wm_dx         = $89             ; loop counters while drawing the map
+wm_dy         = $8A
+wm_ix         = $8B             ; wm_cell scratch
+wm_iy         = $8C
+wm_prevx      = $8D             ; cell the robot came from (gate exit position)
+wm_prevy      = $8E
