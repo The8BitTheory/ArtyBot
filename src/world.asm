@@ -182,6 +182,9 @@ stat_s2         !byte 0
 stat_nz         !byte 0                 ; stats_put_num: leading digit seen
 stat_lvl        !byte 0                 ; stats_put_level_name / stats rows
 stat_w          !byte 0
+stat_h          !byte 0                 ; statistics window height
+stat_bot        !byte 0                 ; its bottom edge row
+stat_orig       !byte 0                 ; world the statistics were opened from
 world_pos_x     !fill MAX_WORLDS, 0     ; last robot cell per world
 world_pos_y     !fill MAX_WORLDS, 0
 last_level      !byte $FF               ; level whose plan is in the command list
@@ -602,26 +605,83 @@ stats_put_level_name
         bcc .w
         rts
 
-STATS_X       = 3               ; overlay window position and size
+STATS_X       = 3               ; overlay window position and width
 STATS_Y       = 2
 STATS_W       = 34
-STATS_H       = plan_level_count + 5
-!if STATS_H > 22 {
-    !error "Level-Statistik: zu viele Levels fuer eine Seite"
-}
 
-; F1 on the world map: table with the bookkeeping of every level over the map.
-; Any of F1 / Space / Return / left arrow closes it; the map is entered again.
+; F1 on the world map: table with the bookkeeping of the levels of one world over
+; the map. F3/F5 switch between the opened worlds; any other key closes it and
+; the map of the world it was opened from is entered again.
 !zone world_stats
 world_stats
         jsr world_save_pos
         lda #0
         sta VIC_SPR_EN
         jsr sound_stop
-        ; blank interior
+        lda world_cur
+        sta stat_orig
+        lda #0                  ; window height: most levels of any world + 6
+        sta stat_h
+        sta stat_w
+.mx     lda stat_w
+        asl
+        tax
+        lda world_table,x
+        sta ptr1
+        lda world_table+1,x
+        sta ptr1+1
+        ldy #WREC_FIRST+1
+        lda (ptr1),y
+        cmp stat_h
+        bcc .small
+        sta stat_h
+.small  inc stat_w
+        lda stat_w
+        cmp #world_count
+        bcc .mx
+        lda stat_h
+        clc
+        adc #6
+        sta stat_h
+        clc
+        adc #STATS_Y-1
+        sta stat_bot            ; screen row of the bottom edge
+.draw   jsr stats_draw
+.wait   jsr wait_frame
+        jsr input_update
+        lda key_new
+        cmp #$FF
+        beq .wait
+        ldx key_repeat
+        bne .wait
+        cmp #KEY_F5
+        beq .next
+        cmp #KEY_F3
+        beq .prev
+        lda stat_orig           ; any other key: back to the map it came from
+        jsr world_select
+        jmp world_mode
+.next   lda world_cur
+        clc
+        adc #1
+        cmp #world_count
+        bcs .wait
+        cmp worlds_open
+        bcs .wait
+        bcc .show
+.prev   lda world_cur
+        beq .wait
+        sec
+        sbc #1
+.show   jsr world_select
+        jmp .draw
+
+; Draws the overlay for world_cur.
+!zone stats_draw
+stats_draw
         lda #COL_WHITE
         sta cur_col
-        lda #STATS_Y+1
+        lda #STATS_Y+1          ; blank interior
         sta stat_lvl
 .fill   ldx #STATS_X+1
         ldy stat_lvl
@@ -634,7 +694,7 @@ world_stats
         bne .fc
         inc stat_lvl
         lda stat_lvl
-        cmp #STATS_Y+STATS_H-1
+        cmp stat_bot
         bne .fill
         lda #COL_WHITE
         sta cur_col
@@ -642,10 +702,9 @@ world_stats
         sta win_w
         ldx #STATS_X
         ldy #STATS_Y
-        lda #STATS_H
+        lda stat_h
         jsr draw_window
-        ; rule under the header
-        ldx #STATS_X+1
+        ldx #STATS_X+1          ; rule under the header
         ldy #STATS_Y+2
         jsr set_cursor
         lda #STATS_W-2
@@ -654,23 +713,40 @@ world_stats
         jsr put_char
         dec stat_w
         bne .rule
-        ; labels
-        lda #<str_stats_title
+        lda #<str_stats_title   ; " Level statistics: <world> "
         sta ptr1
         lda #>str_stats_title
         sta ptr1+1
         ldx #STATS_X+2
         ldy #STATS_Y
         jsr run_label
+        ldy #WREC_NAME
+        lda (world_rec),y
+        pha
+        iny
+        lda (world_rec),y
+        tax
+        pla
+        jsr put_str
+        lda #' '
+        jsr put_char
         lda #<str_stats_close
         sta ptr1
         lda #>str_stats_close
         sta ptr1+1
         ldx #STATS_X+2
-        ldy #STATS_Y+STATS_H-1
+        ldy stat_bot
         jsr run_label
-        ; header
-        lda #COL_YELLOW
+        lda #COL_CYAN           ; hint in the blank row above the bottom edge
+        sta cur_col
+        ldx #5
+        ldy stat_bot
+        dey
+        jsr set_cursor
+        lda #<str_stats_worlds
+        ldx #>str_stats_worlds
+        jsr put_str
+        lda #COL_YELLOW         ; header
         sta cur_col
         ldx #5
         ldy #STATS_Y+1
@@ -696,10 +772,16 @@ world_stats
         lda #<str_stats_cmds
         ldx #>str_stats_cmds
         jsr put_str
-        ; one row per level
-        lda #0
+        lda #0                  ; one row per level of this world
         sta wm_tmp
-.row    lda #COL_WHITE
+.row    lda wm_tmp
+        cmp world_nlev
+        bne .more
+        rts
+.more   clc
+        adc world_first
+        sta stat_lvl            ; global level number
+        lda #COL_WHITE
         sta cur_col
         ldx #5
         lda wm_tmp
@@ -707,7 +789,7 @@ world_stats
         adc #STATS_Y+3
         tay
         jsr set_cursor
-        lda wm_tmp
+        lda stat_lvl
         jsr stats_put_level_name
         ldx #16                 ; solved?
         lda wm_tmp
@@ -715,7 +797,7 @@ world_stats
         adc #STATS_Y+3
         tay
         jsr set_cursor
-        lda wm_tmp
+        lda stat_lvl
         jsr level_is_done
         beq .no
         lda #COL_GREEN
@@ -736,7 +818,7 @@ world_stats
         adc #STATS_Y+3
         tay
         jsr set_cursor
-        ldx wm_tmp
+        ldx stat_lvl
         lda level_runs,x
         jsr stats_put_num
         ldx #31                 ; commands (only for solved levels)
@@ -745,7 +827,7 @@ world_stats
         adc #STATS_Y+3
         tay
         jsr set_cursor
-        ldx wm_tmp
+        ldx stat_lvl
         lda level_cmds,x
         beq .dash
         jsr stats_put_num
@@ -757,28 +839,7 @@ world_stats
         lda #'-'
         jsr put_char
 .next   inc wm_tmp
-        lda wm_tmp
-        cmp #plan_level_count
-        beq .rows_done
         jmp .row
-.rows_done
-        ; wait for the closing key
-.wait   jsr wait_frame
-        jsr input_update
-        lda key_new
-        cmp #$FF
-        beq .wait
-        ldx key_repeat
-        bne .wait
-        cmp #KEY_F1
-        beq .close
-        cmp #KEY_SPACE
-        beq .close
-        cmp #KEY_RETURN
-        beq .close
-        cmp #KEY_LEFTARROW
-        bne .wait
-.close  jmp world_mode          ; redraws the whole map (position was saved)
 
 ; A = node index: start that level in plan mode, back when the player leaves.
 !zone world_play

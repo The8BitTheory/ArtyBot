@@ -62,8 +62,9 @@ str_world_solved !text " - solved",0
 str_world_gate !text "The gate is open - go through!",0
 str_world_end !text "The road ends here - for now",0
 ; Level statistics overlay (world.asm)
-str_stats_title !text " Level statistics ",0
-str_stats_close !text " F1:Close ",0
+str_stats_title !text " Level statistics: ",0
+str_stats_close !text " Press any key to close ",0
+str_stats_worlds !text "F3/F5: other world",0
 str_stats_level !text "Level",0
 str_stats_solved !text "Solved",0
 str_stats_runs !text "Runs",0
