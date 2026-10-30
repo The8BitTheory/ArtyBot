@@ -2,28 +2,41 @@
 ; Sprite 0 is the mouse pointer; sprite 1 marks the insertion position.
 
 gfx_sprites
-; White arrow pointer: hotspot is pixel (0,0), body extends right and down.
-        !byte $80,$00,$00
-        !byte $C0,$00,$00
-        !byte $A0,$00,$00
-        !byte $90,$00,$00
-        !byte $88,$00,$00
-        !byte $84,$00,$00
-        !byte $82,$00,$00
-        !byte $81,$00,$00
-        !byte $FF,$80,$00
-        !byte $FF,$C0,$00
-        !byte $FF,$E0,$00
-        !byte $FF,$F0,$00
-        !byte $FF,$F8,$00
-        !byte $FF,$FC,$00
-        !byte $FF,$FE,$00
-        !byte $FF,$FF,$00
-        !byte $FF,$0F,$00
-        !byte $FE,$07,$00
-        !byte $FC,$03,$00
-        !byte $F8,$01,$00
-        !byte $F0,$00,$00
+; Mouse pointer, 8x12 pixels like the Windows arrow, hotspot = pixel (0,0). Two hires sprites:
+; sprite 0 = white filling (in front), sprite 2 = black silhouette (behind, forms the outline).
+;   B.......
+;   BB......
+;   BWB.....
+;   BWWB....
+;   BWWWB...
+;   BWWWWB..
+;   BWWWWWB.
+;   BWWWWWWB
+;   BWWWWBBB
+;   BWBWWB..
+;   BB.BWWB.
+;   ....BBB.
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $40,$00,$00
+        !byte $60,$00,$00
+        !byte $70,$00,$00
+        !byte $78,$00,$00
+        !byte $7C,$00,$00
+        !byte $7E,$00,$00
+        !byte $78,$00,$00
+        !byte $58,$00,$00
+        !byte $0C,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
         !byte $00
 
 ; Insert marker: small right-pointing triangle plus line extending right.
@@ -40,6 +53,29 @@ gfx_sprites
         !byte $FF,$FF,$FF
         !byte $F0,$00,$00
         !byte $80,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00,$00,$00
+        !byte $00
+; Mouse pointer outline: the whole arrow silhouette in black (sprite 2).
+        !byte $80,$00,$00
+        !byte $C0,$00,$00
+        !byte $E0,$00,$00
+        !byte $F0,$00,$00
+        !byte $F8,$00,$00
+        !byte $FC,$00,$00
+        !byte $FE,$00,$00
+        !byte $FF,$00,$00
+        !byte $FF,$00,$00
+        !byte $FC,$00,$00
+        !byte $DE,$00,$00
+        !byte $0E,$00,$00
+        !byte $00,$00,$00
         !byte $00,$00,$00
         !byte $00,$00,$00
         !byte $00,$00,$00

@@ -1473,7 +1473,8 @@ world_tick
 wm_dir_keys                     ; by direction: right, left, up, down = D A W S
         !byte KEY_D, KEY_A, KEY_W, KEY_S
 
-; Sprite 0 = mouse pointer, sprite 3 = robot (multicolour, as on the run screen).
+; Sprite 0 = mouse pointer (white filling), sprite 2 = its black outline, sprite 3 = robot
+; (multicolour, as on the run screen).
 !zone world_init_sprites
 world_init_sprites
         lda #0
@@ -1488,8 +1489,12 @@ world_init_sprites
         sta VIC_SPR_MC1
         lda #SPRITE_BLOCK
         sta SPR_PTR0
+        lda #SPRITE_BLOCK2
+        sta SPR_PTR0+2
         lda #COL_WHITE
         sta VIC_SPR0COL
+        lda #COL_BLACK
+        sta VIC_SPR0COL+2
         lda #ROBOT_COLOR
         sta VIC_SPR0COL+3
         jsr run_set_robot_image
@@ -1503,14 +1508,18 @@ world_sprites
         clc
         adc #24
         sta VIC_SPR0X
+        sta VIC_SPR0X+4         ; outline sprite right under the filling
         lda mouse_x_hi
         adc #0
         and #1
-        sta wm_ix
+        beq .msb
+        lda #$05                ; X MSB of sprites 0 and 2
+.msb    sta wm_ix
         lda mouse_y
         clc
         adc #50
         sta VIC_SPR0Y
+        sta VIC_SPR0Y+4
         lda wm_px
         clc
         adc #24
@@ -1527,6 +1536,6 @@ world_sprites
         clc
         adc #50-RUN_ROBOT_DY
         sta VIC_SPR0X+7
-        lda #$09
+        lda #$0D                ; pointer filling, outline and robot
         sta VIC_SPR_EN
         rts

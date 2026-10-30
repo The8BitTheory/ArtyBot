@@ -53,6 +53,7 @@ SPRITES     = $E000
 SPR_PTR0    = SCREEN + $3F8
 SPRITE_BLOCK= (SPRITES - BANK_BASE) >> 6
 SPRITE_BLOCK1 = SPRITE_BLOCK + 1
+SPRITE_BLOCK2 = SPRITE_BLOCK + 2   ; black outline of the mouse pointer (sprite 2 in plan mode / world map)
 CODE_LIMIT  = $C000
 ICON_CHAR_BASE  = $E0
 ICON_CHAR_COUNT = 30            ; 24 command glyphs, Turn 180, and scrollbar arrows
@@ -117,7 +118,7 @@ T_LOCK      = 9             ; lock: drop (or throw) the key onto it -> T_LOCKED,
 T_LOCKED    = 10            ; lock holding its key (map_work only)
 T_DOOR      = 11            ; closed door: blocks like a tree; opened it becomes T_FLOOR
 MAX_LOCKS   = 4             ; lock/door pairs per level
-SPRITE_BYTES= 128           ; mouse pointer plus insertion marker
+SPRITE_BYTES= 192           ; mouse pointer (fill), insertion marker, mouse pointer outline
 PROGRAM_MAX = 99
 
 ; --- Eingabe
@@ -173,7 +174,7 @@ SOLID_CHAR     = UI_HAND + 1    ; $8E: solid block (scrollbar thumb)
 }
 RUN_SPR_COUNT  = 18             ; robot 4 dirs x (normal, carrying) x 2 walk frames, chest, key
 RUN_SPR_BYTES  = RUN_SPR_COUNT * 64
-RUN_SPR_BLOCK  = SPRITE_BLOCK + 2   ; stored behind the pointer/marker sprites
+RUN_SPR_BLOCK  = SPRITE_BLOCK + 3   ; stored behind the pointer/marker/outline sprites
 RUN_SPR_CHEST  = RUN_SPR_BLOCK + 16
 RUN_SPR_KEY    = RUN_SPR_BLOCK + 17
 
