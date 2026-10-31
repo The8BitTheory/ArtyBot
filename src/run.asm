@@ -83,9 +83,17 @@ run_mode
         lda theme_bg2
         sta VIC_BG2
         jsr run_reset
+        jsr run_restore         ; carry set: the last run of this level is shown again
+        php
         jsr draw_run_screen
         jsr run_init_sprites
-        lda #<str_run_ready
+        plp
+        bcc .fresh
+        lda run_msg             ; its message, e.g. why it failed
+        ldx run_msg+1
+        jsr run_say
+        jmp .loop
+.fresh  lda #<str_run_ready
         ldx #>str_run_ready
         jsr run_say
 .loop   jsr wait_frame
@@ -158,6 +166,8 @@ run_mode
 .next   lda #1                  ; won level: back to the world map (see editor_run_plan)
         sta run_to_map
 .leave  jsr sound_stop
+        jsr run_marker_to_stop  ; plan: insertion marker where the run stopped
+        jsr run_save            ; keep the field for a later look (until a new run)
         lda theme_bg1           ; planning screen shares the run colours
         sta VIC_BG1
         lda theme_bg2
@@ -260,6 +270,140 @@ run_reset
         adc #RUN_FIELD_Y*8
         sta run_spy
         rts
+
+; ---- Snapshot of the last run --------------------------------------------
+; Leaving to the plan keeps the run screen as it was (field, robot, carried
+; item, message, highlighted command) so the player can come back and look at
+; the failure. Coming back shows it as "stopped": Space or R start a new run
+; from the level start. The snapshot is dropped when the plan screen is entered
+; from the world map (editor.asm plan_mode, editor_init) and only used for the
+; same level.
+RUN_ZP_FIRST = $46              ; run_confirm .. run_fidx
+RUN_ZP_COUNT = $6C - RUN_ZP_FIRST
+
+; Insertion marker for the plan: behind the command the run stopped at (the
+; failing one, or the one being executed when paused), at the end after a win.
+; Unchanged if the run never started.
+!zone run_marker_to_stop
+run_marker_to_stop
+        lda run_state
+        beq .done
+        cmp #4
+        beq .end
+        lda run_pc
+        cmp editor_count
+        bcc .set
+.end    lda editor_count
+.set    sta insert_pos
+.done   rts
+
+!zone run_save
+run_save
+        lda #0
+        sta run_snap_ok
+        lda run_state           ; nothing has happened yet: nothing to keep
+        beq .done
+        ldx #RUN_ZP_COUNT-1
+.zp     lda RUN_ZP_FIRST,x
+        sta run_snap_zp,x
+        dex
+        bpl .zp
+        ldx #MAP_CELLS-1
+.map    lda map_work,x
+        sta run_snap_map,x
+        dex
+        bpl .map
+        lda run_skate
+        sta run_snap_misc
+        lda run_break
+        sta run_snap_misc+1
+        lda run_sunk
+        sta run_snap_misc+2
+        lda robot_tx
+        sta run_snap_misc+3
+        lda robot_ty
+        sta run_snap_misc+4
+        lda robot_dir
+        sta run_snap_misc+5
+        lda run_item
+        sta run_snap_misc+6
+        lda scroll_offset
+        sta run_snap_misc+7
+        lda level_no
+        sta run_snap_level
+        inc run_snap_ok
+.done   rts
+
+; After run_reset: restores the snapshot of this level, if any (carry set).
+!zone run_restore
+run_restore
+        lda run_snap_ok
+        beq .none
+        lda run_snap_level
+        cmp level_no
+        bne .none
+        ldx #RUN_ZP_COUNT-1
+.zp     lda run_snap_zp,x
+        sta RUN_ZP_FIRST,x
+        dex
+        bpl .zp
+        ldx #MAP_CELLS-1
+.map    lda run_snap_map,x
+        sta map_work,x
+        dex
+        bpl .map
+        lda run_snap_misc
+        sta run_skate
+        lda run_snap_misc+1
+        sta run_break
+        lda run_snap_misc+2
+        sta run_sunk
+        lda run_snap_misc+3
+        sta robot_tx
+        lda run_snap_misc+4
+        sta robot_ty
+        lda run_snap_misc+5
+        sta robot_dir
+        lda run_snap_misc+6
+        sta run_item
+        lda run_snap_misc+7
+        sta scroll_offset
+        lda #0
+        sta run_confirm
+        sta run_phase           ; frozen: shown as stopped, Space starts anew
+        sta run_timer
+        sta run_won_wait
+        lda run_state           ; left while running or paused: say it stopped
+        cmp #1
+        beq .halted
+        cmp #3
+        bne .stopped
+.halted lda #<str_run_halted
+        sta run_msg
+        lda #>str_run_halted
+        sta run_msg+1
+.stopped
+        lda #2
+        sta run_state
+        lda run_cur             ; the plan may have become shorter
+        cmp #$FF
+        beq .ok
+        cmp editor_count
+        bcc .ok
+        lda #$FF
+        sta run_cur
+        lda #0
+        sta scroll_offset
+.ok     sec
+        rts
+.none   clc
+        rts
+
+run_snap_ok    !byte 0          ; 1: snapshot valid
+run_snap_level !byte 0          ; level_no of the snapshot
+run_snap_zp    !fill RUN_ZP_COUNT, 0
+run_snap_misc  !fill 8, 0
+run_snap_map   !fill 100, 0       ; MAP_CELLS (defined later in mapdata.asm)
 
 ; Space: start when ready, pause while running, continue when paused,
 ; restart after the run has stopped.

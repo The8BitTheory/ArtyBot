@@ -23,6 +23,7 @@ game_main
 !zone plan_mode
 plan_mode
         lda #0
+        sta run_snap_ok         ; a new visit: no old run to look at
         sta plan_exit
         sta run_to_map
         sta selection_active
@@ -64,6 +65,7 @@ editor_to_map
 !zone editor_init
 editor_init
         lda #0
+        sta run_snap_ok
         sta editor_count
         sta insert_pos
         sta scroll_offset

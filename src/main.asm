@@ -36,6 +36,9 @@
 !source "src/text.asm"
 
 prg_end
+!if MAP_CELLS != 100 {
+    !error "run.asm run_snap_map: !fill an MAP_CELLS anpassen"
+}
 !if prg_end > CODE_LIMIT {
     !error "Programm ragt in die VIC-Bank 3 ($C000) - zu gross"
 }

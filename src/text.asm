@@ -56,6 +56,7 @@ str_run_quit !text "To title? Return:yes "
              !text ":no",0
 str_run_ready !text "Press Space to run the plan",0
 str_run_going !text "Running... Space: pause R: restart",0
+str_run_halted !text "Stopped here. Space: new run",0
 str_run_paused !text "Paused. Space: go on R: restart",0
 str_run_blocked !text "ArtyBot is blocked. Space: retry",0
 str_run_nopick !text "Nothing to pick up. Space: retry",0

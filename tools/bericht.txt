@@ -12,6 +12,11 @@ Optisch hat mir das ganze überhaupt nicht gefallen. Die klassischen roten Ziege
 Also hab ich nachgedacht, welche Spiele eine gute Top-Down Perspektive zeigen. Da ist mir Lykia eingefallen. Und auch hier hat ein einziger Prompt gereicht, damit Claude ein schönes Tileset gezeichnet hat.
 
 Was hat die KI gemacht? Alles.
+Ich hab vielleicht zwei oder drei mal Bildschirmtexte händisch bearbeitet.
 
 Aus Zeitmangel (und wieder ohne große Hoffnung) habe ich Claude die ersten Levels bauen lassen. Nach der dritten oder vierten Karte (die übrigens alle wieder verworfen wurden), hat die KI aus Eigeninitiative Tools gebaut.
 zb einen Solver, der prüft ob die Karte auch Lösbar ist. Und in wievielen Schritten. Diesen Wert habe ich dann ins Spiel als Par-Wert übernommen.
+
+Ich hatte mir auch einen HTML Level-Editor bauen lassen, der direkt den Code für das .asm File mit den Leveldaten erzeugt. Funktioniert tadellos, allerdings hab ich es dann doch noch geschafft, dass Claude selber halbwegs anständige Levels baut. Deshalb ist der Editor mehr oder weniger unbenutzt geblieben.
+Er ist im Repo unter /tools zu finden.
+
