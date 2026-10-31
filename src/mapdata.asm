@@ -527,13 +527,47 @@ map27
         !byte 0                     ; keys (x, y)
         !byte 0                     ; lock/door pairs: lock x, y, door x, y
 
-; map28..map29: PLACEHOLDERS until the ice levels are built (package in front of
-; the robot, goal one field further: Pick Up, Move Fwd, Drop Off).
+; map28 (Winter 8, "Locked out"):
+; one goal waits behind a door in a wall of pines. The lock lies out on the ice,
+; just in throwing range: from the bank at (6,8) the key flies over the ice at (6,7)
+; straight into the lock and the door opens. Then skate up column 4 through the open
+; doorway and throw over (4,2). The island goal at (3,4): skate up column 2, the
+; pine wall stops the robot beside it.
+;
+;    TTTTTTTTTT
+;    T...G....T
+;    T........T
+;    TTTTDTTTTT
+;    ###G######
+;    ##########
+;    ######L###
+;    ##########
+;    ..........
+;    .KP^P.....
+;    (. snow  # ice  ~ water  T pine  P package  G goal  K key  L/M lock  D/E door)
 map28
-        !byte 4, 8, ROBOT_DIR_UP
-        !byte 1, 4, 6                   ; goal
-        !byte 1, 4, 7                   ; package
-        !byte 0, 0, 0, 0, 0             ; trees, water, ice, keys, locks
+        !byte 3, 9, ROBOT_DIR_UP
+        !byte 2                     ; goal fields (x, y)
+        !byte 4, 1, 3, 4
+        !byte 2                     ; packages (x, y)
+        !byte 2, 9, 4, 9
+        !byte 23                    ; blockers (x, y)
+        !byte 0, 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0
+        !byte 8, 0, 9, 0, 0, 1, 9, 1, 0, 2, 9, 2, 0, 3, 1, 3
+        !byte 2, 3, 3, 3, 5, 3, 6, 3, 7, 3, 8, 3, 9, 3
+        !byte 0                     ; water fields (x, y)
+        !byte 38                    ; ice fields (frozen water) (x, y)
+        !byte 0, 4, 1, 4, 2, 4, 4, 4, 5, 4, 6, 4, 7, 4, 8, 4
+        !byte 9, 4, 0, 5, 1, 5, 2, 5, 3, 5, 4, 5, 5, 5, 6, 5
+        !byte 7, 5, 8, 5, 9, 5, 0, 6, 1, 6, 2, 6, 3, 6, 4, 6
+        !byte 5, 6, 7, 6, 8, 6, 9, 6, 0, 7, 1, 7, 2, 7, 3, 7
+        !byte 4, 7, 5, 7, 6, 7, 7, 7, 8, 7, 9, 7
+        !byte 1                     ; keys (x, y)
+        !byte 1, 9
+        !byte 1                     ; lock/door pairs: lock x, y, door x, y
+        !byte 6, 6, 4, 3
+; map29: PLACEHOLDER until the final level is built (package in front of
+; the robot, goal one field further: Pick Up, Move Fwd, Drop Off).
 map29
         !byte 4, 8, ROBOT_DIR_UP
         !byte 1, 4, 6                   ; goal

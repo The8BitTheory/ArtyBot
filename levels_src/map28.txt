@@ -1,0 +1,17 @@
+map28 Winter 8, "Locked out"
+one goal waits behind a door in a wall of pines. The lock lies out on the ice,
+just in throwing range: from the bank at (6,8) the key flies over the ice at (6,7)
+straight into the lock and the door opens. Then skate up column 4 through the open
+doorway and throw over (4,2). The island goal at (3,4): skate up column 2, the
+pine wall stops the robot beside it.
+
+TTTTTTTTTT
+T...G....T
+T........T
+TTTTDTTTTT
+###G######
+##########
+######L###
+##########
+..........
+.KP^P.....
