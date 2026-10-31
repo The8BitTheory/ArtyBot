@@ -367,6 +367,7 @@ put_level_name_a
 ; Never returns: plan mode is called from here and comes back here.
 !zone world_mode
 world_mode
+        jsr ambient_start       ; keeps running if it already does
         lda world_cur
         jsr world_enter
 .loop   jsr wait_frame
@@ -957,6 +958,7 @@ world_play
         lda #0
         sta VIC_SPR_EN
         jsr sound_stop
+        jsr ambient_stop
         lda wm_tmp
         clc
         adc world_first

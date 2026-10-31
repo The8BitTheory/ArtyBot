@@ -615,6 +615,7 @@ END_MEMPTR    = $06             ; screen $C000, charset $D800 (bank 3)
 
 !zone end_mode
 end_mode
+        jsr ambient_stop
         lda wm_prevx            ; the robot waits in front of the gate
         sta wm_cx
         lda wm_prevy

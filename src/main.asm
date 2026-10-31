@@ -18,6 +18,7 @@
 !source "src/video.asm"
 !source "src/sound.asm"
 !source "src/music.asm"         ; title music, data from tools/gen_music.py
+!source "src/ambient.asm"       ; world map ambience
 !source "src/input.asm"
 !source "src/sprites.asm"
 !source "src/editor.asm"

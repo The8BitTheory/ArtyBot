@@ -9,6 +9,7 @@ mus_ptr     = $FC               ; $FC/$FD, used only inside the IRQ
 
 !zone music_start
 music_start
+        jsr ambient_stop        ; title and world map never play together
         php
         sei
         ldx #2

@@ -23,6 +23,7 @@ irq_handler
         inc frame
         jsr sound_tick
         jsr music_tick
+        jsr ambient_tick
         pla
         tay
         pla

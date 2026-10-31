@@ -58,21 +58,22 @@ str_run_ready !text "Press Space to run the plan",0
 str_run_going !text "Running... Space: pause R: restart",0
 str_run_halted !text "Stopped here. Space: new run",0
 str_run_paused !text "Paused. Space: go on R: restart",0
-str_run_blocked !text "ArtyBot is blocked. Space: retry",0
-str_run_nopick !text "Nothing to pick up. Space: retry",0
-str_run_full !text "Hands full. Space: retry",0
-str_run_nodrop !text "Nothing to drop. Space: retry",0
-str_run_cantdrop !text "Can't drop here. Space: retry",0
+; Failure messages: max. 37 characters (message row of the run screen, columns 2-38)
+str_run_blocked !text "No! Way is blocked. Hit F1 to debug",0
+str_run_nopick !text "No! Nothing to grab. Hit F1 to debug",0
+str_run_full !text "No! Hands full. Hit F1 to debug",0
+str_run_nodrop !text "No! Nothing to drop. Hit F1 to debug",0
+str_run_cantdrop !text "No! Can't drop here. Hit F1 to debug",0
 str_run_done !text "All packages delivered!",0
 str_done_par !text "Done! Par: ",0           ; + par, str_done_you, commands (stats_say_done)
 str_done_you !text " Your value: ",0
-str_run_end !text "Not delivered. Space: retry",0
-str_run_water !text "ArtyBot can't swim. Space: retry",0
-str_run_tree !text "A tree is in the way. Space: retry",0
-str_run_noland !text "Can't land there. Space: retry",0
-str_run_nothrow !text "Nothing to throw. Space: retry",0
-str_run_cantthrow !text "Can't throw there. Space: retry",0
-str_run_ice !text "The ice broke! Space: retry",0
+str_run_end !text "No! Out of commands. Hit F1 to debug",0
+str_run_water !text "No! Bots can't swim. Hit F1 to debug",0
+str_run_tree !text "No! Tree in the way. Hit F1 to debug",0
+str_run_noland !text "No! Can't land there. Hit F1 to debug",0
+str_run_nothrow !text "No! Nothing to throw. Hit F1 to debug",0
+str_run_cantthrow !text "No! Throw can't land. Hit F1 to debug",0
+str_run_ice !text "No! The ice broke. Hit F1 to debug",0
 str_run_unlock !text "Click! A door opened.",0
 str_empty !byte 0
 ; World map (world.asm)
