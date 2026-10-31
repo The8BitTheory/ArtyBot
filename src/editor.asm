@@ -538,9 +538,13 @@ editor_handle_exit_confirm
         lda key_new
         cmp #$FF
         beq .finish
-        cmp #1                  ; Return selects Yes
+        cmp #1                  ; Return or Y selects Yes
         beq .yes
-        cmp #57                 ; Left-arrow cancels
+        cmp #KEY_Y
+        beq .yes
+        cmp #KEY_N              ; N or Left-arrow cancels
+        beq .no
+        cmp #57
         beq .no
 .finish rts
 .yes

@@ -444,10 +444,15 @@ world_mode
         jmp .loop
 .confirm
         cmp #KEY_RETURN
+        beq .yes
+        cmp #KEY_Y
         bne .no
-        jmp title_return
-.no     cmp #KEY_LEFTARROW
+.yes    jmp title_return
+.no     cmp #KEY_N
+        beq .keep
+        cmp #KEY_LEFTARROW
         bne .back
+.keep
         lda #0
         sta wm_confirm
         jsr world_status

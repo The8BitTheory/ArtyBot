@@ -63,6 +63,8 @@ KEY_SPACE   = 60
 KEY_R       = 17
 KEY_RETURN  = 1
 KEY_LEFTARROW = 57
+KEY_Y       = 25                ; Yes / No answers (besides Return / left arrow)
+KEY_N       = 39
 
 !macro run_fail .msg {
         lda #<.msg
@@ -154,8 +156,14 @@ run_mode
 .confirm
         cmp #KEY_RETURN
         beq .quit
+        cmp #KEY_Y
+        beq .quit
+        cmp #KEY_N
+        beq .keep
         cmp #KEY_LEFTARROW
-        bne .loop
+        beq .keep
+        jmp .loop
+.keep
         lda #0
         sta run_confirm
         lda run_msg
