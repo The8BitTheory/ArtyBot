@@ -41,6 +41,12 @@ start
         jsr title_charset_init
         +copy gfx_ui_frame, TITLE_CHARSET + UI_FRAME_BASE*8, 8*8
         +copy gfx_ui_extra, TITLE_CHARSET + UI_HAND*8, 2*8
+        ; End screen charset in the RAM below $D800 (same way): ROM set, logo +
+        ; trophy, window frame and hand.
+        +copy $D800, END_CHARSET, $0800
+        jsr end_charset_init
+        +copy gfx_ui_frame, END_CHARSET + UI_FRAME_BASE*8, 8*8
+        +copy gfx_ui_extra, END_CHARSET + UI_HAND*8, 2*8
 
         ; Ab jetzt: alle ROMs aus, nur I/O (eigene Vektoren in $FFFA-$FFFF)
         lda #$35

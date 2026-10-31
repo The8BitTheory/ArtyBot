@@ -145,13 +145,14 @@ theme_load
 
 ; ---- Worlds --------------------------------------------------------------
 ; Record: +0 theme, +1 first level, +2 number of levels (1..9), +3 map,
-; +5 name (0-terminated), +7 node list (x, y per level).
+; +5 name (0-terminated), +7 node list (x, y per level), +9 start place (x, y).
 WREC_THEME    = 0
 WREC_FIRST    = 1
 WREC_COUNT    = 2
 WREC_MAP      = 3
 WREC_NAME     = 5
 WREC_NODES    = 7
+WREC_START    = 9
 
 world_table
         !word world_meadow
@@ -163,7 +164,7 @@ world_count = (* - world_table) / 2
 
 world_meadow
         !byte THEME_MEADOW, (world1_levels - plan_level_table) / 2, WORLD1_LEVELS   ; map11..
-        !word wmap_meadow, str_world_meadow, wnodes_meadow
+        !word wmap_meadow, str_world_meadow, wnodes_meadow, wstart_meadow
 !if WNODES_MEADOW != WORLD1_LEVELS {
     !error "Weltkarte meadow: Anzahl Knoten passt nicht zur Anzahl Levels"
 }
@@ -175,7 +176,7 @@ str_world_meadow !text "Meadow",0
 
 world_winter
         !byte THEME_WINTER, (world2_levels - plan_level_table) / 2, WORLD2_LEVELS   ; map21..
-        !word wmap_winter, str_world_winter, wnodes_winter
+        !word wmap_winter, str_world_winter, wnodes_winter, wstart_winter
 !if WNODES_WINTER != WORLD2_LEVELS {
     !error "Weltkarte winter: Anzahl Knoten passt nicht zur Anzahl Levels"
 }
@@ -193,6 +194,8 @@ stat_w          !byte 0
 stat_h          !byte 0                 ; statistics window height
 stat_bot        !byte 0                 ; its bottom edge row
 stat_orig       !byte 0                 ; world the statistics were opened from
+stat_mi         !byte 0                 ; stats_say_done: write index into stat_msg
+stat_msg        !fill 40, 0             ; stats_say_done: "Done! Par: xx Your value: yy"
 world_pos_x     !fill MAX_WORLDS, 0     ; last robot cell per world
 world_pos_y     !fill MAX_WORLDS, 0
 last_level      !byte $FF               ; level whose plan is in the command list
@@ -200,7 +203,7 @@ worlds_open     !byte 1                 ; worlds 0..worlds_open-1 can be visited
 gate_done       !byte 0                 ; bit per world: its gate has opened (blink played)
 wm_gate_open    !byte 0                 ; 1: gate of the current world is open (cells walkable)
 
-; Game start: robot on node 1 of every world, nothing solved, world 1.
+; Game start: robot on the start place (S in the map) of every world, nothing solved, world 1.
 !zone world_init
 world_init
         lda #$FF
@@ -228,6 +231,12 @@ world_init
         cmp #world_count
         beq .done
         jsr world_select
+        ldy #WREC_START
+        lda (world_rec),y
+        sta wm_nodes
+        iny
+        lda (world_rec),y
+        sta wm_nodes+1
         ldy #0
         lda (wm_nodes),y
         ldx wm_tmp
@@ -358,6 +367,7 @@ put_level_name_a
 ; Never returns: plan mode is called from here and comes back here.
 !zone world_mode
 world_mode
+        jsr ambient_start       ; keeps running if it already does
         lda world_cur
         jsr world_enter
 .loop   jsr wait_frame
@@ -434,10 +444,15 @@ world_mode
         jmp .loop
 .confirm
         cmp #KEY_RETURN
+        beq .yes
+        cmp #KEY_Y
         bne .no
-        jmp system_reset
-.no     cmp #KEY_LEFTARROW
+.yes    jmp title_return
+.no     cmp #KEY_N
+        beq .keep
+        cmp #KEY_LEFTARROW
         bne .back
+.keep
         lda #0
         sta wm_confirm
         jsr world_status
@@ -529,6 +544,76 @@ stats_level_won
 .store  lda run_pc
         sta level_cmds,x
 .done   rts
+
+; Level won (after the fanfare): shows "Done! Par: xx Your value: yy" in the
+; message box. xx = par of the level (level_par, from the solver), yy = commands
+; executed in this run (run_pc).
+!zone stats_say_done
+stats_say_done
+        lda #0
+        sta stat_mi
+        lda #<str_done_par
+        ldx #>str_done_par
+        jsr .str
+        ldx level_no
+        lda level_par,x
+        jsr .num
+        lda #<str_done_you
+        ldx #>str_done_you
+        jsr .str
+        lda run_pc
+        jsr .num
+        ldx stat_mi
+        lda #0
+        sta stat_msg,x
+        lda #<stat_msg
+        ldx #>stat_msg
+        jmp run_say
+.str    sta ptr1                ; A/X = text: append it
+        stx ptr1+1
+        ldy #0
+.sl     lda (ptr1),y
+        beq .sd
+        ldx stat_mi
+        sta stat_msg,x
+        inc stat_mi
+        iny
+        bne .sl
+.sd     rts
+.num    sta tmp1                ; A = 0..255: append it, no leading zeros
+        lda #0
+        sta stat_nz
+        ldx #0
+.h      lda tmp1
+        cmp #100
+        bcc .hd
+        sbc #100
+        sta tmp1
+        inx
+        bne .h
+.hd     jsr .dig
+        ldx #0
+.t      lda tmp1
+        cmp #10
+        bcc .td
+        sbc #10
+        sta tmp1
+        inx
+        bne .t
+.td     jsr .dig
+        ldx tmp1                ; the ones digit is always shown
+        inc stat_nz
+.dig    txa                     ; X = digit; skipped while it is a leading zero
+        ora stat_nz
+        beq .skip
+        sta stat_nz
+        txa
+        clc
+        adc #'0'
+        ldx stat_mi
+        sta stat_msg,x
+        inc stat_mi
+.skip   rts
 
 ; A = number 0..255: three characters, right aligned.
 !zone stats_put_num
@@ -777,11 +862,11 @@ stats_draw
         lda #<str_stats_solved
         ldx #>str_stats_solved
         jsr put_str
-        ldx #24
+        ldx #25
         ldy #STATS_Y+1
         jsr set_cursor
-        lda #<str_stats_runs
-        ldx #>str_stats_runs
+        lda #<str_stats_par
+        ldx #>str_stats_par
         jsr put_str
         ldx #30
         ldy #STATS_Y+1
@@ -829,15 +914,16 @@ stats_draw
 .say    jsr put_str
         lda #COL_WHITE
         sta cur_col
-        ldx #25                 ; runs
+        ldx #25                 ; par: only after a real solution (no spoiler)
         lda wm_tmp
         clc
         adc #STATS_Y+3
         tay
         jsr set_cursor
         ldx stat_lvl
-        lda level_runs,x
-        beq .nodash             ; no run yet (or solved with F2)
+        lda level_cmds,x
+        beq .nodash             ; not solved yet (or only with F2)
+        lda level_par,x
         jsr stats_put_num
         jmp .cmds
 .nodash jsr stats_put_dash
@@ -851,7 +937,12 @@ stats_draw
         ldx stat_lvl
         lda level_cmds,x
         beq .dash
-        jsr stats_put_num
+        cmp level_par,x         ; par reached or beaten: green
+        beq .good
+        bcs .put
+.good   ldy #COL_GREEN
+        sty cur_col
+.put    jsr stats_put_num
         jmp .next
 .dash   jsr stats_put_dash
 .next   inc wm_tmp
@@ -872,6 +963,7 @@ world_play
         lda #0
         sta VIC_SPR_EN
         jsr sound_stop
+        jsr ambient_stop
         lda wm_tmp
         clc
         adc world_first
@@ -1032,9 +1124,7 @@ world_check_gate
         jsr world_save_pos
         pla
         jmp world_enter
-.end    lda #<str_world_end
-        ldx #>str_world_end
-        jmp run_draw_message
+.end    jmp end_mode            ; past the last world: the end screen (title.asm)
 .no     rts
 
 ; Robot pixel position from its cell.

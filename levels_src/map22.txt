@@ -1,0 +1,15 @@
+map22 Winter 2, "Brakes"
+a skating rink with two snow islands holding the goals. Skating, the robot only
+stops on the ice when the next field is blocked: the pines at (6,4) and (3,7) stop
+it right beside the islands. Without them it would skate past to the far bank.
+
+T.........
+..######..
+P.######..
+..###G##..
+.>####T#..
+..######..
+P.##G###..
+..#T####..
+..######..
+T........T

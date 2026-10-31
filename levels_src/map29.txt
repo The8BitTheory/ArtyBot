@@ -1,0 +1,18 @@
+map29 Winter 9, "The drawbridge"
+the finale. A ditch of open water guards the north. The west bank is reached by a
+jump from the snow island at (2,4); the walled yard in the east only over the
+drawbridge: the door at (7,3) lies in the ditch and becomes a bridge once the key
+is in the lock out on the ice at (4,5). From the bank the lock is out of throwing
+range (the key would land on the ice and break it); skate up column 4, the lock
+stops the robot. Every other column runs into the ditch.
+
+T....T.G.T
+T.G..T...T
+T....T...T
+~~~~~~~D~~
+##.#######
+####L#####
+##########
+##########
+..........
+.P.K^.P...

@@ -35,6 +35,10 @@ sound_init
         sta snd_off
         lda #$0F
         sta SID_VOL
+        ; fall through
+
+; Voice 1 settings for the effects (the title music changes them).
+snd_voice1_setup
         lda #$00                ; pulse width 50 percent
         sta SID_BASE+2
         lda #$08
@@ -48,15 +52,16 @@ sound_init
 ; A/X = sequence address (lo/hi). It starts with the next IRQ tick.
 !zone snd_play
 snd_play
-        pha
-        lda #0
-        sta snd_dur             ; the IRQ ignores the sequence while this is 0
-        sta snd_off
-        pla
+        php
+        sei                     ; the music player checks snd_dur/snd_off
         sta snd_ptr
         stx snd_ptr+1
+        jsr snd_voice1_setup    ; voice 1 may still have music settings
+        lda #0
+        sta snd_off
         lda #1
         sta snd_dur
+        plp
         rts
 
 ; Cut off whatever is playing: the voice is silent immediately (waveform off,

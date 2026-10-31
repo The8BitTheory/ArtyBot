@@ -1,0 +1,15 @@
+map24 Winter 4, "Thin ice"
+the trap: right in front of the robot a narrow ditch, behind it the ice and the
+goal. Jumping across the ditch lands on the ice and breaks it. The way that works
+is the snow bridge at (7,6): step onto the ice from there and skate up to the bank.
+
+T........T
+..G.......
+..........
+##########
+##########
+##########
+~~~~~~~.~~
+..........
+..P^......
+T........T

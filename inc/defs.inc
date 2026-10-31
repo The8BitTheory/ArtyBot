@@ -50,6 +50,7 @@ BANK_BASE   = $C000
 SCREEN      = $C000
 CHARSET     = $C800
 TITLE_CHARSET = $D000         ; title screen charset (RAM under I/O, see title.asm)
+END_CHARSET   = $D800         ; end screen charset (RAM under the colour RAM, see title.asm)
 SPRITES     = $E000
 SPR_PTR0    = SCREEN + $3F8
 SPRITE_BLOCK= (SPRITES - BANK_BASE) >> 6
