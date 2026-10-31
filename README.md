@@ -127,13 +127,7 @@ newer. Run it from the project directory (ACME resolves `!source` paths
 relative to the working directory):
 
 ```
-acme -f cbm --cpu 6510 -o build/roboter.prg src/main.asm
-```
-
-On Windows, with the path used during development:
-
-```powershell
-& 'C:\Users\martin\programme\acme\Release\ACME.exe' -f cbm --cpu 6510 -o build\roboter.prg src\main.asm
+acme -f cbm --cpu 6510 -o build/artybot.prg src/main.asm
 ```
 
 Alternatively use `make` (`make run` builds and starts VICE). The paths to
