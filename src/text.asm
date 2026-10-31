@@ -97,15 +97,68 @@ str_stats_no !text "No",0
 str_title_menu  !text " Menu ",0
 str_title_new   !text "Start New Game",0
 str_title_cont  !text "Continue Game",0
+str_title_instr !text "Instructions",0
 str_title_cred  !text "Credits",0
 str_title_quit  !text "Quit Game",0
 
-str_title_nocont !text "Not available yet ",0
+str_title_nocont !text " Not available yet ",0
 str_title_tag   !text "- a robot programming puzzle -",0
 str_title_by    !text "by Goodwell",0
 str_title_comp1 !text "Created for the Forum64 KI Coding",0
 str_title_comp2 !text "Competition in October 2026",0
 str_title_credits !text " Credits ",0
+; --- Instructions (title.asm title_instructions). Per page: header, footer,
+; lines ("#" = yellow heading), $FF. Max. 36 characters per line, 22 lines.
+str_instr1     !text " How to play (1/2) ",0
+                !text " Any key: next page ",0
+                !text "#Meet ArtyBot",0
+                !text "ArtyBot is a great robot with one",0
+                !text "tiny flaw: he does exactly what you",0
+                !text "tell him. Not more, not less.",0
+                !text "(Okay, that is kind of the point.)",0
+                !byte 0
+                !text "#Your job",0
+                !text "Get every package onto a target.",0
+                !text "Write a plan, run it, lean back.",0
+                !byte 0
+                !text "#How it goes",0
+                !text "1 Walk to a level on the world map",0
+                !text "  and press Space.",0
+                !text "2 Have a quick preview with F1.",0
+                !text "3 Hit F1 again to go back to",0
+                !text "  plan mode.",0
+                !text "4 Build a command list: click the",0
+                !text "  icons or press Q W E A S D Z X C.",0
+                !text "  New commands go in at the marker.",0
+                !text "5 Hit F1 and Space to run the plan.",0
+                !text "6 Didn't work? F1 takes you back to",0
+                !text "  the plan. Fix it, try again.",0
+                !byte $FF
+str_instr2     !text " How to play (2/2) ",0
+                !text " Any key: let's go ",0
+                !text "#Commands",0
+                !text "Move Fwd/Back  one field",0
+                !text "Turn           left, right or 180",0
+                !text "Pick Up/Drop   the field in front",0
+                !text "Jump           over one field",0
+                !text "Throw          package lands 2 ahead",0
+                !byte 0
+                !text "#Things on the field",0
+                !text "Trees block everything. Rude.",0
+                !text "Water: ArtyBot can't swim, but he",0
+                !text "  can jump or throw across it.",0
+                !text "Ice: you slide until you hit land.",0
+                !text "  It's thin - don't jump onto it.",0
+                !text "Keys: drop or throw one into the",0
+                !text "  lock and a door opens.",0
+                !byte 0
+                !text "#Editing the plan",0
+                !text "Cursor moves the marker, Return",0
+                !text "picks the command above it. Then",0
+                !text "Cursor moves it, Del deletes it.",0
+                !text "Par shows once a level is solved.",0
+                !text "Beat it, if you can!",0
+                !byte $FF
 ; --- End screen (title.asm, same charset rules as the title)
 str_end_tag     !text "Congratulations! Every level solved.",0
 str_end_record  !text " Your record ",0

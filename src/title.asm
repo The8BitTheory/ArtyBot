@@ -2,23 +2,24 @@
 ; Picture (logo + robot) from gfx_title.asm (tools/gen_title.py), menu and
 ; footer drawn on top. Raster split at TITLE_SPLIT_LINE: logo colours above,
 ; robot colours below ($D022/$D023). Keys: W/S or cursor up/down, Return or
-; Space selects, 1-4 direct; mouse: point and click.
+; Space selects, 1-5 direct; mouse: point and click.
 
-TITLE_ITEMS   = 4
+TITLE_ITEMS   = 5
 TITLE_WIN_X   = 18              ; menu window (outer frame)
-TITLE_WIN_Y   = 10
+TITLE_WIN_Y   = 9
 TITLE_WIN_W   = 21
-TITLE_WIN_H   = 11
+TITLE_WIN_H   = 13
 TITLE_ITEM_X  = 22              ; first text column of the items
 TITLE_HAND_X  = 20
-TITLE_ITEM_Y  = 12              ; row of item 0, items 2 rows apart
-TITLE_HINT_Y  = 21              ; hint / message row under the window
+TITLE_ITEM_Y  = 11              ; row of item 0, items 2 rows apart
+TITLE_HINT_Y  = TITLE_WIN_Y+TITLE_WIN_H-1  ; hint in the bottom edge of the window
 TITLE_MEMPTR  = $04             ; screen $C000, charset $D000 (bank 3)
 GAME_MEMPTR   = $02             ; screen $C000, charset $C800
-KEY_1         = 56              ; keyboard matrix codes of 1, 2, 3, 4
+KEY_1         = 56              ; keyboard matrix codes of 1..5
 KEY_2         = 59
 KEY_3         = 8
 KEY_4         = 11
+KEY_5         = 16
 TITLE_COL_FRAME = COL_CYAN
 TITLE_COL_ITEM  = COL_WHITE
 TITLE_COL_SEL   = COL_YELLOW
@@ -65,6 +66,9 @@ title_mode
         beq .num
         inx
         cmp #KEY_4
+        beq .num
+        inx
+        cmp #KEY_5
         bne .loop
 .num    txa
         jsr title_select
@@ -91,8 +95,14 @@ title_mode
         cmp #1
         beq .continue
         cmp #2
+        beq .instructions
+        cmp #3
         beq .credits
-        jmp system_reset        ; item 4: quit (soft reset)
+        jmp system_reset        ; item 5: quit (soft reset)
+.instructions
+        jsr title_instructions
+        jsr title_draw
+        jmp .loop
 .credits
         jsr title_credits
         jsr title_draw
@@ -158,21 +168,7 @@ title_draw
         sta VIC_MEMPTR
         +copy title_screen, SCREEN, 1000
         +copy title_colors, COLORRAM, 1000
-        lda #TITLE_COL_FRAME
-        sta cur_col
-        lda #TITLE_WIN_W
-        sta win_w
-        ldx #TITLE_WIN_X
-        ldy #TITLE_WIN_Y
-        lda #TITLE_WIN_H
-        jsr draw_window
-        ldx #TITLE_WIN_X+2      ; " Menu " in the top edge
-        ldy #TITLE_WIN_Y
-        jsr set_cursor
-        lda #<str_title_menu
-        ldx #>str_title_menu
-        jsr put_str
-        jsr title_draw_items
+        jsr title_draw_menu
         lda #COL_CYAN           ; tagline under the logo
         sta cur_col
         lda #<str_title_tag
@@ -204,6 +200,26 @@ title_draw
         lda #0
         sta title_msg
         rts
+
+; Menu window frame with " Menu " and the items (also restores the bottom
+; edge after a hint message).
+!zone title_draw_menu
+title_draw_menu
+        lda #TITLE_COL_FRAME
+        sta cur_col
+        lda #TITLE_WIN_W
+        sta win_w
+        ldx #TITLE_WIN_X
+        ldy #TITLE_WIN_Y
+        lda #TITLE_WIN_H
+        jsr draw_window
+        ldx #TITLE_WIN_X+2      ; " Menu " in the top edge
+        ldy #TITLE_WIN_Y
+        jsr set_cursor
+        lda #<str_title_menu
+        ldx #>str_title_menu
+        jsr put_str
+        jmp title_draw_items
 
 ; A/X = string, Y = row: prints it centred in cur_col.
 !zone title_center
@@ -289,7 +305,7 @@ title_message
         pha
         txa
         pha
-        ldx #TITLE_WIN_X
+        ldx #TITLE_WIN_X+1
         ldy #TITLE_HINT_Y
         jsr set_cursor
         lda #COL_WHITE
@@ -309,6 +325,7 @@ title_anim
         beq .blink
         dec title_msg
         bne .blink
+        jsr title_draw_menu     ; hint over: restore the window edge
 .blink  lda frame
         and #$1F
         bne .done
@@ -375,6 +392,103 @@ title_mouse
         jsr title_select
         sec
         rts
+
+; Instructions: two full-screen pages (str_instr1, str_instr2), any key or
+; click turns the page; the caller redraws the title afterwards.
+!zone title_instructions
+title_instructions
+        lda #<str_instr1
+        ldx #>str_instr1
+        jsr title_page
+        lda #<str_instr2
+        ldx #>str_instr2
+        ; fall through
+
+; A/X = page: header, footer, lines ("#" first = yellow), $FF. Waits for a key.
+!zone title_page
+title_page
+        sta ptr1
+        stx ptr1+1
+        lda #0
+        sta VIC_SPR_EN
+        ldx #0                  ; blank screen, white text colour
+.clr    lda #' '
+        sta SCREEN,x
+        sta SCREEN+250,x
+        sta SCREEN+500,x
+        sta SCREEN+750,x
+        lda #COL_WHITE
+        sta COLORRAM,x
+        sta COLORRAM+250,x
+        sta COLORRAM+500,x
+        sta COLORRAM+750,x
+        inx
+        cpx #250
+        bne .clr
+        lda #COL_CYAN
+        sta cur_col
+        lda #40
+        sta win_w
+        ldx #0
+        ldy #0
+        lda #25
+        jsr draw_window
+        ldx #2                  ; header in the top edge
+        ldy #0
+        jsr set_cursor
+        jsr .string
+        ldx #2                  ; footer in the bottom edge
+        ldy #24
+        jsr set_cursor
+        jsr .string
+        lda #2
+        sta tmp0                ; text row
+.line   ldy #0
+        lda (ptr1),y
+        cmp #$FF
+        beq .wait
+        ldx #COL_WHITE
+        cmp #'#'
+        bne .plain
+        inc ptr1                ; skip the marker, heading in yellow
+        bne +
+        inc ptr1+1
++       ldx #COL_YELLOW
+.plain  stx cur_col
+        ldx #2
+        ldy tmp0
+        jsr set_cursor
+        jsr .string
+        inc tmp0
+        jmp .line
+.wait   jsr wait_frame
+        jsr title_split
+        jsr input_update
+        lda mouse_click
+        bne .done
+        lda key_new
+        cmp #$FF
+        beq .wait
+        lda key_repeat
+        bne .wait
+.done   rts
+; prints the string at ptr1 and moves ptr1 behind its terminator
+.string lda ptr1
+        ldx ptr1+1
+        jsr put_str
+        ldy #0
+.skip   lda (ptr1),y
+        beq .end
+        iny
+        bne .skip
+.end    iny
+        tya
+        clc
+        adc ptr1
+        sta ptr1
+        bcc +
+        inc ptr1+1
++       rts
 
 ; Credits: window over the picture, any key or click returns.
 !zone title_credits
@@ -675,8 +789,8 @@ end_y      !byte 0
 end_i      !byte 0
 end_sum    !word 0
 
-title_item_lo !byte <str_title_new, <str_title_cont, <str_title_cred, <str_title_quit
-title_item_hi !byte >str_title_new, >str_title_cont, >str_title_cred, >str_title_quit
+title_item_lo !byte <str_title_new, <str_title_cont, <str_title_instr, <str_title_cred, <str_title_quit
+title_item_hi !byte >str_title_new, >str_title_cont, >str_title_instr, >str_title_cred, >str_title_quit
 title_sel     !byte 0           ; selected menu item
 title_msg     !byte 0           ; frames until the hint returns (0 = none)
 title_mx      !byte 0           ; last mouse position (hover detection)
