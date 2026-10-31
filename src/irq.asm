@@ -22,6 +22,7 @@ irq_handler
         sta VIC_IRR             ; alle VIC-IRQs quittieren
         inc frame
         jsr sound_tick
+        jsr music_tick
         pla
         tay
         pla

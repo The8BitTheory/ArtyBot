@@ -2,34 +2,35 @@
 ; Picture (logo + robot) from gfx_title.asm (tools/gen_title.py), menu and
 ; footer drawn on top. Raster split at TITLE_SPLIT_LINE: logo colours above,
 ; robot colours below ($D022/$D023). Keys: W/S or cursor up/down, Return or
-; Space selects, 1-5 direct; mouse: point and click.
+; Space selects, 1-4 direct; mouse: point and click.
 
-TITLE_ITEMS   = 5
+TITLE_ITEMS   = 4
 TITLE_WIN_X   = 18              ; menu window (outer frame)
-TITLE_WIN_Y   = 9
+TITLE_WIN_Y   = 10
 TITLE_WIN_W   = 21
-TITLE_WIN_H   = 13
+TITLE_WIN_H   = 11
 TITLE_ITEM_X  = 22              ; first text column of the items
 TITLE_HAND_X  = 20
-TITLE_ITEM_Y  = 11              ; row of item 0, items 2 rows apart
+TITLE_ITEM_Y  = 12              ; row of item 0, items 2 rows apart
 TITLE_HINT_Y  = TITLE_WIN_Y+TITLE_WIN_H-1  ; hint in the bottom edge of the window
 TITLE_MEMPTR  = $04             ; screen $C000, charset $D000 (bank 3)
 GAME_MEMPTR   = $02             ; screen $C000, charset $C800
-KEY_1         = 56              ; keyboard matrix codes of 1..5
+KEY_1         = 56              ; keyboard matrix codes of 1..4
 KEY_2         = 59
 KEY_3         = 8
 KEY_4         = 11
-KEY_5         = 16
 TITLE_COL_FRAME = COL_CYAN
 TITLE_COL_ITEM  = COL_WHITE
 TITLE_COL_SEL   = COL_YELLOW
 
 !zone title_mode
 title_mode
+        jsr music_start
         lda #0
         sta title_sel
         jsr title_draw
 .loop   jsr wait_frame
+        jsr title_refresh       ; menu redraw in the vertical blank (no flicker)
         jsr title_split
         jsr input_update
         jsr title_pointer
@@ -66,9 +67,6 @@ title_mode
         beq .num
         inx
         cmp #KEY_4
-        beq .num
-        inx
-        cmp #KEY_5
         bne .loop
 .num    txa
         jsr title_select
@@ -93,12 +91,10 @@ title_mode
 .go     lda title_sel
         beq .new_game
         cmp #1
-        beq .continue
-        cmp #2
         beq .instructions
-        cmp #3
+        cmp #2
         beq .credits
-        jmp system_reset        ; item 5: quit (soft reset)
+        jmp system_reset        ; item 4: quit (soft reset)
 .instructions
         jsr title_instructions
         jsr title_draw
@@ -106,12 +102,6 @@ title_mode
 .credits
         jsr title_credits
         jsr title_draw
-        jmp .loop
-.continue                       ; not implemented yet
-        jsr sound_error
-        lda #<str_title_nocont
-        ldx #>str_title_nocont
-        jsr title_message
         jmp .loop
 .new_game
         jsr sound_place
@@ -132,6 +122,7 @@ title_return
 ; Back to the game screen setup: game charset, theme colours, no sprites.
 !zone title_leave
 title_leave
+        jsr music_stop
         lda #0
         sta VIC_SPR_EN
         lda #GAME_MEMPTR
@@ -244,12 +235,25 @@ title_center
         ldx ptr2+1
         jmp put_str
 
-; Draws the three items; the selected one in yellow with the pointing hand.
+; Draws all items; the selected one in yellow with the pointing hand.
 !zone title_draw_items
 title_draw_items
         lda #0
+        sta title_dirty
         sta tmp0
-.l      lda tmp0
+.l      jsr title_draw_item
+        inc tmp0
+        lda tmp0
+        cmp #TITLE_ITEMS
+        bne .l
+        rts
+
+; Draws item tmp0 (hand + text). Called per changed item only: redrawing the
+; whole menu after a key press takes longer than the frame has left after the
+; raster split, which made the title screen flicker.
+!zone title_draw_item
+title_draw_item
+        lda tmp0
         asl
         clc
         adc #TITLE_ITEM_Y
@@ -275,12 +279,7 @@ title_draw_items
         lda title_item_hi,x
         tax
         pla
-        jsr put_str
-        inc tmp0
-        lda tmp0
-        cmp #TITLE_ITEMS
-        bne .l
-        rts
+        jmp put_str
 
 ; Mouse pointer only (sprite 1, the plan's insertion marker, stays off).
 !zone title_pointer
@@ -290,14 +289,41 @@ title_pointer
         sta VIC_SPR_EN
         rts
 
-; A = item: select it and redraw the items (if it changed).
+; A = item: select it. Only the two changed items are marked in title_dirty
+; (bit mask); title_refresh redraws them in the next vertical blank, because
+; drawing while the beam passes the menu made the screen flicker.
 !zone title_select
 title_select
         cmp title_sel
         beq .same
+        ldx title_sel           ; old item loses hand and highlight
         sta title_sel
-        jmp title_draw_items
+        lda title_bits,x
+        ora title_dirty
+        sta title_dirty
+        ldx title_sel
+        lda title_bits,x
+        ora title_dirty
+        sta title_dirty
 .same   rts
+
+; Called right after wait_frame (raster line 250): redraw the marked items.
+!zone title_refresh
+title_refresh
+        lda title_dirty
+        beq .done
+        ldx #0
+        stx tmp0
+.l      lsr title_dirty
+        bcc .next
+        jsr title_draw_item     ; tmp0 = item
+.next   inc tmp0
+        lda tmp0
+        cmp #TITLE_ITEMS
+        bne .l
+        lda #0
+        sta title_dirty
+.done   rts
 
 ; A/X = message for the hint row, shown for about 2 seconds.
 !zone title_message
@@ -789,8 +815,10 @@ end_y      !byte 0
 end_i      !byte 0
 end_sum    !word 0
 
-title_item_lo !byte <str_title_new, <str_title_cont, <str_title_instr, <str_title_cred, <str_title_quit
-title_item_hi !byte >str_title_new, >str_title_cont, >str_title_instr, >str_title_cred, >str_title_quit
+title_item_lo !byte <str_title_new, <str_title_instr, <str_title_cred, <str_title_quit
+title_item_hi !byte >str_title_new, >str_title_instr, >str_title_cred, >str_title_quit
+title_bits    !byte 1, 2, 4, 8
+title_dirty   !byte 0           ; bit mask of items to redraw (title_refresh)
 title_sel     !byte 0           ; selected menu item
 title_msg     !byte 0           ; frames until the hint returns (0 = none)
 title_mx      !byte 0           ; last mouse position (hover detection)

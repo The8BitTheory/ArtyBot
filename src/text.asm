@@ -2,11 +2,10 @@ str_title !text "ArtyBot - Plan - ",0   ; + "<world> <n>" (put_level_name)
 str_title_pad !text "    ",0
 str_program_count !text " PROGRAM: 00/99",0
 str_select_help !text "Cur:move Ret:OK",0        ; two rows of INFO_W characters
-                !text "Del:delete "
                 !byte $1F
-                !text ":esc",0
+                !text ":cancel",0
 str_idle_help !text "Cur:move marker",0     ; two rows of INFO_W characters
-              !text "Ret:edit above",0
+              !text "Ret:edit Del:del",0
 str_delete_help !text "Return:delete",0
                 !byte $1F
                 !text ":keep",0
@@ -96,7 +95,6 @@ str_stats_no !text "No",0
 ; --- Title screen (title.asm). No [ \ ] ^ _ @ here: those codes are title graphics.
 str_title_menu  !text " Menu ",0
 str_title_new   !text "Start New Game",0
-str_title_cont  !text "Continue Game",0
 str_title_instr !text "Instructions",0
 str_title_cred  !text "Credits",0
 str_title_quit  !text "Quit Game",0
@@ -153,11 +151,11 @@ str_instr2     !text " How to play (2/2) ",0
                 !text "  lock and a door opens.",0
                 !byte 0
                 !text "#Editing the plan",0
-                !text "Cursor moves the marker, Return",0
-                !text "picks the command above it. Then",0
-                !text "Cursor moves it, Del deletes it.",0
-                !text "Par shows once a level is solved.",0
-                !text "Beat it, if you can!",0
+                !text "Cursor moves the marker. Return",0
+                !text "grabs the command above it;",0
+                !text "then Cursor moves it. Del deletes",0
+                !text "it (asks first). Par shows once",0
+                !text "solved. Beat it, if you can!",0
                 !byte $FF
 ; --- End screen (title.asm, same charset rules as the title)
 str_end_tag     !text "Congratulations! Every level solved.",0

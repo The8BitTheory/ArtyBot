@@ -259,10 +259,7 @@ editor_handle_input
 .other_key
         lda selection_active
         beq .not_selected
-        lda key_new
-        bne .not_delete
-        jmp .delete
-.not_delete
+        lda key_new             ; while a row is grabbed Del does nothing
         cmp #1                  ; Return
         bne .not_return
         jmp .confirm
@@ -270,8 +267,11 @@ editor_handle_input
         rts
 .not_selected
         lda key_new
-        cmp #1                  ; Return: select the command above the marker
+        cmp #1                  ; Return: grab the command above the marker
+        beq .pick_row
+        cmp #0                  ; Del: delete it (asks first)
         bne .palette_key
+.pick_row
         lda key_repeat
         bne .no_select
         lda editor_count
@@ -282,6 +282,11 @@ editor_handle_input
         sbc #1
 .select_row
         jsr editor_select_item
+        lda key_new
+        bne .no_select          ; Return: just grabbed
+        lda #1                  ; Del: ask "Return:delete / <-:keep"
+        sta delete_pending
+        jsr editor_show_selection_help
 .no_select
         rts
 .palette_key
@@ -326,13 +331,6 @@ editor_handle_input
         rts
 .selected_down
         jsr editor_move_selected_down
-        rts
-.delete
-        lda key_repeat
-        bne .done
-        lda #1
-        sta delete_pending
-        jsr editor_show_selection_help
         rts
 .confirm
         lda key_repeat
