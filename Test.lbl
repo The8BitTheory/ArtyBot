@@ -1596,7 +1596,7 @@ al C:7da4 .str_end_total
 al C:7db2 .str_end_key1
 al C:7dc0 .str_end_key2
 al C:7dd0 .str_credits
-al C:7e5d .prg_end
+al C:7e96 .prg_end
 al C:8b38 .freq
 al C:af68 .freq
 al C:c000 .BANK_BASE

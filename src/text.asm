@@ -171,5 +171,8 @@ str_credits     !text "ArtyBot",0
                 !text "Code, Art, Sound:      Claude 5.5",0
                 !text "Assembler:             ACME",0
                 !text " ",0
+                !text "Special Thx to TheRealWanderer",0
+                !text " for hosting the Compo.",0
+                !text " ",0
                 !text "Dedicated to  Julia, Ben & Silvia",0
                 !byte $FF

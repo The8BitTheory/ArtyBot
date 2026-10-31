@@ -62,14 +62,14 @@ TTTTTTTTTTTTTTTTTTT
 # the gate. The archway at the bottom left leads back to the meadow.
 WORLDS.append(('winter', """
 TTTTTTTTTTTTTTT[]TT
-T,4.......6,,T,.,,T
-T,.,,T,*,,.,,,,9,,T
+T4.........6,T,.,,T
+T,.,,T,*,,.,,,,.9,T
 T,.~~~~~,,.,T,,.,,T
-T,.~~~~~~,5......8T
-T,2~~~~~~,.,,.,*,,T
+T,.~~~~~~5.......8T
+T2.~~~~~~,.,,.,*,,T
 T,.,~~~~,,.,,7,T,,T
-T,.,*,T,,,.,T,,,*,T
-<S1.......3,,,*,,,T
+T,.1*,T,,,.,T,,,*,T
+<S.........3,,*,,,T
 TTTTTTTTTTTTTTTTTTT
 """))
 
