@@ -5,6 +5,8 @@ str_select_help !text "Cur:move Ret:OK",0        ; two rows of INFO_W characters
                 !text "Del:delete "
                 !byte $1F
                 !text ":esc",0
+str_idle_help !text "Cur:move marker",0     ; two rows of INFO_W characters
+              !text "Ret:edit above",0
 str_delete_help !text "Return:delete",0
                 !byte $1F
                 !text ":keep",0

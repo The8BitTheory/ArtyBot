@@ -8,7 +8,6 @@ ui_col   = $2D
 ; $2E is mouse_raw_x in zp.inc; keep this state in an unused zero-page slot.
 exit_confirm = $43
 arrow_rep = $61              ; auto-repeat counter for scrollbar arrow clicks
-PALETTE_NUM = 18
 AVAILABLE_COMMANDS = 9
 PROGRAM_ROWS = 17
 
@@ -108,6 +107,8 @@ editor_clear_program
         rts
 ; Mouse clicks and palette letters share the same insert path. Up/down move
 ; the insertion point; letter auto-repeat is ignored so one press inserts once.
+; Return selects the command directly above the insertion marker (the first
+; command if the marker is above it); letters are case-insensitive.
 !zone editor_handle_input
 editor_handle_input
         lda exit_confirm
@@ -266,49 +267,22 @@ editor_handle_input
         bne .not_return
         jmp .confirm
 .not_return
-        lda key_shift
-        bne .upper_select
-        rts                     ; only uppercase letters select list rows
-.upper_select
-        lda key_repeat
-        beq .not_repeat_select
-        rts
-.not_repeat_select
-        lda key_new
-        jsr key_to_palette
-        bcs .active_key_valid
-        rts
-.active_key_valid
-        sta selection_target
-        jsr editor_cancel_selection
-        lda selection_target
-        clc
-        adc scroll_offset
-        cmp editor_count
-        bcc .active_row_valid
-        rts
-.active_row_valid
-        jsr editor_select_item
         rts
 .not_selected
-        lda key_shift
-        beq .palette_key
-        lda key_repeat
-        beq .first_upper_press
-        rts
-.first_upper_press
         lda key_new
-        jsr key_to_palette
-        bcs .upper_key_valid
-        rts
-.upper_key_valid
-        clc
-        adc scroll_offset
-        cmp editor_count
-        bcc .row_valid
-        rts
-.row_valid
+        cmp #1                  ; Return: select the command above the marker
+        bne .palette_key
+        lda key_repeat
+        bne .no_select
+        lda editor_count
+        beq .no_select
+        lda insert_pos
+        beq .select_row         ; marker above the first command: take it
+        sec
+        sbc #1
+.select_row
         jsr editor_select_item
+.no_select
         rts
 .palette_key
         lda key_repeat
@@ -693,23 +667,6 @@ list_hit_test
 .miss   clc
         rts
 
-; Translate C64 keyboard-matrix codes for A through R to palette indexes.
-!zone key_to_palette
-key_to_palette
-        sta selected_command
-        ldx #0
-.scan   lda palette_key_codes,x
-        cmp selected_command
-        beq .found
-        inx
-        cpx #PALETTE_NUM
-        bne .scan
-        clc
-        rts
-.found  txa
-        sec
-        rts
-
 !zone editor_insert
 editor_insert                  ; A = command index (0..AVAILABLE_COMMANDS-1)
         cmp #AVAILABLE_COMMANDS
@@ -989,7 +946,8 @@ draw_planning_screen
         jsr draw_palette_panel
         jsr draw_program_panel
         jsr draw_help_areas
-        rts
+        lda #$FF
+        jmp editor_draw_info    ; idle help text in the info window
 
 !zone draw_title_and_counters
 draw_title_and_counters
@@ -1278,8 +1236,8 @@ draw_short_name
         lda tmp0
         jmp put_str
 
-; Redraw 17 visible rows as "A 01 Text". Letters select visible rows; numbers
-; are absolute command positions (01-99).
+; Redraw 17 visible rows as "01 Text" (same columns as the run list). Numbers
+; are absolute command positions (01-99); column 23 holds the insertion marker.
 !zone draw_program_list
 draw_program_list
         lda #0
@@ -1337,21 +1295,14 @@ draw_list_row
         bne .number
         lda #COL_YELLOW
         sta cur_col
-.number ldx #23
-        ldy ui_row
-        jsr set_cursor
-        lda ui_index
-        clc
-        adc #$41                ; A-R selects the corresponding visible row
-        jsr put_char
-        ldx #25
+.number ldx #24
         ldy ui_row
         jsr set_cursor
         lda tmp0
         clc
         adc #1                  ; display one-based running number
         jsr draw_decimal2
-        ldx #28
+        ldx #27
         ldy ui_row
         jsr set_cursor
         ldx tmp0
@@ -1538,8 +1489,14 @@ editor_draw_info                ; A = command index, or $FF to clear
         cmp #$50
         bcc .palette_text
         cmp #$FF
-        beq .done
+        beq .idle_help
         jmp draw_map_info
+.idle_help                      ; nothing hovered: explain cursor keys and Return
+        lda #COL_WHITE
+        sta cur_col
+        lda #<str_idle_help
+        ldx #>str_idle_help
+        jmp editor_draw_message2
 .palette_text
         cmp #AVAILABLE_COMMANDS
         bcs .done
@@ -1655,9 +1612,6 @@ palette_icon_chars
         !byte ICON_CHAR_BASE+0, ICON_CHAR_BASE+4, ICON_CHAR_BASE+8, ICON_CHAR_BASE+12
         !byte ICON_CHAR_BASE+16, ICON_CHAR_BASE+20, ICON_CHAR_BASE+24
         !byte ICON2_CHAR_BASE+0, ICON2_CHAR_BASE+4
-
-palette_key_codes            ; C64 keyboard matrix positions for A-R
-        !byte 10,28,20,18,14,21,26,29,33,34,37,42,36,39,38,41,62,17
 
 short_name_ptrs
         !word short_forward,short_backward,short_turn_right,short_turn_left
