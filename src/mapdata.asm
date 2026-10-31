@@ -56,7 +56,7 @@ world1_levels                           ; world 1: Meadow
 WORLD1_LEVELS = (* - world1_levels) / 2
 world2_levels                           ; world 2: Winter
         !word map21                     ; ice: skating (taught level by level)
-        !word map22, map23, map24, map25, map26, map27, map28, map29 ; PLACEHOLDERS
+        !word map22, map23, map24, map25, map26, map27, map28, map29
 WORLD2_LEVELS = (* - world2_levels) / 2
 plan_level_count = (* - plan_level_table) / 2
 !if WORLD1_LEVELS > 9 | WORLD2_LEVELS > 9 {
@@ -566,13 +566,48 @@ map28
         !byte 1, 9
         !byte 1                     ; lock/door pairs: lock x, y, door x, y
         !byte 6, 6, 4, 3
-; map29: PLACEHOLDER until the final level is built (package in front of
-; the robot, goal one field further: Pick Up, Move Fwd, Drop Off).
+
+; map29 (Winter 9, "The drawbridge"):
+; the finale. A ditch of open water guards the north. The west bank is reached by a
+; jump from the snow island at (2,4); the walled yard in the east only over the
+; drawbridge: the door at (7,3) lies in the ditch and becomes a bridge once the key
+; is in the lock out on the ice at (4,5). From the bank the lock is out of throwing
+; range (the key would land on the ice and break it); skate up column 4, the lock
+; stops the robot. Every other column runs into the ditch.
+;
+;    T....T.G.T
+;    T.G..T...T
+;    T....T...T
+;    ~~~~~~~D~~
+;    ##.#######
+;    ####L#####
+;    ##########
+;    ##########
+;    ..........
+;    .P.K^.P...
+;    (. snow  # ice  ~ water  T pine  P package  G goal  K key  L/M lock  D/E door)
 map29
-        !byte 4, 8, ROBOT_DIR_UP
-        !byte 1, 4, 6                   ; goal
-        !byte 1, 4, 7                   ; package
-        !byte 0, 0, 0, 0, 0             ; trees, water, ice, keys, locks
+        !byte 4, 9, ROBOT_DIR_UP
+        !byte 2                     ; goal fields (x, y)
+        !byte 7, 0, 2, 1
+        !byte 2                     ; packages (x, y)
+        !byte 1, 9, 6, 9
+        !byte 9                     ; blockers (x, y)
+        !byte 0, 0, 5, 0, 9, 0, 0, 1, 5, 1, 9, 1, 0, 2, 5, 2
+        !byte 9, 2
+        !byte 9                     ; water fields (x, y)
+        !byte 0, 3, 1, 3, 2, 3, 3, 3, 4, 3, 5, 3, 6, 3, 8, 3
+        !byte 9, 3
+        !byte 38                    ; ice fields (frozen water) (x, y)
+        !byte 0, 4, 1, 4, 3, 4, 4, 4, 5, 4, 6, 4, 7, 4, 8, 4
+        !byte 9, 4, 0, 5, 1, 5, 2, 5, 3, 5, 5, 5, 6, 5, 7, 5
+        !byte 8, 5, 9, 5, 0, 6, 1, 6, 2, 6, 3, 6, 4, 6, 5, 6
+        !byte 6, 6, 7, 6, 8, 6, 9, 6, 0, 7, 1, 7, 2, 7, 3, 7
+        !byte 4, 7, 5, 7, 6, 7, 7, 7, 8, 7, 9, 7
+        !byte 1                     ; keys (x, y)
+        !byte 3, 9
+        !byte 1                     ; lock/door pairs: lock x, y, door x, y
+        !byte 4, 5, 7, 3
 
 ; A = level number. Copies its record into the game variables and builds the
 ; field layer including the blockers. Invalid numbers fall back to level 0.

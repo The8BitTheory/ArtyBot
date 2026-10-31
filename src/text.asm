@@ -102,6 +102,12 @@ str_title_by    !text "by Goodwell",0
 str_title_comp1 !text "Created for the Forum64 KI Coding",0
 str_title_comp2 !text "Competition in October 2026",0
 str_title_credits !text " Credits ",0
+; --- End screen (title.asm, same charset rules as the title)
+str_end_tag     !text "Congratulations! Every level solved.",0
+str_end_record  !text " Your record ",0
+str_end_total   !text " Total cmds: ",0
+str_end_key1    !text "Return: title",0
+str_end_key2    !text "F7: back to map",0
 str_credits     !text "ArtyBot",0
                 !text " ",0
                 !text "Idea, design, levels:  Goodwell",0

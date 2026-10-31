@@ -440,6 +440,223 @@ title_credits
         bne .wait
 .done   rts
 
+; ---- End screen ---------------------------------------------------------------
+; Shown when the robot steps through the open gate of the last world. Style of
+; the title (logo, END_CHARSET with a trophy instead of the robot), on the right
+; the record of every level (runs, fewest commands) as a certificate.
+; Return: title screen, F7: back onto the map (in front of the gate).
+END_WIN_X     = 18
+END_WIN_Y     = 9
+END_WIN_W     = 21
+END_WIN_H     = 16              ; rows 9-24: header + 13 levels
+END_ROWS      = END_WIN_H - 3   ; level rows that fit
+END_NAME_X    = 20
+END_RUNS_X    = 29
+END_CMDS_X    = 34
+END_KEYS_X    = 2
+END_MEMPTR    = $06             ; screen $C000, charset $D800 (bank 3)
+
+!zone end_mode
+end_mode
+        lda wm_prevx            ; the robot waits in front of the gate
+        sta wm_cx
+        lda wm_prevy
+        sta wm_cy
+        jsr world_save_pos
+        jsr end_draw
+        jsr sound_celebrate
+.wait   jsr wait_frame
+        jsr title_split
+        jsr input_update
+        lda key_new
+        cmp #$FF
+        beq .wait
+        ldx key_repeat
+        bne .wait
+        cmp #KEY_RETURN
+        beq .title
+        cmp #KEY_F7
+        bne .wait
+        lda key_shift           ; F8 (Shift+F7) does nothing here
+        bne .wait
+        jsr title_leave
+        ldx #$FF                ; top level again (we came from inside world_mode)
+        txs
+        jmp world_mode
+.title  ldx #$FF
+        txs
+        jmp title_mode
+
+!zone end_draw
+end_draw
+        lda #0
+        sta VIC_SPR_EN
+        lda #END_MEMPTR
+        sta VIC_MEMPTR
+        +copy end_screen, SCREEN, 1000
+        +copy end_colors, COLORRAM, 1000
+        lda #COL_CYAN           ; line under the logo
+        sta cur_col
+        lda #<str_end_tag
+        ldx #>str_end_tag
+        ldy #8
+        jsr title_center
+        lda #COL_WHITE          ; keys under the trophy
+        sta cur_col
+        ldx #END_KEYS_X
+        ldy #22
+        jsr set_cursor
+        lda #<str_end_key1
+        ldx #>str_end_key1
+        jsr put_str
+        ldx #END_KEYS_X
+        ldy #23
+        jsr set_cursor
+        lda #<str_end_key2
+        ldx #>str_end_key2
+        jsr put_str
+        lda #TITLE_COL_FRAME    ; the record window
+        sta cur_col
+        lda #END_WIN_W
+        sta win_w
+        ldx #END_WIN_X
+        ldy #END_WIN_Y
+        lda #END_WIN_H
+        jsr draw_window
+        ldx #END_WIN_X+2
+        ldy #END_WIN_Y
+        jsr set_cursor
+        lda #<str_end_record
+        ldx #>str_end_record
+        jsr put_str
+        lda #COL_CYAN           ; column heads
+        sta cur_col
+        ldx #END_NAME_X
+        ldy #END_WIN_Y+1
+        jsr set_cursor
+        lda #<str_stats_level
+        ldx #>str_stats_level
+        jsr put_str
+        ldx #END_RUNS_X
+        ldy #END_WIN_Y+1
+        jsr set_cursor
+        lda #<str_stats_runs
+        ldx #>str_stats_runs
+        jsr put_str
+        ldx #END_CMDS_X-1
+        ldy #END_WIN_Y+1
+        jsr set_cursor
+        lda #<str_stats_cmds
+        ldx #>str_stats_cmds
+        jsr put_str
+        lda #0
+        sta end_lvl
+        sta end_sum
+        sta end_sum+1
+.row    lda end_lvl
+        cmp #plan_level_count
+        beq .total
+        cmp #END_ROWS
+        beq .total
+        clc
+        adc #END_WIN_Y+2
+        sta end_y
+        tay
+        ldx #END_NAME_X
+        jsr set_cursor
+        lda #COL_WHITE
+        sta cur_col
+        lda end_lvl
+        jsr stats_put_level_name
+        ldx #END_RUNS_X
+        ldy end_y
+        jsr set_cursor
+        ldx end_lvl
+        lda level_runs,x
+        bne .runs
+        jsr stats_put_dash
+        jmp .cmds
+.runs   jsr stats_put_num
+.cmds   ldx #END_CMDS_X
+        ldy end_y
+        jsr set_cursor
+        ldx end_lvl
+        lda level_cmds,x
+        bne .cn
+        jsr stats_put_dash
+        jmp .next
+.cn     pha
+        clc
+        adc end_sum
+        sta end_sum
+        bcc .nc
+        inc end_sum+1
+.nc     lda #COL_YELLOW
+        sta cur_col
+        pla
+        jsr stats_put_num
+.next   inc end_lvl
+        jmp .row
+.total  lda #TITLE_COL_FRAME    ; " Total cmds: n " in the bottom edge
+        sta cur_col
+        ldx #END_WIN_X+2
+        ldy #END_WIN_Y+END_WIN_H-1
+        jsr set_cursor
+        lda #<str_end_total
+        ldx #>str_end_total
+        jsr put_str
+        lda #COL_YELLOW
+        sta cur_col
+        jsr end_put_sum
+        lda #' '
+        jmp put_char
+
+; end_sum (16 bit, < 10000) as decimal without leading zeros.
+!zone end_put_sum
+end_put_sum
+        lda #0
+        sta stat_nz
+        sta end_i
+.p      ldx end_i
+        ldy #0
+.s      lda end_sum
+        sec
+        sbc end_pow_lo,x
+        sta tmp3
+        lda end_sum+1
+        sbc end_pow_hi,x
+        bcc .d
+        sta end_sum+1
+        lda tmp3
+        sta end_sum
+        iny
+        bne .s
+.d      tya
+        bne .show
+        lda stat_nz
+        beq .skip
+.show   lda #1
+        sta stat_nz
+        tya
+        clc
+        adc #'0'
+        jsr put_char
+.skip   inc end_i
+        lda end_i
+        cmp #3
+        bne .p
+        lda end_sum
+        clc
+        adc #'0'
+        jmp put_char
+
+end_pow_lo !byte <1000, <100, 10
+end_pow_hi !byte >1000, >100, 0
+end_lvl    !byte 0
+end_y      !byte 0
+end_i      !byte 0
+end_sum    !word 0
+
 title_item_lo !byte <str_title_new, <str_title_cont, <str_title_cred
 title_item_hi !byte >str_title_new, >str_title_cont, >str_title_cred
 title_sel     !byte 0           ; selected menu item

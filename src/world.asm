@@ -1039,9 +1039,7 @@ world_check_gate
         jsr world_save_pos
         pla
         jmp world_enter
-.end    lda #<str_world_end
-        ldx #>str_world_end
-        jmp run_draw_message
+.end    jmp end_mode            ; past the last world: the end screen (title.asm)
 .no     rts
 
 ; Robot pixel position from its cell.
