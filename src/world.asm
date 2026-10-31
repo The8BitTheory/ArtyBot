@@ -444,7 +444,7 @@ world_mode
 .confirm
         cmp #KEY_RETURN
         bne .no
-        jmp system_reset
+        jmp title_return
 .no     cmp #KEY_LEFTARROW
         bne .back
         lda #0

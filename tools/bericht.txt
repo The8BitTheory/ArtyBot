@@ -1,0 +1,17 @@
+Begonnen wurde mit ChatGPT Go. Das Luna 6 Modell hat zu Beginn ein oder zwei verschiedene Prototypen gebaut, da war aber nichts dabei, was mir zugesagt hat.
+Das lag bestimmt auch daran, dass meine Anweisungen nicht fokussiert genug waren, und vielleicht auch etwas zu halbherzig.
+
+Als das Volumen aufgebraucht war, habe ich mit Claude nochmal von vorne begonnen. Da war ca die Hälfte der Zeit schon vorbei.
+Diesmal hab ich mich darauf konzentriert, den Planungsmodus Schritt für Schritt umzusetzen.
+Das hat viel besser funktioniert. Die initialen Konzepte hab ich immer von Opus 5.5 umsetzen lassen, die "Lücken" dazwischen hat dann Sonnet 5.5 geschlossen. Die Compo hier hab ich zum Anlass genommen, mir das günstigste Claude Paket zu nehmen, um etwas über 20 Euro im Monat.
+
+Als der Planungsmodus soweit fertig war, hatte ich ein kleines Motivationsloch. Mehr als "mir doch egal" Versuch hab ich dann einfach gesagt "Setze jetzt den Ausführungsmodus um".
+Und das hat auf Anhieb, im ersten Anlauf perfekt funktioniert. Die Motivation war wieder da.
+
+Optisch hat mir das ganze überhaupt nicht gefallen. Die klassischen roten Ziegelsteine als Blocker und schwarzer Untergrund.
+Also hab ich nachgedacht, welche Spiele eine gute Top-Down Perspektive zeigen. Da ist mir Lykia eingefallen. Und auch hier hat ein einziger Prompt gereicht, damit Claude ein schönes Tileset gezeichnet hat.
+
+Was hat die KI gemacht? Alles.
+
+Aus Zeitmangel (und wieder ohne große Hoffnung) habe ich Claude die ersten Levels bauen lassen. Nach der dritten oder vierten Karte (die übrigens alle wieder verworfen wurden), hat die KI aus Eigeninitiative Tools gebaut.
+zb einen Solver, der prüft ob die Karte auch Lösbar ist. Und in wievielen Schritten. Diesen Wert habe ich dann ins Spiel als Par-Wert übernommen.

@@ -2,22 +2,23 @@
 ; Picture (logo + robot) from gfx_title.asm (tools/gen_title.py), menu and
 ; footer drawn on top. Raster split at TITLE_SPLIT_LINE: logo colours above,
 ; robot colours below ($D022/$D023). Keys: W/S or cursor up/down, Return or
-; Space selects, 1-3 direct; mouse: point and click.
+; Space selects, 1-4 direct; mouse: point and click.
 
-TITLE_ITEMS   = 3
+TITLE_ITEMS   = 4
 TITLE_WIN_X   = 18              ; menu window (outer frame)
 TITLE_WIN_Y   = 10
 TITLE_WIN_W   = 21
-TITLE_WIN_H   = 9
+TITLE_WIN_H   = 11
 TITLE_ITEM_X  = 22              ; first text column of the items
 TITLE_HAND_X  = 20
 TITLE_ITEM_Y  = 12              ; row of item 0, items 2 rows apart
-TITLE_HINT_Y  = 20              ; hint / message row under the window
+TITLE_HINT_Y  = 21              ; hint / message row under the window
 TITLE_MEMPTR  = $04             ; screen $C000, charset $D000 (bank 3)
 GAME_MEMPTR   = $02             ; screen $C000, charset $C800
-KEY_1         = 56              ; keyboard matrix codes of 1, 2, 3
+KEY_1         = 56              ; keyboard matrix codes of 1, 2, 3, 4
 KEY_2         = 59
 KEY_3         = 8
+KEY_4         = 11
 TITLE_COL_FRAME = COL_CYAN
 TITLE_COL_ITEM  = COL_WHITE
 TITLE_COL_SEL   = COL_YELLOW
@@ -61,6 +62,9 @@ title_mode
         beq .num
         inx
         cmp #KEY_3
+        beq .num
+        inx
+        cmp #KEY_4
         bne .loop
 .num    txa
         jsr title_select
@@ -86,6 +90,10 @@ title_mode
         beq .new_game
         cmp #1
         beq .continue
+        cmp #2
+        beq .credits
+        jmp system_reset        ; item 4: quit (soft reset)
+.credits
         jsr title_credits
         jsr title_draw
         jmp .loop
@@ -101,6 +109,15 @@ title_mode
         jsr editor_init
         jsr world_init
         jmp world_mode          ; world 1 (world_init selects world 0)
+
+; F8 in the game screens: back to the title screen from anywhere. The caller
+; may sit deep inside a mode, so the stack starts over.
+!zone title_return
+title_return
+        jsr sound_stop
+        ldx #$FF
+        txs
+        jmp title_mode
 
 ; Back to the game screen setup: game charset, theme colours, no sprites.
 !zone title_leave
@@ -658,8 +675,8 @@ end_y      !byte 0
 end_i      !byte 0
 end_sum    !word 0
 
-title_item_lo !byte <str_title_new, <str_title_cont, <str_title_cred
-title_item_hi !byte >str_title_new, >str_title_cont, >str_title_cred
+title_item_lo !byte <str_title_new, <str_title_cont, <str_title_cred, <str_title_quit
+title_item_hi !byte >str_title_new, >str_title_cont, >str_title_cred, >str_title_quit
 title_sel     !byte 0           ; selected menu item
 title_msg     !byte 0           ; frames until the hint returns (0 = none)
 title_mx      !byte 0           ; last mouse position (hover detection)

@@ -39,8 +39,8 @@ str_leg_ice !text "Ice",0
 str_leg_key !text "Key",0
 str_leg_lock !text "Lock",0
 str_leg_door !text "Door",0
-str_bottom_commands !text "F1:Run F7:Map F8:Quit",0
-str_quit_confirm !text "Really quit?",0
+str_bottom_commands !text "F1:Run F7:Map F8:Title",0
+str_quit_confirm !text "Back to title?",0
 str_clear_confirm !text "Really clear",0
 str_clear_confirm2 !text "commandlist?",0
 str_quit_yes !text "< Yes >",0
@@ -51,8 +51,8 @@ str_help !byte 0
 str_status !text "STATUS",0
 str_run_delivered !text " Delivered: ",0
 str_run_list !text " ArtyBot Run ",0
-str_bottom_run !text "Space:Go R:Redo F1:Plan F7:Map F8:Exit",0
-str_run_quit !text "Really quit? Return:yes "
+str_bottom_run !text "Space:Go R:Redo F1:Plan F7:Map F8:Title",0
+str_run_quit !text "To title? Return:yes "
              !byte $1F
              !text ":no",0
 str_run_ready !text "Press Space to run the plan",0
@@ -77,7 +77,7 @@ str_run_unlock !text "Click! A door opened.",0
 str_empty !byte 0
 ; World map (world.asm)
 str_world_title !text " World ",0
-str_bottom_world !text "Space:Play F1:Stats F3/5:World F8:Exit",0
+str_bottom_world !text "Space:Play F1:Stats F3/5:World F8:Title",0
 str_world_walk !text "WASD/Cursor: walk to a level",0
 str_world_play !text "   Space: play",0
 str_world_solved !text " - solved",0
@@ -98,6 +98,7 @@ str_title_menu  !text " Menu ",0
 str_title_new   !text "Start New Game",0
 str_title_cont  !text "Continue Game",0
 str_title_cred  !text "Credits",0
+str_title_quit  !text "Quit Game",0
 
 str_title_nocont !text "Not available yet ",0
 str_title_tag   !text "- a robot programming puzzle -",0

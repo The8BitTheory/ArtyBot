@@ -5,7 +5,7 @@
 ; the robot is a multicolour sprite (sprite 3) with a two-frame walk cycle; a
 ; carried package (chest) is sprite 2, held above the robot's head.
 ; Keys: Space = run / pause / continue, R = restart the run, P = back to
-; planning mode, F7 = world map, F8 = quit (confirmed).
+; planning mode, F7 = world map, F8 = title screen (confirmed).
 ; The mouse is ignored (pointer and insertion marker sprites are off).
 
 run_confirm   = $46             ; 1 while "Really quit?" is shown
@@ -154,7 +154,7 @@ run_mode
         ldx run_msg+1
         jsr run_draw_message
         jmp .loop
-.quit   jmp system_reset
+.quit   jmp title_return
 .next   lda #1                  ; won level: back to the world map (see editor_run_plan)
         sta run_to_map
 .leave  jsr sound_stop

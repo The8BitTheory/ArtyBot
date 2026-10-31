@@ -130,7 +130,7 @@ editor_handle_input
         jmp .keyboard
 .click
         ; Bottom line (screen row 24): "F1:Run" columns 0..6, "F7:Map" 7..13,
-        ; "F8:Quit" 14..21.
+        ; "F8:Title" 14..21.
         lda mouse_y
         cmp #192
         bcc .palette_click
@@ -208,7 +208,7 @@ editor_handle_input
         bne .has_key
         rts
 .has_key
-        cmp #KEY_F7             ; F7: world map, F8 (= Shift+F7): exit (X is Turn 180)
+        cmp #KEY_F7             ; F7: world map, F8 (= Shift+F7): back to title (X is Turn 180)
         bne .not_exit_key
         ldx key_shift
         bne .exit_key
@@ -549,7 +549,7 @@ editor_handle_exit_confirm
         bne .exit_yes
         jmp editor_clear_program
 .exit_yes
-        jmp system_reset
+        jmp title_return
 .no
         lda #0
         sta exit_confirm
