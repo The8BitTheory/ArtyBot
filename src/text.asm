@@ -62,7 +62,8 @@ str_run_full !text "Hands full. Space: retry",0
 str_run_nodrop !text "Nothing to drop. Space: retry",0
 str_run_cantdrop !text "Can't drop here. Space: retry",0
 str_run_done !text "All packages delivered!",0
-str_run_next !text "Done! Space: world map  R: replay",0
+str_done_par !text "Done! Par: ",0           ; + par, str_done_you, commands (stats_say_done)
+str_done_you !text " Your value: ",0
 str_run_end !text "Not delivered. Space: retry",0
 str_run_water !text "ArtyBot can't swim. Space: retry",0
 str_run_tree !text "A tree is in the way. Space: retry",0
@@ -86,7 +87,7 @@ str_stats_close !text " Press any key to close ",0
 str_stats_worlds !text "F3/F5: other world",0
 str_stats_level !text "Level",0
 str_stats_solved !text "Solved",0
-str_stats_runs !text "Runs",0
+str_stats_par !text "Par",0
 str_stats_cmds !text "Cmds",0
 str_stats_yes !text "Yes",0
 str_stats_no !text "No",0

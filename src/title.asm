@@ -540,8 +540,8 @@ end_draw
         ldx #END_RUNS_X
         ldy #END_WIN_Y+1
         jsr set_cursor
-        lda #<str_stats_runs
-        ldx #>str_stats_runs
+        lda #<str_stats_par
+        ldx #>str_stats_par
         jsr put_str
         ldx #END_CMDS_X-1
         ldy #END_WIN_Y+1
@@ -571,12 +571,13 @@ end_draw
         ldx #END_RUNS_X
         ldy end_y
         jsr set_cursor
-        ldx end_lvl
-        lda level_runs,x
+        ldx end_lvl             ; par: only after a real solution
+        lda level_cmds,x
         bne .runs
         jsr stats_put_dash
         jmp .cmds
-.runs   jsr stats_put_num
+.runs   lda level_par,x
+        jsr stats_put_num
 .cmds   ldx #END_CMDS_X
         ldy end_y
         jsr set_cursor

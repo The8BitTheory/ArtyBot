@@ -194,6 +194,8 @@ stat_w          !byte 0
 stat_h          !byte 0                 ; statistics window height
 stat_bot        !byte 0                 ; its bottom edge row
 stat_orig       !byte 0                 ; world the statistics were opened from
+stat_mi         !byte 0                 ; stats_say_done: write index into stat_msg
+stat_msg        !fill 40, 0             ; stats_say_done: "Done! Par: xx Your value: yy"
 world_pos_x     !fill MAX_WORLDS, 0     ; last robot cell per world
 world_pos_y     !fill MAX_WORLDS, 0
 last_level      !byte $FF               ; level whose plan is in the command list
@@ -537,6 +539,76 @@ stats_level_won
         sta level_cmds,x
 .done   rts
 
+; Level won (after the fanfare): shows "Done! Par: xx Your value: yy" in the
+; message box. xx = par of the level (level_par, from the solver), yy = commands
+; executed in this run (run_pc).
+!zone stats_say_done
+stats_say_done
+        lda #0
+        sta stat_mi
+        lda #<str_done_par
+        ldx #>str_done_par
+        jsr .str
+        ldx level_no
+        lda level_par,x
+        jsr .num
+        lda #<str_done_you
+        ldx #>str_done_you
+        jsr .str
+        lda run_pc
+        jsr .num
+        ldx stat_mi
+        lda #0
+        sta stat_msg,x
+        lda #<stat_msg
+        ldx #>stat_msg
+        jmp run_say
+.str    sta ptr1                ; A/X = text: append it
+        stx ptr1+1
+        ldy #0
+.sl     lda (ptr1),y
+        beq .sd
+        ldx stat_mi
+        sta stat_msg,x
+        inc stat_mi
+        iny
+        bne .sl
+.sd     rts
+.num    sta tmp1                ; A = 0..255: append it, no leading zeros
+        lda #0
+        sta stat_nz
+        ldx #0
+.h      lda tmp1
+        cmp #100
+        bcc .hd
+        sbc #100
+        sta tmp1
+        inx
+        bne .h
+.hd     jsr .dig
+        ldx #0
+.t      lda tmp1
+        cmp #10
+        bcc .td
+        sbc #10
+        sta tmp1
+        inx
+        bne .t
+.td     jsr .dig
+        ldx tmp1                ; the ones digit is always shown
+        inc stat_nz
+.dig    txa                     ; X = digit; skipped while it is a leading zero
+        ora stat_nz
+        beq .skip
+        sta stat_nz
+        txa
+        clc
+        adc #'0'
+        ldx stat_mi
+        sta stat_msg,x
+        inc stat_mi
+.skip   rts
+
 ; A = number 0..255: three characters, right aligned.
 !zone stats_put_num
 stats_put_num
@@ -784,11 +856,11 @@ stats_draw
         lda #<str_stats_solved
         ldx #>str_stats_solved
         jsr put_str
-        ldx #24
+        ldx #25
         ldy #STATS_Y+1
         jsr set_cursor
-        lda #<str_stats_runs
-        ldx #>str_stats_runs
+        lda #<str_stats_par
+        ldx #>str_stats_par
         jsr put_str
         ldx #30
         ldy #STATS_Y+1
@@ -836,15 +908,16 @@ stats_draw
 .say    jsr put_str
         lda #COL_WHITE
         sta cur_col
-        ldx #25                 ; runs
+        ldx #25                 ; par: only after a real solution (no spoiler)
         lda wm_tmp
         clc
         adc #STATS_Y+3
         tay
         jsr set_cursor
         ldx stat_lvl
-        lda level_runs,x
-        beq .nodash             ; no run yet (or solved with F2)
+        lda level_cmds,x
+        beq .nodash             ; not solved yet (or only with F2)
+        lda level_par,x
         jsr stats_put_num
         jmp .cmds
 .nodash jsr stats_put_dash
@@ -858,7 +931,12 @@ stats_draw
         ldx stat_lvl
         lda level_cmds,x
         beq .dash
-        jsr stats_put_num
+        cmp level_par,x         ; par reached or beaten: green
+        beq .good
+        bcs .put
+.good   ldy #COL_GREEN
+        sty cur_col
+.put    jsr stats_put_num
         jmp .next
 .dash   jsr stats_put_dash
 .next   inc wm_tmp

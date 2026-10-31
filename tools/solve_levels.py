@@ -11,11 +11,23 @@ A* over the game rules of run.asm (Move Fwd/Back, Turn, Pick Up, Drop Off,
 Jump, Throw; ice: skating, breaking when jumped off / landed on / thrown on).
 Prints the program as keys of the planning screen
 (w s d a q e x z c) so it can be typed in.
+
+--par: also prints the PAR value of each level (shown in the game once the
+level is solved). Par counts commands like the game, except that a Jump over a
+field the robot could simply walk across (free floor or goal field, no ice)
+costs 2, like the two Move Fwd it replaces. So a solution that only saves
+steps by hopping over plain ground does not lower the par.
+--write-par: computes the par of all levels and writes src/level_par.asm (table
+level_par in the order of plan_level_table). Levels where the exact search
+gives up fall back to the greedy search (marked in the file).
+
+  python -B tools/solve_levels.py --write-par
 """
 import os, re, sys, heapq, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MAPDATA = os.path.join(HERE, '..', 'src', 'mapdata.asm')
+PAR_ASM = os.path.join(HERE, '..', 'src', 'level_par.asm')
 COLS = ROWS = 10
 W = float(os.environ.get('SOLVE_W', '1'))   # >1: weighted A* (faster, not the shortest program)
 DX = (1, -1, 0, 0)          # right, left, up, down (ROBOT_DIR_*)
@@ -61,7 +73,8 @@ def parse_levels():
     return out
 
 
-def solve(lv, limit=3_000_000, start_state=None, more=False):
+def solve(lv, limit=3_000_000, start_state=None, more=False, par=False):
+    """par=True: a jump over walkable ground costs 2; returns (prog, n, cost)."""
     goals = tuple(lv['goals']); gset = set(goals)
     trees, water, ice = lv['trees'], lv['water'], lv['ice']
     inside = lambda x, y: 0 <= x < COLS and 0 <= y < ROWS
@@ -114,36 +127,38 @@ def solve(lv, limit=3_000_000, start_state=None, more=False):
                         break
                     nx, ny = sx, sy
                 if not dead:
-                    yield name, (nx, ny, d, carry, boxes, keys, filled)
-        yield 'right', (x, y, TURN_R[d], carry, boxes, keys, filled)
-        yield 'left', (x, y, TURN_L[d], carry, boxes, keys, filled)
-        yield 'turn180', (x, y, TURN_R[TURN_R[d]], carry, boxes, keys, filled)
+                    yield name, (nx, ny, d, carry, boxes, keys, filled), 1
+        yield 'right', (x, y, TURN_R[d], carry, boxes, keys, filled), 1
+        yield 'left', (x, y, TURN_L[d], carry, boxes, keys, filled), 1
+        yield 'turn180', (x, y, TURN_R[TURN_R[d]], carry, boxes, keys, filled), 1
         fx, fy = x + DX[d], y + DY[d]
         if not carry and inside(fx, fy):
             if (fx, fy) in boxes:
-                yield 'pick', (x, y, d, 1, boxes - {(fx, fy)}, keys, filled)
+                yield 'pick', (x, y, d, 1, boxes - {(fx, fy)}, keys, filled), 1
             elif (fx, fy) in keys:
-                yield 'pick', (x, y, d, 2, boxes, keys - {(fx, fy)}, filled)
+                yield 'pick', (x, y, d, 2, boxes, keys - {(fx, fy)}, filled), 1
         if carry and inside(fx, fy):
             if fr((fx, fy), boxes) and (fx, fy) not in ice:
                 if carry == 1:
-                    yield 'drop', (x, y, d, 0, boxes | {(fx, fy)}, keys, filled)
+                    yield 'drop', (x, y, d, 0, boxes | {(fx, fy)}, keys, filled), 1
                 else:
-                    yield 'drop', (x, y, d, 0, boxes, keys | {(fx, fy)}, filled)
+                    yield 'drop', (x, y, d, 0, boxes, keys | {(fx, fy)}, filled), 1
             elif carry == 2 and (fx, fy) in lockpos and (fx, fy) not in filled:
-                yield 'drop', (x, y, d, 0, boxes, keys, filled | {(fx, fy)})
+                yield 'drop', (x, y, d, 0, boxes, keys, filled | {(fx, fy)}), 1
         ax, ay = x + 2 * DX[d], y + 2 * DY[d]
         if inside(ax, ay) and (fx, fy) not in trees and not door_closed((fx, fy), filled):
             # landing on ice (robot or package) breaks it: fail; jumping off ice too
             land_ok = fr((ax, ay), boxes) and (ax, ay) not in ice
             if land_ok and (x, y) not in ice:
-                yield 'jump', (ax, ay, d, carry, boxes, keys, filled)
+                # par: a jump over plain walkable ground is just two Move Fwd
+                cheap = par and fr((fx, fy), boxes) and (fx, fy) not in ice
+                yield 'jump', (ax, ay, d, carry, boxes, keys, filled), 2 if cheap else 1
             if land_ok and carry == 1:
-                yield 'throw', (x, y, d, 0, boxes | {(ax, ay)}, keys, filled)
+                yield 'throw', (x, y, d, 0, boxes | {(ax, ay)}, keys, filled), 1
             elif land_ok and carry == 2:
-                yield 'throw', (x, y, d, 0, boxes, keys | {(ax, ay)}, filled)
+                yield 'throw', (x, y, d, 0, boxes, keys | {(ax, ay)}, filled), 1
             elif carry == 2 and (ax, ay) in lockpos and (ax, ay) not in filled:
-                yield 'throw', (x, y, d, 0, boxes, keys, filled | {(ax, ay)})
+                yield 'throw', (x, y, d, 0, boxes, keys, filled | {(ax, ay)}), 1
 
     openq = [(W * h(start), 0, 0, start)]
     best = {start: 0}
@@ -160,48 +175,101 @@ def solve(lv, limit=3_000_000, start_state=None, more=False):
             while parent[st]:
                 st, name = parent[st]
                 prog.append(name)
-            return (prog[::-1], n, end) if more else (prog[::-1], n)
+            if more:
+                return (prog[::-1], n, end) + ((g,) if par else ())
+            return (prog[::-1], n, g) if par else (prog[::-1], n)
         n += 1
         if n > limit:
-            return None, n
-        for name, nst in moves(st):
-            ng = g + 1
+            return (None, n, None) if par else (None, n)
+        for name, nst, cost in moves(st):
+            ng = g + cost
             if ng < best.get(nst, 1 << 30):
                 best[nst] = ng
                 parent[nst] = (st, name)
                 tie += 1
                 heapq.heappush(openq, (ng + W * h(nst), ng, tie, nst))
-    return None, n
+    return (None, n, None) if par else (None, n)
 
 
-def solve_greedy(lv):
+def solve_greedy(lv, par=False):
     """Not the shortest program: cover one more goal per search (for big levels)."""
     rx, ry, rd = lv['robot']
     st = (rx, ry, rd, 0, frozenset(lv['boxes']), frozenset(lv['keys']), frozenset())
-    prog, total = [], 0
+    prog, total, cost = [], 0, 0
     while not all(g in st[4] for g in lv['goals']):
-        r = solve(lv, 400_000, st, True)
+        r = solve(lv, 400_000, st, True, par)
         if r[0] is None:
-            return None, total
-        p, n, st = r
+            return (None, total, None) if par else (None, total)
+        p, n, st = r[:3]
         prog += p; total += n
-    return prog, total
+        cost += r[3] if par else len(p)
+    return (prog, total, cost) if par else (prog, total)
+
+
+def level_order():
+    """Level labels (e.g. 11) in the order of plan_level_table."""
+    order, inside = [], False
+    for line in open(MAPDATA, encoding='utf-8'):
+        if line.startswith('plan_level_table'):
+            inside = True; continue
+        if inside:
+            if line.startswith('plan_level_count'):
+                break
+            m = re.match(r'\s*!word\s+([^;]*)', line)
+            if m:
+                order += [int(t.strip()[3:]) for t in m.group(1).split(',') if t.strip()]
+    return order
+
+
+def write_par(levels):
+    rows = []
+    for n in level_order():
+        t = time.time()
+        prog, nodes, cost = solve(levels[n], par=True)
+        how = 'exact'
+        if prog is None:
+            prog, nodes, cost = solve_greedy(levels[n], par=True)
+            how = 'greedy'
+        if prog is None:
+            sys.exit('map%d: no solution - par not written' % n)
+        keys = ''.join(KEYS[p] for p in prog)
+        print('map%d: par %2d (%d commands, %s)  %s   (%.1fs)' % (
+            n, cost, len(prog), how, keys, time.time() - t))
+        rows.append((n, cost, how, keys))
+    with open(PAR_ASM, 'w', newline='\r\n') as f:
+        f.write('; level_par.asm - GENERATED by tools/solve_levels.py --write-par, do not edit.\n')
+        f.write('; Par = shortest program found by the solver; a Jump over walkable ground\n')
+        f.write('; counts 2 (two Move Fwd). One byte per level, order of plan_level_table.\n')
+        f.write('level_par\n')
+        for n, cost, how, keys in rows:
+            f.write('        !byte %3d             ; map%d %s %s\n' % (cost, n, how, keys))
+        f.write('level_par_count = * - level_par\n')
+        f.write('!if level_par_count != plan_level_count {\n')
+        f.write('    !error "level_par.asm passt nicht zu plan_level_table: solve_levels.py --write-par"\n')
+        f.write('}\n')
+    print('written', os.path.normpath(PAR_ASM))
 
 
 def main():
     levels = parse_levels()
     greedy = '--greedy' in sys.argv
-    sys.argv = [a for a in sys.argv if a != '--greedy']
+    par = '--par' in sys.argv
+    if '--write-par' in sys.argv:
+        write_par(levels)
+        return
+    sys.argv = [a for a in sys.argv if a not in ('--greedy', '--par')]
     which = [int(a) for a in sys.argv[1:]] or sorted(levels)
     bad = 0
     for n in which:
         t = time.time()
-        prog, nodes = (solve_greedy if greedy else solve)(levels[n])
+        r = (solve_greedy if greedy else solve)(levels[n], par=par)
+        prog, nodes = r[:2]
         if prog is None:
             print('map%d: NO SOLUTION found (%d states)' % (n, nodes)); bad += 1
         else:
-            print('map%d: %2d commands  %s   (%d states, %.1fs)' % (
-                n, len(prog), ''.join(KEYS[p] for p in prog), nodes, time.time() - t))
+            print('map%d: %2d commands%s  %s   (%d states, %.1fs)' % (
+                n, len(prog), ('  par %2d' % r[2]) if par else '',
+                ''.join(KEYS[p] for p in prog), nodes, time.time() - t))
     sys.exit(1 if bad else 0)
 
 

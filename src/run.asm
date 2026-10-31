@@ -179,9 +179,7 @@ run_won_tick
         beq .done
         dec run_won_wait
         bne .done
-        lda #<str_run_next
-        ldx #>str_run_next
-        jmp run_say
+        jmp stats_say_done      ; "Done! Par: xx Your value: yy"
 .done   rts
 
 !zone system_reset
