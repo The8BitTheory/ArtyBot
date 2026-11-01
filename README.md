@@ -182,6 +182,22 @@ scripts (run with `python -B` to avoid `__pycache__` folders):
   used by the `sim_*.py` scripts for automatic play-through tests and
   screenshots
 
+### Level editor
+
+![Level editor](media/editor.png)
+
+The levels were designed with a small browser-based editor (user interface in
+German). It uses the game's real tile sets and colours, so a level looks the
+same as in the game. You paint trees, water, ice, targets, packages, keys,
+lock/door pairs and the robot's start position onto the 10×10 field. A check
+panel shows whether the level is complete, and the editor creates the
+ready-to-paste record for `mapdata.asm` (including an ASCII preview as a
+comment). Existing levels can be loaded and changed.
+
+Create it with `python -B tools/gen_level_editor.py` and open
+`tools/level_editor.html` in a browser. Rebuild it after changing tile sets,
+theme colours or levels.
+
 ## Memory map
 
 - PRG from `$0801`, code and data end below `$C000` (checked at assembly time)
