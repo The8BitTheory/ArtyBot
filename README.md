@@ -4,6 +4,8 @@ ArtyBot is a puzzle game for the PAL Commodore 64, written in 6502 assembly
 for the **Forum64 AI Coding Competition** (October 2026, theme: *"Program your
 robot!"*).
 
+![Title screen](media/vice-screen-2026110109390772.png)
+
 You don't steer ArtyBot directly. You look at the level, put together a list of
 commands, press *Run* — and watch the little robot carry out your plan step by
 step. If something goes wrong, the game tells you exactly what and why. Fix the
@@ -26,14 +28,14 @@ program, try again, and then try to solve it with fewer commands.
 Load and run the PRG:
 
 ```
-LOAD "ROBOTER",8
+LOAD "ARTYBOT",8
 RUN
 ```
 
-or drag `build/roboter.prg` onto VICE (`x64sc -pal -autostart build/roboter.prg`).
+or drag `build/artybot.prg` onto VICE (`x64sc -pal -autostart build/artybot.prg`).
 
-The title screen offers *Start New Game*, *Continue Game* and *Credits*
-(W/S or cursor keys, Return/Space, 1–3, or the mouse).
+The title screen offers *Start New Game*, *Instructions*, *Credits* and
+*Quit Game* (W/S or cursor keys, Return/Space, or the mouse).
 
 ## How to play
 
@@ -43,19 +45,23 @@ program ends before all targets are covered.
 
 ### World map
 
+![World map](media/vice-screen-2026110109391892.png)
+
 | Key | Action |
 |---|---|
 | WASD / cursor keys | Walk along the path |
 | Space / Return / mouse click | Enter the level under the robot |
 | F1 | Level statistics (F3/F5 switch worlds inside the overlay) |
 | F3 / F5 | Previous / next world (once unlocked) |
-| F8 | Quit |
+| F8 | Back to the title screen |
 
 Solved levels show a golden chest. When all levels of a world are solved, the
 wooden gate at the top of the map opens and leads to the next world. The arch
 in the corner of later worlds takes you back.
 
 ### Planning screen
+
+![Planning screen](media/vice-screen-2026110109394382.png)
 
 The left side shows the level, a legend lists the tiles used in it, and the
 right side holds your program (up to 99 commands). Hover the mouse over the
@@ -79,11 +85,13 @@ The command palette uses a WASD layout:
 | 1–9 | Switch to another level of the current world |
 | F1 or R | Run the program |
 | F7 | Back to the world map |
-| F8 | Quit |
+| F8 | Back to the title screen |
 
 All palette icons and the bottom row are clickable with the mouse as well.
 
 ### Run screen
+
+![Run screen](media/vice-screen-2026110109393611.png)
 
 | Key | Action |
 |---|---|
@@ -91,7 +99,7 @@ All palette icons and the bottom row are clickable with the mouse as well.
 | R | Restart the run |
 | F1 or P | Back to planning |
 | F7 | Back to the world map |
-| F8 | Quit |
+| F8 | Back to the title screen |
 
 The current command is highlighted in the program list, and the frame shows
 how many packages have been delivered. When a run fails, a message explains
