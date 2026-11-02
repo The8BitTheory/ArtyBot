@@ -130,7 +130,7 @@ commands — a good reason to come back and improve it.
 
 ## Building
 
-Requirements: [Martin Piper'S ACME]((https://github.com/martinpiper/ACME/) 1.01 or
+Requirements: [Martin Piper'S ACME](https://github.com/martinpiper/ACME/) 1.01 or
 newer. Run it from the project directory (ACME resolves `!source` paths
 relative to the working directory):
 
