@@ -3,5 +3,6 @@
 
 !source "platform/c64/startup.asm"
 !source "platform/c64/system.asm"
+!source "platform/c64/keyboard.asm"
 !source "platform/cbm/irq.asm"
 !source "platform/cbm/vic2_gfx.asm"

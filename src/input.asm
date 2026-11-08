@@ -103,10 +103,7 @@ key_scan
         beq .scan_end
         jmp .col
 .scan_end
-        lda #$40
-        sta CIA1_PRA
-        lda #$FF
-        rts
+        jmp .none
 .rows   sta tmp2
         ldy #0
 .row    lda tmp2
@@ -121,10 +118,7 @@ key_scan
         inx
         cpx #8
         bne .col
-        lda #$40
-        sta CIA1_PRA
-        lda #$FF
-        rts
+        jmp .none
 .candidate
         ; Ignore left/right Shift as the primary key.
         ; Keep the scanner's established column * 8 + row code layout.
@@ -172,10 +166,11 @@ key_scan
         beq .no_key
         jmp .col
 .no_key
-        lda #$40
+        jmp .none
+
+.none   lda #$40                ; no key in the C64 matrix: port 1 connected again,
         sta CIA1_PRA
-        lda #$FF
-        rts
+        jmp key_scan_extra      ; platform keys (C128: arrow keys), else A = $FF
 
 ; Update click edge and pointer coordinates from the 1351's signed POT deltas.
 !zone mouse_update

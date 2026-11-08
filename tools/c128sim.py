@@ -6,6 +6,7 @@ fuer RAM-Bank 0, System-ROM / Zeichensatz-ROM / I/O. ROM-Bereiche liefern beim L
 $60 (keine ROM-Abbilder, wie in c64sim), Schreibzugriffe gehen immer ins RAM darunter.
 $FF00-$FF04 sind immer MMU-Register. Nicht nachgebildet: RAM-Bank 1, Common RAM,
 Farb-RAM-Baenke und Zeichensatz-ROM-Schatten des VIC ($01 Bit 0-2), 2 MHz, VDC.
+Tastatur: zusaetzlich die Zeilen K0-K2 ($D02F), Codes 64..87 (KEY_UP usw.).
 Start bei $1C0D (BASIC-7-Stub "SYS 7181")."""
 from c64sim import C64
 
@@ -51,6 +52,21 @@ class C128(C64):
             if 0xD500 <= addr <= 0xD504: self.mmu[addr - 0xD500] = val; return
             return self.wr_io(addr, val)
         self.ram[addr] = val
+
+
+    # Zusatztasten: Code 64 + Zeile*8 + Bit (Zeile K0-K2 ueber $D02F), z. B. 64+16+3 = hoch
+    KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT = 83, 84, 85, 86
+
+    def rd_io(self, addr):
+        if (addr & 0xFF0F) == 0xDC01:
+            v = 0xFF
+            for k in self.keys:
+                if k < 64:
+                    if not (self.pra >> (k >> 3)) & 1: v &= ~(1 << (k & 7))
+                elif not (self.io[0x2F] >> ((k - 64) >> 3)) & 1:
+                    v &= ~(1 << (k & 7))
+            return v & 0xFF
+        return super().rd_io(addr)
 
 
 def machine(prg):

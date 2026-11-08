@@ -3,5 +3,6 @@
 
 !source "platform/c128/startup.asm"
 !source "platform/c128/system.asm"
+!source "platform/c128/keyboard.asm"
 !source "platform/cbm/irq.asm"
 !source "platform/cbm/vic2_gfx.asm"
