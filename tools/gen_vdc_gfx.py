@@ -28,6 +28,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import gen_gfx_run as G
 import gen_theme_winter as GW
+import vdc_robot_art as RA
 
 ROOT = os.path.join(HERE, '..')
 OUT = os.path.join(ROOT, 'platform', 'c128', 'view_vdc', 'gfx_vdc.asm')
@@ -96,11 +97,16 @@ def cell_pixels(art, bg1, bg2, cc):
     return [[m[ch] for ch in r for _ in range(4)] for r in rows]
 
 
+CELL_VDC = {'path': 12}     # Meadow-Weg: Braun statt grellem Gelb (Entscheidung 08.11.)
+
+
 def cells(source, label):
     bg1, bg2, cols = theme_colors(label)
     out, bad = [], 0
     for i, name in enumerate(G.CELL_ORDER):
         px = cell_pixels(source[name], bg1, bg2, cols[i])
+        if name in CELL_VDC:
+            px = [[CELL_VDC[name] if c == C64_TO_VDC[cols[i]] else c for c in r] for r in px]
         bm, at, b = quantize(px)
         bad += b
         out.append((name, bm, at, px))
@@ -108,30 +114,32 @@ def cells(source, label):
 
 
 def sprites():
-    names, imgs = G.sprite_images()
+    """Figuren aus tools/vdc_robot_art.py (in VDC-Pixeln gezeichnet)."""
     out = []
-    for n, img in zip(names, imgs):
-        col = 14 if 'robot' in n else (12 if 'package' in n else 13)
-        body = [[1 if ch in 'cW' else 0 for ch in r for _ in range(4)] for r in img]   # 32 breit
-        opaque = [[1 if ch != '.' else 0 for ch in r for _ in range(4)] for r in img]
-        if len(img) % 2:                       # Bloecke sind 2 Zeilen hoch
-            body.append([0] * 32); opaque.append([0] * 32)
-        h = len(body)
+    for n, img, col in RA.images():
+        if len(img) % 2: img = img + ['.' * 32]
+        h = len(img)
         shifts = []
         for s in (0, 4):
-            pad = lambda r: [0] * s + r + [0] * (40 - 32 - s)
-            b = [pad(r) for r in body]; o = [pad(r) for r in opaque]
-            rows = [[int(''.join(map(str, r[k * 8:k * 8 + 8])), 2) for k in range(5)] for r in b]
-            # Blockattribute: Block ganz deckend -> schwarz hinterlegt (Kontur bleibt);
-            # Randblock (teils durchsichtig) -> 0 = Grundfarbe der Kachel + Figurfarbe; leer -> $FF
-            att = []
+            pad = lambda r: '.' * s + r + '.' * (8 - s)
+            im = [pad(r) for r in img]                      # 40 breit
+            rows, att = [[0] * 5 for _ in range(h)], []
             for by in range(0, h, 2):
                 ar = []
                 for k in range(5):
-                    cover = [o[y][k * 8 + x] for y in (by, by + 1) for x in range(8)]
-                    if not any(cover): ar.append(0xFF)
-                    elif all(cover): ar.append(0x00 << 4 | col)
-                    else: ar.append(0)
+                    blk = [im[y][k * 8 + x] for y in (by, by + 1) for x in range(8)]
+                    nB, nc, nT = blk.count('B'), blk.count('c'), blk.count('.')
+                    if nT == 16:
+                        ar.append(0xFF); ink = ''
+                    elif nT == 0:                            # ganz deckend: schwarz hinterlegt
+                        ar.append(col); ink = 'c'
+                    elif nB >= nc:                           # Rand, ueberwiegend Kontur: schwarz auf Kachel
+                        ar.append(0x80); ink = 'B'
+                    else:                                    # Rand, ueberwiegend Koerper: Figurfarbe auf Kachel
+                        ar.append(0); ink = 'c'
+                    for y in (by, by + 1):
+                        seg = im[y][k * 8:k * 8 + 8]
+                        rows[y][k] = int(''.join('1' if ch == ink else '0' for ch in seg), 2) if ink else 0
                 att.append(ar)
             shifts.append((rows, att))
         out.append((n, h, col, shifts))
@@ -190,8 +198,8 @@ def main():
             for r in at: o.append('        !byte ' + hx(r))
         o.append('')
     o.append('; Sprites: Masken (1 = Koerperpixel), 5 Byte breit, Verschiebung 0 und 4 Pixel')
-    o.append('; danach je Blockzeile 5 Attribute: $FF leer, 0 Randblock (Grundfarbe der Kachel +')
-    o.append('; Figurfarbe), sonst fertiges Attribut (schwarz hinterlegt, Kontur bleibt)')
+    o.append('; danach je Blockzeile 5 Attribute: $FF leer; 0 Randblock: Figurfarbe auf der Grundfarbe der Kachel;')
+    o.append('; $80 Randblock: schwarz (Kontur) auf der Grundfarbe; sonst fertiges Attribut (schwarz hinterlegt)')
     for i, (n, h, col, shifts) in enumerate(sp):
         for s, (rows, att) in zip((0, 4), shifts):
             o.append('vdc_spr_%d_s%d    ; %s' % (i, s, n))
@@ -222,7 +230,7 @@ def main():
 def preview(path, cm, cw, sp, ic):
     """Alle Zellen beider Themes, Roboter auf Gras (beide Verschiebungen), Icons; 2x/4x."""
     from PIL import Image
-    W, H = 640, 120
+    W, H = 640, 150
     img = Image.new('RGB', (W, H), (0, 0, 0)); p = img.load()
 
     def put(x0, y0, bm, at):
@@ -243,16 +251,18 @@ def preview(path, cm, cw, sp, ic):
                 a = att[y // 2][bx]
                 if a == 0xFF: continue
                 tbg = grass[2][min(7, y // 2)][min(3, bx)] >> 4
-                if variant == 'A' or a == 0: bg, fg = tbg, spr[2]
+                if a == 0: bg, fg = tbg, spr[2]
+                elif a == 0x80: bg, fg = tbg, 0
                 else: bg, fg = a >> 4, a & 15
                 for k in range(8):
                     x = x0 + bx * 8 + k
                     if x < W: p[x, y0 + y] = RGB[fg if rows[y][bx] & (0x80 >> k) else bg]
-    for i in range(8):
-        put_sprite(8 + i * 38, 60, sp[i], i % 2, 'A')
-        put_sprite(8 + (i + 8) * 38, 60, sp[i], i % 2, 'C')
+    for i in range(16):
+        put_sprite(8 + i * 38, 60, sp[i if i < 16 else 0], i % 2, 'C')
+    for i in (16, 17):
+        put_sprite(8 + (i - 16) * 38, 92, sp[i], 0, 'C')
     for i, rows in enumerate(ic):
-        put(8 + i * 38, 96, rows, [[0x0F] * 4 for _ in range(8)])
+        put(8 + i * 38, 124, rows, [[0x0F] * 4 for _ in range(8)])
     img.resize((W * 2, H * 4), Image.NEAREST).save(path)
     print('Vorschau:', path)
 
