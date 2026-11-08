@@ -40,3 +40,23 @@ wait_frame                      ; wartet auf den naechsten Frame
 .w      cmp frame
         beq .w
         rts
+
+; Gemeinsamer Abschluss des Startups (C64, C128): Speicherkonfiguration und Vektoren
+; sind gesetzt. CIA- und VIC-Interrupts aus, Grafik, Sound, Raster-IRQ an, Spiel starten.
+!zone cbm_start
+cbm_start
+        lda #$7F
+        sta CIA1_ICR
+        sta CIA2_ICR
+        lda CIA1_ICR
+        lda CIA2_ICR
+        lda #0
+        sta VIC_IMR
+        lda #$FF
+        sta VIC_IRR
+
+        jsr video_init
+        jsr sound_init
+        jsr irq_init
+        cli
+        jmp game_main

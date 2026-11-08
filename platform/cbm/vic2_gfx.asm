@@ -75,3 +75,35 @@ gfx_sprites_off
         lda #0
         sta VIC_SPR_EN
         rts
+
+; Zeichensaetze und Sprites in die VIC-Bank kopieren: Spiel ($C800), Titel ($D000, RAM unter
+; dem I/O-Bereich), Ende ($D800), jeweils ROM-Satz (Gross/Klein) + eigene Zeichen.
+; Aufruf beim Start, solange das Zeichensatz-ROM bei $D000 sichtbar ist (Lesen = ROM,
+; Schreiben = RAM darunter); die Speicherkonfiguration setzt der Startup der Plattform.
+!zone vic2_upload_charsets
+vic2_upload_charsets
+        +copy $D800, CHARSET, $0800
+        ; Custom icons stay in inverse character codes $E0-$F7.
+        +copy gfx_icons, CHARSET + ICON_CHAR_BASE*8, ICON_CHAR_BYTES
+        ; Robot directions occupy inverse charset characters $80-$83.
+        +copy gfx_robot, CHARSET + ROBOT_CHAR_BASE*8, ROBOT_CHAR_BYTES
+        +copy gfx_icons2, CHARSET + ICON2_CHAR_BASE*8, ICON2_CHAR_BYTES
+        +copy gfx_run, CHARSET + RUN_CHAR_BASE*8, RUN_CHAR_BYTES
+        +copy gfx_ui_frame, CHARSET + UI_FRAME_BASE*8, 8*8
+        +copy gfx_ui_extra, CHARSET + UI_HAND*8, 2*8
+        +copy gfx_sprites, SPRITES, SPRITE_BYTES
+        +copy gfx_run_sprites, SPRITES + SPRITE_BYTES, RUN_SPR_BYTES
+        ; Title charset in the RAM below the char ROM ($D000): writes there go
+        ; to RAM while the ROM is visible. Lower/uppercase set + title graphics,
+        ; plus window frame and hand from the game charset (same codes).
+        +copy $D800, TITLE_CHARSET, $0800
+        jsr title_charset_init
+        +copy gfx_ui_frame, TITLE_CHARSET + UI_FRAME_BASE*8, 8*8
+        +copy gfx_ui_extra, TITLE_CHARSET + UI_HAND*8, 2*8
+        ; End screen charset in the RAM below $D800 (same way): ROM set, logo +
+        ; trophy, window frame and hand.
+        +copy $D800, END_CHARSET, $0800
+        jsr end_charset_init
+        +copy gfx_ui_frame, END_CHARSET + UI_FRAME_BASE*8, 8*8
+        +copy gfx_ui_extra, END_CHARSET + UI_HAND*8, 2*8
+        rts

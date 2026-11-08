@@ -1,4 +1,4 @@
-; startup.asm - BASIC-Stub, Hardware-Init, Datenkopie
+; startup.asm (C64) - BASIC-Stub, Speicherkonfiguration, Vektoren, Hardware-Init
 
 * = $0801
         !word .next             ; 10 SYS 2061
@@ -19,34 +19,11 @@ start
         lda #$2F
         sta CPU_DDR
 
-        ; Lower/uppercase-Zeichensatz-ROM nach $C800 kopieren.
+        ; Zeichensaetze aufbauen (ROM-Satz + eigene Zeichen, Sprites).
         ; $32 = BASIC aus, KERNAL an, Char-ROM sichtbar (Code kann ueber $A000 liegen!)
         lda #$32
         sta CPU_PORT
-        +copy $D800, CHARSET, $0800
-        ; Custom icons stay in inverse character codes $E0-$F7.
-        +copy gfx_icons, CHARSET + ICON_CHAR_BASE*8, ICON_CHAR_BYTES
-        ; Robot directions occupy inverse charset characters $80-$83.
-        +copy gfx_robot, CHARSET + ROBOT_CHAR_BASE*8, ROBOT_CHAR_BYTES
-        +copy gfx_icons2, CHARSET + ICON2_CHAR_BASE*8, ICON2_CHAR_BYTES
-        +copy gfx_run, CHARSET + RUN_CHAR_BASE*8, RUN_CHAR_BYTES
-        +copy gfx_ui_frame, CHARSET + UI_FRAME_BASE*8, 8*8
-        +copy gfx_ui_extra, CHARSET + UI_HAND*8, 2*8
-        +copy gfx_sprites, SPRITES, SPRITE_BYTES
-        +copy gfx_run_sprites, SPRITES + SPRITE_BYTES, RUN_SPR_BYTES
-        ; Title charset in the RAM below the char ROM ($D000): writes there go
-        ; to RAM while the ROM is visible. Lower/uppercase set + title graphics,
-        ; plus window frame and hand from the game charset (same codes).
-        +copy $D800, TITLE_CHARSET, $0800
-        jsr title_charset_init
-        +copy gfx_ui_frame, TITLE_CHARSET + UI_FRAME_BASE*8, 8*8
-        +copy gfx_ui_extra, TITLE_CHARSET + UI_HAND*8, 2*8
-        ; End screen charset in the RAM below $D800 (same way): ROM set, logo +
-        ; trophy, window frame and hand.
-        +copy $D800, END_CHARSET, $0800
-        jsr end_charset_init
-        +copy gfx_ui_frame, END_CHARSET + UI_FRAME_BASE*8, 8*8
-        +copy gfx_ui_extra, END_CHARSET + UI_HAND*8, 2*8
+        jsr vic2_upload_charsets
 
         ; Ab jetzt: alle ROMs aus, nur I/O (eigene Vektoren in $FFFA-$FFFF)
         lda #$35
@@ -65,19 +42,4 @@ start
         lda #>irq_handler
         sta $FFFF
 
-        ; CIA-Interrupts aus, VIC-IRQs aus und quittieren
-        lda #$7F
-        sta CIA1_ICR
-        sta CIA2_ICR
-        lda CIA1_ICR
-        lda CIA2_ICR
-        lda #0
-        sta VIC_IMR
-        lda #$FF
-        sta VIC_IRR
-
-        jsr video_init
-        jsr sound_init
-        jsr irq_init
-        cli
-        jmp game_main
+        jmp cbm_start

@@ -100,9 +100,12 @@ Ein spielbarer Kreislauf **Weltkarte → Planen → Ausführen → Weltkarte** i
 | `platform/c64/startup.asm` | BASIC-Stub `SYS 2061`, Hardware/IRQ-Setup, Grafik nach VIC-Bank 3 kopieren |
 | `platform/c64/system.asm` | `system_reset` (Soft-Reset, Titelpunkt „Quit Game“) |
 | `platform/cbm/vic2.inc`, `sidcia.inc` | Register von VIC-II, SID, CIA (C64/C128/MEGA65 gemeinsam) |
-| `platform/cbm/irq.asm` | Raster-IRQ (50 Hz), `wait_frame`, NMI-Stub |
-| `platform/cbm/vic2_gfx.asm` | VIC-II-Treiber: `video_init`, `clear_screen`, `gfx_theme_colors`, `gfx_charset_game/title/end`, `gfx_sprites_off` |
-| `platform/c128/` | C128-Ziel (Schritt 2) |
+| `platform/cbm/irq.asm` | Raster-IRQ (50 Hz), `wait_frame`, NMI-Stub, `cbm_start` (gemeinsamer Startup-Abschluss: IRQs aus, Init, Spiel starten) |
+| `platform/cbm/vic2_gfx.asm` | VIC-II-Treiber: `video_init`, `clear_screen`, `gfx_theme_colors`, `gfx_charset_game/title/end`, `gfx_sprites_off`, `vic2_upload_charsets` (Zeichensätze/Sprites beim Start in die VIC-Bank, während Zeichensatz-ROM sichtbar) |
+| `platform/c128/platform.inc` | C128: 8502-Port, MMU (`MMU_CR` `$FF00`, `MMU_RCR`), `VIC_KBD`/`VIC_CLOCK`, Speicherlayout (Laden ab `$1C01`, VIC-Bank 3 wie C64) |
+| `platform/c128/startup.asm` | BASIC-7-Stub `SYS 7181`, MMU `$0F` zum Kopieren der Zeichensätze, dann `$3E` (RAM-Bank 0 + I/O), `$01` Bits 0–2 (Farb-RAM-Bank, kein ROM-Schatten), 1 MHz, Vektoren |
+| `platform/c128/system.asm` | `system_reset`: MMU `$00`, `jmp ($FFFC)` (Neustart des C128) |
+| `tools/c128sim.py` | Vereinfachter C128 für die Simulator-Tests (MMU-Abbildung RAM-Bank 0/ROM/Zeichensatz-ROM/I/O, Start `$1C0D`); `machine(prg)` wählt C64/C128 nach Ladeadresse. Nicht nachgebildet: RAM-Bank 1, Farb-RAM-Bänke, ROM-Schatten, 2 MHz, VDC |
 | `src/editor.asm` | Planungsbildschirm, Palette, Befehlsliste, Eingabe, Aufruf von `run_mode` |
 | `src/run.asm` | Run-Bildschirm, Ausführung, Regeln (inkl. Jump/Throw), Sprites, Sieg/Fehler, Levelwechsel |
 | `src/world.asm` | Themes (`theme_table`, `theme_load`), Welten (`world_table`), Fortschritt, Weltkarten-Bildschirm (`world_mode`) |
@@ -149,13 +152,14 @@ Ein spielbarer Kreislauf **Weltkarte → Planen → Ausführen → Weltkarte** i
 
 Ziel: C128-Port, später MEGA65 und Commander X16. Schrittweise, je ein Branch, jeder Schritt erst fertig, wenn spielbar:
 1. **`platform-layer`** – Plattformschicht, C64 unverändert. ✔ (Regression 0 Abweichungen)
-2. **`c128-vic`** – C128-Modus mit VIC-II, 1 MHz.
+2. **`c128-vic`** – C128-Modus mit VIC-II, 1 MHz. Im Simulator bildgleich zum C64 (46/46), Test in x128 offen.
 3. Grafik-Code modularisieren (Schnittstelle aus Sicht des VDC).
 4. C128 mit VDC (80 Zeichen).
 
 **Aufbau:** `platform/<ziel>/platform.inc` (Konstanten, vor `defs.inc`) und `platform/<ziel>/platform.asm` (Code, als erster Code, setzt die Startadresse). Gemeinsame Commodore-Chips in `platform/cbm/`. `TARGET` (1 = C64, 2 = C128) setzt die Einstiegsdatei (`src/main.asm` / `src/main128.asm`); der ACME-Fork kennt kein `-D`. `!if TARGET` nur in `main.asm`, nicht in der Spiellogik.
 **Regeln:** Spieldateien (`src/`) benutzen keine CPU-Port-/Bank-/Speicherkonfigurations-Zugriffe. Zeichensatz wechseln nur über `gfx_charset_*`, Theme-Farben über `gfx_theme_colors`, Sprites aus über `gfx_sprites_off`. Noch direkt (für Schritt 3): Sprite-Register in `sprites.asm`, `run.asm` (`run_spr_*`), `world.asm` (Kartenfigur), `title.asm` (Raster-Split `title_split`, Zeiger); Bildschirm-/Farb-RAM-Zugriffe in `video.asm`, `title.asm` (`title_page`, Ganzbild-Kopien) und `run.asm` (`run_paint_goal`, Abstand `COLORRAM - SCREEN`).
-**Test:** nach jedem Umbau `tools/sim_regress.py` gegen eine Referenz vom Ausgangsstand.
+**Test:** nach jedem Umbau `tools/sim_regress.py` gegen eine Referenz vom Ausgangsstand; das C128-PRG läuft im selben Test (`c128sim.py`) und muss dieselben Bilder liefern wie das C64-PRG.
+**C128 (Schritt 2):** Programm für `$1C01` assembliert (endet ca. `$935F`), sonst gleiches Speicherlayout wie C64. Fallen, die nur auf echter Hardware/x128 sichtbar sind: `$01` Bit 2 muss 1 sein, sonst sieht der VIC das Zeichensatz-ROM bei `$D000–$DFFF` der Bank 3 (Titel-/Ende-Zeichensatz kaputt); Bits 0/1 = gleiche Farb-RAM-Bank für CPU und VIC; `$D02F = $FF`, sonst stören die Zusatztasten die Matrix. „Quit Game“ startet den C128 neu.
 
 ## Werkzeug-Regel (für neue Chats)
 

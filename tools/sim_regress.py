@@ -4,6 +4,9 @@
   python -B tools/sim_regress.py build/roboter.prg out/dir            # Signaturen schreiben
   python -B tools/sim_regress.py build/roboter.prg out/dir REF/dir    # zusaetzlich mit REF vergleichen
 
+Laeuft auch mit dem C128-PRG (build/artybot128.prg, tools/c128sim.py); als REF dient dann
+die C64-Referenz - die Bilder muessen gleich sein.
+
 Spielt einen festen Ablauf im Simulator (tools/c64sim.py) durch: Titel, Instructions,
 Credits, Weltkarte, Statistik, Plan, Lauf mit Fehler, Lauf mit Sieg, Tor, Winter,
 Eis-Level, Endbildschirm, F8 zurueck zum Titel, alle Levels mit der Solver-Loesung.
@@ -15,7 +18,7 @@ import sys, os, hashlib
 from collections import deque
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from c64sim import C64
+from c128sim import machine     # C64 oder C128 je nach Ladeadresse
 import gen_world_maps as W
 import solve_levels as sl
 
@@ -117,7 +120,7 @@ def solution(label):
 
 
 # ---- Ablauf 1: Bildschirme --------------------------------------------
-m = C64(prg)
+m = machine(prg)
 m.run_frames(60); shot('01_title')
 press(KEY_2); m.run_frames(20); shot('02_instr1')
 press(SPACE); m.run_frames(20); shot('03_instr2')
@@ -148,7 +151,7 @@ print('Ablauf 1 ok')
 # ---- Ablauf 2: alle Levels -----------------------------------------------
 for label in sorted(LEVELS):
     world, local = label // 10 - 1, label % 10 - 1
-    m = C64(prg)
+    m = machine(prg)
     m.start_game(); m.run_frames(40)
     while m.ram[WORLD] < world:
         open_next_world()
