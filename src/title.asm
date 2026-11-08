@@ -13,8 +13,6 @@ TITLE_ITEM_X  = 22              ; first text column of the items
 TITLE_HAND_X  = 20
 TITLE_ITEM_Y  = 12              ; row of item 0, items 2 rows apart
 TITLE_HINT_Y  = TITLE_WIN_Y+TITLE_WIN_H-1  ; hint in the bottom edge of the window
-TITLE_MEMPTR  = $04             ; screen $C000, charset $D000 (bank 3)
-GAME_MEMPTR   = $02             ; screen $C000, charset $C800
 KEY_1         = 56              ; keyboard matrix codes of 1..4
 KEY_2         = 59
 KEY_3         = 8
@@ -123,14 +121,9 @@ title_return
 !zone title_leave
 title_leave
         jsr music_stop
-        lda #0
-        sta VIC_SPR_EN
-        lda #GAME_MEMPTR
-        sta VIC_MEMPTR
-        lda theme_bg1
-        sta VIC_BG1
-        lda theme_bg2
-        sta VIC_BG2
+        jsr gfx_sprites_off
+        jsr gfx_charset_game
+        jsr gfx_theme_colors
         jmp clear_screen
 
 ; Raster split, called right after wait_frame (line RASTER_LINE, below the
@@ -153,10 +146,8 @@ title_split
 ; Whole title screen: picture, menu window, items, hint, footer; pointer on.
 !zone title_draw
 title_draw
-        lda #0
-        sta VIC_SPR_EN
-        lda #TITLE_MEMPTR
-        sta VIC_MEMPTR
+        jsr gfx_sprites_off
+        jsr gfx_charset_title
         +copy title_screen, SCREEN, 1000
         +copy title_colors, COLORRAM, 1000
         jsr title_draw_menu
@@ -435,8 +426,7 @@ title_instructions
 title_page
         sta ptr1
         stx ptr1+1
-        lda #0
-        sta VIC_SPR_EN
+        jsr gfx_sprites_off
         ldx #0                  ; blank screen, white text colour
 .clr    lda #' '
         sta SCREEN,x
@@ -519,8 +509,7 @@ title_page
 ; Credits: window over the picture, any key or click returns.
 !zone title_credits
 title_credits
-        lda #0
-        sta VIC_SPR_EN
+        jsr gfx_sprites_off
         lda #COL_CYAN
         sta cur_col
         lda #38
@@ -613,7 +602,6 @@ END_NAME_X    = 20
 END_RUNS_X    = 29
 END_CMDS_X    = 34
 END_KEYS_X    = 2
-END_MEMPTR    = $06             ; screen $C000, charset $D800 (bank 3)
 
 !if plan_level_count > END_ROWS {
     !error "Abspann: zu viele Levels fuer das Rekord-Fenster (END_ROWS)"
@@ -653,10 +641,8 @@ end_mode
 
 !zone end_draw
 end_draw
-        lda #0
-        sta VIC_SPR_EN
-        lda #END_MEMPTR
-        sta VIC_MEMPTR
+        jsr gfx_sprites_off
+        jsr gfx_charset_end
         +copy end_screen, SCREEN, 1000
         +copy end_colors, COLORRAM, 1000
         lda #COL_CYAN           ; line under the logo

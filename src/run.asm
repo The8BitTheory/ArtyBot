@@ -80,10 +80,7 @@ run_mode
         sta run_confirm
         sta run_gtimer
         sta run_gphase
-        lda theme_bg1           ; multicolour colours of the world's theme
-        sta VIC_BG1
-        lda theme_bg2
-        sta VIC_BG2
+        jsr gfx_theme_colors    ; multicolour colours of the world's theme
         jsr run_reset
         jsr run_restore         ; carry set: the last run of this level is shown again
         php
@@ -176,10 +173,7 @@ run_mode
 .leave  jsr sound_stop
         jsr run_marker_to_stop  ; plan: insertion marker where the run stopped
         jsr run_save            ; keep the field for a later look (until a new run)
-        lda theme_bg1           ; planning screen shares the run colours
-        sta VIC_BG1
-        lda theme_bg2
-        sta VIC_BG2
+        jsr gfx_theme_colors    ; planning screen shares the run colours
         lda level_no            ; plan view shows the untouched level again
         jsr load_plan_level
         rts
@@ -199,15 +193,6 @@ run_won_tick
         bne .done
         jmp stats_say_done      ; "Done! Par: xx Your value: yy"
 .done   rts
-
-!zone system_reset
-system_reset
-        sei
-        lda #0
-        sta SID_VOL             ; no music or effect left ringing
-        lda #$37                ; BASIC + KERNAL + I/O visible again
-        sta CPU_PORT
-        jmp $FCE2               ; KERNAL reset entry (soft reset)
 
 ; A/X = text for the info row; remembered so it can be restored.
 !zone run_say
@@ -640,8 +625,7 @@ run_set_robot_image
 run_update_sprites
         lda run_sunk            ; broke through the ice: robot (and chest) gone
         beq .visible
-        lda #0
-        sta VIC_SPR_EN
+        jsr gfx_sprites_off
         rts
 .visible
         lda #RUN_SPR_CHEST      ; sprite 2: the package or the key

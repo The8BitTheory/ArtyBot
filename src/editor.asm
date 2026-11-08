@@ -47,8 +47,7 @@ plan_mode
         bne .leave
         jsr spr_update
         jmp .loop
-.leave  lda #0
-        sta VIC_SPR_EN
+.leave  jsr gfx_sprites_off
         rts
 
 ; F7: back to the world map (not while a list move/delete is pending).

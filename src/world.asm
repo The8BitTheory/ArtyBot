@@ -137,10 +137,7 @@ theme_load
         inx
         cpx #THEME_COLOR_BYTES
         bne .col
-        lda theme_bg1
-        sta VIC_BG1
-        lda theme_bg2
-        sta VIC_BG2
+        jsr gfx_theme_colors
         rts
 
 ; ---- Worlds --------------------------------------------------------------
@@ -707,8 +704,7 @@ STATS_W       = 34
 !zone world_stats
 world_stats
         jsr world_save_pos
-        lda #0
-        sta VIC_SPR_EN
+        jsr gfx_sprites_off
         jsr sound_stop
         lda world_cur
         sta stat_orig
@@ -960,8 +956,7 @@ world_play
         lda (wm_nodes),y
         sta wm_cy
         jsr world_save_pos
-        lda #0
-        sta VIC_SPR_EN
+        jsr gfx_sprites_off
         jsr sound_stop
         jsr ambient_stop
         lda wm_tmp
@@ -1157,8 +1152,7 @@ wm_set_pixels
 
 !zone world_draw
 world_draw
-        lda #0
-        sta VIC_SPR_EN
+        jsr gfx_sprites_off
         jsr clear_screen
         lda #COL_WHITE
         sta cur_col

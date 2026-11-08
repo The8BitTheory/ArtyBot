@@ -6,14 +6,32 @@
 
 !cpu 6510
 
+; --- Zielplattform: TARGET wird von der Einstiegsdatei gesetzt (src/main128.asm = C128),
+;     ohne Angabe C64. Eigene Einstiegsdatei statt "acme -D", weil der ACME-Fork kein -D kennt.
+TARGET_C64  = 1
+TARGET_C128 = 2
+!ifndef TARGET {
+    TARGET = TARGET_C64
+}
+!if TARGET != TARGET_C64 & TARGET != TARGET_C128 {
+    !error "Unbekanntes TARGET"
+}
+!if TARGET = TARGET_C64 {
+    !source "platform/c64/platform.inc"
+} else {
+    !source "platform/c128/platform.inc"
+}
 
 !source "inc/defs.inc"
 !source "inc/zp.inc"
 !source "inc/macros.inc"
 
-; startup.asm setzt "* = $0801" und enthaelt den BASIC-Stub, danach Code ab $080D
-!source "src/startup.asm"
-!source "src/irq.asm"
+; Plattform-Code zuerst: setzt die Startadresse (BASIC-Stub), dann Init, IRQ, Grafiktreiber
+!if TARGET = TARGET_C64 {
+    !source "platform/c64/platform.asm"
+} else {
+    !source "platform/c128/platform.asm"
+}
 !source "src/util.asm"
 !source "src/video.asm"
 !source "src/sound.asm"
@@ -41,5 +59,5 @@ prg_end
     !error "run.asm run_snap_map: !fill an MAP_CELLS anpassen"
 }
 !if prg_end > CODE_LIMIT {
-    !error "Programm ragt in die VIC-Bank 3 ($C000) - zu gross"
+    !error "Programm ragt ueber CODE_LIMIT (Grafikspeicher der Plattform) - zu gross"
 }

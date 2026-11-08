@@ -1,48 +1,6 @@
-; video.asm - VIC-Init (Bank 3, lower/uppercase charset), Text, Tiles
+; video.asm - Textausgabe in Bildschirm- und Farb-RAM (Zeichenraster 40x25)
+; Initialisierung und Zeichensatz-/Farbumschaltung: platform/cbm/vic2_gfx.asm
 ; put_str maps ASCII upper/lowercase to screen codes for the lower/uppercase set.
-
-!zone video_init
-video_init
-        lda CIA2_DDRA
-        ora #$03
-        sta CIA2_DDRA
-        lda CIA2_PRA
-        and #$FC                ; %00 = VIC-Bank 3 ($C000-$FFFF)
-        sta CIA2_PRA
-        lda #$02                ; Screen = Bank+$0000, Charset = Bank+$0800
-        sta VIC_MEMPTR
-        lda #$1B
-        sta VIC_CTRL1
-        lda #$18                ; 40 Spalten, Multicolor an
-        sta VIC_CTRL2
-        lda #0
-        sta VIC_SPR_EN          ; static screen prototype has no sprites
-        sta VIC_SPRXMSB
-        lda #COL_BLACK
-        sta VIC_BORDER
-        sta VIC_BG0
-        lda theme_bg1           ; multicolour colours of the loaded theme
-        sta VIC_BG1
-        lda theme_bg2
-        sta VIC_BG2
-        ; weiter mit clear_screen
-
-!zone clear_screen
-clear_screen
-        ldx #0
-.l      lda #$20
-        sta SCREEN,x
-        sta SCREEN+$100,x
-        sta SCREEN+$200,x
-        sta SCREEN+$300,x
-        lda #COL_WHITE          ; Farbe < 8 = Hires-Zeichen (Text)
-        sta COLORRAM,x
-        sta COLORRAM+$100,x
-        sta COLORRAM+$200,x
-        sta COLORRAM+$300,x
-        inx
-        bne .l
-        rts
 
 ; ---- Text -------------------------------------------------------------
 set_cursor                      ; X = Spalte, Y = Zeile

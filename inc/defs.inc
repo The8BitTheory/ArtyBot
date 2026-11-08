@@ -1,62 +1,8 @@
-; defs.inc - Hardware-Register und Konstanten
+; defs.inc - Spielkonstanten (plattformunabhaengig)
 
-; --- CPU
-CPU_DDR     = $00
-CPU_PORT    = $01
+; Hardware-Register und Speicherlayout kommen aus platform/<ziel>/platform.inc
+; (wird in main.asm vor dieser Datei eingebunden).
 
-; --- VIC-II
-VIC_SPR0X   = $D000
-VIC_SPR0Y   = $D001
-VIC_SPR1X   = $D002
-VIC_SPR1Y   = $D003
-VIC_SPRXMSB = $D010
-VIC_CTRL1   = $D011
-VIC_RASTER  = $D012
-VIC_SPR_EN  = $D015
-VIC_CTRL2   = $D016
-VIC_SPR_EXPY= $D017
-VIC_MEMPTR  = $D018
-VIC_IRR     = $D019
-VIC_IMR     = $D01A
-VIC_SPR_PRI = $D01B
-VIC_SPR_MC  = $D01C
-VIC_SPR_EXPX= $D01D
-VIC_BORDER  = $D020
-VIC_BG0     = $D021
-VIC_BG1     = $D022
-VIC_BG2     = $D023
-VIC_SPR_MC0 = $D025         ; shared sprite multicolour 1 (%01)
-VIC_SPR_MC1 = $D026         ; shared sprite multicolour 2 (%11)
-VIC_SPR0COL = $D027
-
-; --- SID / CIA
-SID_BASE    = $D400
-SID_POTX    = $D419
-SID_POTY    = $D41A
-SID_VOL     = $D418
-CIA1_PRA    = $DC00
-CIA1_PRB    = $DC01
-CIA1_DDRA   = $DC02
-CIA1_DDRB   = $DC03
-CIA1_ICR    = $DC0D
-CIA2_PRA    = $DD00
-CIA2_DDRA   = $DD02
-CIA2_ICR    = $DD0D
-
-COLORRAM    = $D800
-
-; --- Speicherlayout (VIC-Bank 3 = $C000-$FFFF)
-BANK_BASE   = $C000
-SCREEN      = $C000
-CHARSET     = $C800
-TITLE_CHARSET = $D000         ; title screen charset (RAM under I/O, see title.asm)
-END_CHARSET   = $D800         ; end screen charset (RAM under the colour RAM, see title.asm)
-SPRITES     = $E000
-SPR_PTR0    = SCREEN + $3F8
-SPRITE_BLOCK= (SPRITES - BANK_BASE) >> 6
-SPRITE_BLOCK1 = SPRITE_BLOCK + 1
-SPRITE_BLOCK2 = SPRITE_BLOCK + 2   ; black outline of the mouse pointer (sprite 2 in plan mode / world map)
-CODE_LIMIT  = $C000
 ICON_CHAR_BASE  = $E0
 ICON_CHAR_COUNT = 30            ; 24 command glyphs, Turn 180, and scrollbar arrows
 ICON_CHAR_BYTES = ICON_CHAR_COUNT * 8
@@ -133,8 +79,7 @@ JOY_FIRE    = $10
 REPEAT_DELAY= 15
 REPEAT_RATE = 4
 
-; --- Timing
-RASTER_LINE = 250
+; --- Farben (Fortsetzung)
 COL_BLUE    = 6
 
 ; --- Run screen (RPG look): multicolour 2x2-character field cells $A0-$DF (16 cell

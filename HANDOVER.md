@@ -1,6 +1,6 @@
 # Projekt-Handover: ArtyBot
 
-**Stand:** 06.11.2026 (Wien) – Wettbewerbsversion ist als Git-Tag **`Competition`** markiert (Commit `d49889d`, lokal gesetzt, muss noch mit `git push origin Competition` hochgeladen werden; der ältere Tag `compo` zeigt auf `db1abb7` "final polish"). Danach neu: Level **Meadow 5 `map15` "Bottleneck"** → 2 Welten, 14 Levels (Meadow 5, Winter 9); Ende-Bildschirm zeigt jetzt 14 Levelzeilen.
+**Stand:** 08.11.2026 (Wien) – Repo jetzt in `D:\git\ArtyBot` (nicht mehr iCloud). Mehrplattform-Umbau läuft (Abschnitt „Mehrplattform“). Davor: Wettbewerbsversion ist als Git-Tag **`Competition`** markiert (Commit `d49889d`, lokal gesetzt, muss noch mit `git push origin Competition` hochgeladen werden; der ältere Tag `compo` zeigt auf `db1abb7` "final polish"). Danach neu: Level **Meadow 5 `map15` "Bottleneck"** → 2 Welten, 14 Levels (Meadow 5, Winter 9); Ende-Bildschirm zeigt jetzt 14 Levelzeilen.
 **Abgabe:** Sa 31.10.2026, 12:00.
 
 > **Source of Truth ist der lokale Ordner**, nicht GitHub. Martin committet und pusht selbst in unregelmäßigen Abständen; das Repo kann hinterherhinken.
@@ -93,8 +93,16 @@ Ein spielbarer Kreislauf **Weltkarte → Planen → Ausführen → Weltkarte** i
 
 | Datei | Inhalt |
 |---|---|
-| `src/main.asm` | Einstieg, Include-Reihenfolge, Größenprüfung `< $C000` |
-| `src/startup.asm` | BASIC-Stub `SYS 2061`, Hardware/IRQ-Setup, Grafik nach VIC-Bank 3 kopieren |
+| `src/main.asm` | Einstieg (C64), Zielauswahl über `TARGET`, Include-Reihenfolge, Größenprüfung `< CODE_LIMIT` |
+| `src/main128.asm` | Einstieg C128: setzt `TARGET = 2`, bindet `main.asm` ein |
+| `platform/c64/platform.inc` | C64: CPU-Port, Speicherlayout (`SCREEN`, `CHARSET`, `SPRITES`, `CODE_LIMIT`, `*_MEMPTR`), bindet `cbm/vic2.inc` + `cbm/sidcia.inc` ein |
+| `platform/c64/platform.asm` | C64-Code: bindet `startup.asm`, `system.asm`, `cbm/irq.asm`, `cbm/vic2_gfx.asm` ein (als erster Code) |
+| `platform/c64/startup.asm` | BASIC-Stub `SYS 2061`, Hardware/IRQ-Setup, Grafik nach VIC-Bank 3 kopieren |
+| `platform/c64/system.asm` | `system_reset` (Soft-Reset, Titelpunkt „Quit Game“) |
+| `platform/cbm/vic2.inc`, `sidcia.inc` | Register von VIC-II, SID, CIA (C64/C128/MEGA65 gemeinsam) |
+| `platform/cbm/irq.asm` | Raster-IRQ (50 Hz), `wait_frame`, NMI-Stub |
+| `platform/cbm/vic2_gfx.asm` | VIC-II-Treiber: `video_init`, `clear_screen`, `gfx_theme_colors`, `gfx_charset_game/title/end`, `gfx_sprites_off` |
+| `platform/c128/` | C128-Ziel (Schritt 2) |
 | `src/editor.asm` | Planungsbildschirm, Palette, Befehlsliste, Eingabe, Aufruf von `run_mode` |
 | `src/run.asm` | Run-Bildschirm, Ausführung, Regeln (inkl. Jump/Throw), Sprites, Sieg/Fehler, Levelwechsel |
 | `src/world.asm` | Themes (`theme_table`, `theme_load`), Welten (`world_table`), Fortschritt, Weltkarten-Bildschirm (`world_mode`) |
@@ -110,7 +118,8 @@ Ein spielbarer Kreislauf **Weltkarte → Planen → Ausführen → Weltkarte** i
 | `src/ambient.asm` | Weltkarten-Ambience (Wind/Puls/Sci-Fi-Klänge, prozedural, IRQ) |
 | `tools/sim_ambient.py` | Simulator-Test der Ambience (läuft auf der Karte, Effekte behalten Stimme 1, Stopp im Plan mit Filter/Lautstärke zurück, Neustart mit F7) + WAV-Hörproben Meadow/Winter mit Filter-Näherung: `python -B tools/sim_ambient.py build/roboter.prg build/labels.txt [out.wav] [Sekunden]` (~3 Min.) |
 | `src/input.asm` | Tastaturmatrix, Shift/Repeat, 1351-Maus |
-| `src/video.asm`, `irq.asm`, `sprites.asm`, `util.asm` | Bildschirmausgabe, Raster-IRQ, Sprites, Helfer |
+| `src/video.asm`, `sprites.asm`, `util.asm` | Textausgabe (Zeichenraster), Maus-/Marker-Sprites, Helfer |
+| `tools/sim_regress.py` | **Regressionstest** für Umbauten: fester Ablauf (Titel, Instructions, Credits, Karte, Statistik, Plan, Fehl- und Siegerlauf, Tor, Winter, Eis, Ende, alle Levels) im Simulator, Signatur aus Bild + VIC-Registern pro Haltepunkt; mit Referenzordner vergleichen. Ca. 6 min: `python -B tools/sim_regress.py build/roboter.prg out/neu [out/ref]` (Lösungen werden in `solutions.txt` zwischengespeichert) |
 | `src/text.asm` | Alle UI-Texte (englisch) |
 | `inc/defs.inc`, `inc/zp.inc`, `inc/macros.inc` | Konstanten, Zeropage/RAM, Makros |
 | `tools/c64sim.py` | Minimaler C64-Emulator (6502, IRQ, Tastatur, VIC-Renderer) für automatische Tests/Screenshots |
@@ -136,6 +145,18 @@ Ein spielbarer Kreislauf **Weltkarte → Planen → Ausführen → Weltkarte** i
 | `tools/ascii_level.py` | Level aus ASCII-Art (`levels_src/mapWL.txt`: Label + Titel, Beschreibung, Leerzeile, 10×10-Zeichen `. # ~ T P G K L/M D/E > < ^ v`): löst es mit `solve_levels.py`, `--set x,y,c` testet Varianten (z. B. Baum weg), `--write` ersetzt den Datensatz in `mapdata.asm`: `python -B tools/ascii_level.py levels_src/map23.txt [--write]` |
 | `tools/linux_acme/` | `stubs.c` + `build_linux_acme.sh`: baut ACME aus `C:\Users\martin\programme\acme\src` für Linux (für Cloud-Chats ohne Windows). Nur in einer **Kopie** des Projekts assemblieren, sonst überschreibt `main.asm` `Test.lbl/.pdb` (`!svl`/`!pdb`) mit Stub-Ausgaben |
 
+## Mehrplattform (ab 08.11.)
+
+Ziel: C128-Port, später MEGA65 und Commander X16. Schrittweise, je ein Branch, jeder Schritt erst fertig, wenn spielbar:
+1. **`platform-layer`** – Plattformschicht, C64 unverändert. ✔ (Regression 0 Abweichungen)
+2. **`c128-vic`** – C128-Modus mit VIC-II, 1 MHz.
+3. Grafik-Code modularisieren (Schnittstelle aus Sicht des VDC).
+4. C128 mit VDC (80 Zeichen).
+
+**Aufbau:** `platform/<ziel>/platform.inc` (Konstanten, vor `defs.inc`) und `platform/<ziel>/platform.asm` (Code, als erster Code, setzt die Startadresse). Gemeinsame Commodore-Chips in `platform/cbm/`. `TARGET` (1 = C64, 2 = C128) setzt die Einstiegsdatei (`src/main.asm` / `src/main128.asm`); der ACME-Fork kennt kein `-D`. `!if TARGET` nur in `main.asm`, nicht in der Spiellogik.
+**Regeln:** Spieldateien (`src/`) benutzen keine CPU-Port-/Bank-/Speicherkonfigurations-Zugriffe. Zeichensatz wechseln nur über `gfx_charset_*`, Theme-Farben über `gfx_theme_colors`, Sprites aus über `gfx_sprites_off`. Noch direkt (für Schritt 3): Sprite-Register in `sprites.asm`, `run.asm` (`run_spr_*`), `world.asm` (Kartenfigur), `title.asm` (Raster-Split `title_split`, Zeiger); Bildschirm-/Farb-RAM-Zugriffe in `video.asm`, `title.asm` (`title_page`, Ganzbild-Kopien) und `run.asm` (`run_paint_goal`, Abstand `COLORRAM - SCREEN`).
+**Test:** nach jedem Umbau `tools/sim_regress.py` gegen eine Referenz vom Ausgangsstand.
+
 ## Werkzeug-Regel (für neue Chats)
 
 - **Vor jedem neuen Skript zuerst `tools/` ansehen** und vorhandene Werkzeuge nutzen oder erweitern; neue Werkzeuge immer in `tools/` ablegen und hier in der Dateitabelle eintragen (Zweck + Aufruf).
@@ -154,13 +175,14 @@ Ein spielbarer Kreislauf **Weltkarte → Planen → Ausführen → Weltkarte** i
 
 ## Build
 
-Aus dem Projektordner:
+Aus dem Projektordner (`D:\git\ArtyBot`), oder `make c64` / `make c128`:
 
 ```powershell
 & 'C:\Users\martin\programme\acme\Release\ACME.exe' -f cbm --cpu 6510 -o build\roboter.prg src\main.asm
+& 'C:\Users\martin\programme\acme\Release\ACME.exe' -f cbm --cpu 6510 -o build\artybot128.prg src\main128.asm
 ```
 
-Nach erfolgreichem Build nur Bescheid geben, **VICE nicht selbst starten** (siehe `AGENTS.md`). `Test.map/.lbl/.pdb` entstehen beim Build. `build\artybot.prg` ist ein altes Artefakt.
+Nach erfolgreichem Build nur Bescheid geben, **VICE nicht selbst starten** (siehe `AGENTS.md`). `Test.map/.lbl/.pdb` entstehen beim Build. `build\artybot.prg` ist ein altes Artefakt. In Cloud-Chats: ACME aus `D:\git\ACME\src` mit `tools/linux_acme` bauen, in einer Kopie assemblieren.
 
 ## Entscheidungen und Ideen
 

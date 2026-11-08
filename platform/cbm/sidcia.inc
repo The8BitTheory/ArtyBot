@@ -1,0 +1,14 @@
+; sidcia.inc - SID und CIAs (C64, C128, MEGA65)
+
+SID_BASE    = $D400
+SID_POTX    = $D419
+SID_POTY    = $D41A
+SID_VOL     = $D418
+CIA1_PRA    = $DC00
+CIA1_PRB    = $DC01
+CIA1_DDRA   = $DC02
+CIA1_DDRB   = $DC03
+CIA1_ICR    = $DC0D
+CIA2_PRA    = $DD00
+CIA2_DDRA   = $DD02
+CIA2_ICR    = $DD0D
