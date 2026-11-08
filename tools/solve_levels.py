@@ -73,33 +73,16 @@ def parse_levels():
     return out
 
 
-def solve(lv, limit=3_000_000, start_state=None, more=False, par=False):
-    """par=True: a jump over walkable ground costs 2; returns (prog, n, cost)."""
-    goals = tuple(lv['goals']); gset = set(goals)
+def rules(lv, par=False):
+    """Game rules of run.asm for one level: returns (start, moves).
+    State: x, y, dir, carry (0 nothing, 1 package, 2 key), packages, loose keys,
+    filled locks. moves(state) yields (command, next state, cost)."""
     trees, water, ice = lv['trees'], lv['water'], lv['ice']
     inside = lambda x, y: 0 <= x < COLS and 0 <= y < ROWS
     rx, ry, rd = lv['robot']
-    # state: x, y, dir, carry (0 nothing, 1 package, 2 key), packages, loose keys, filled locks
     locks = dict(lv['locks'])                      # lock position -> door position
     lockpos = set(locks)
-    start = start_state or (rx, ry, rd, 0, frozenset(lv['boxes']), frozenset(lv['keys']), frozenset())
-    covered0 = sum(1 for g in goals if g in start[4])
-
-    def h(st):
-        x, y, d, carry, boxes = st[:5]
-        free = [b for b in boxes if b not in gset]
-        if carry == 1:
-            free = free + [(x, y)]
-        t = 0
-        for g in goals:
-            if g not in boxes:
-                t += min(abs(g[0] - b[0]) + abs(g[1] - b[1]) for b in free) if free else 99
-        return (t + 1) // 2 + (1 if t else 0)
-
-    def won(st):
-        if more:                    # greedy step: one more goal covered
-            return sum(1 for g in goals if g in st[4]) > covered0
-        return all(g in st[4] for g in goals)
+    start = (rx, ry, rd, 0, frozenset(lv['boxes']), frozenset(lv['keys']), frozenset())
 
     def free(p, boxes, keys=frozenset(), filled=frozenset()):   # walked on / skated over (floor, goal, ice)
         if not inside(*p) or p in trees or p in water or p in boxes or p in keys or p in lockpos:
@@ -159,6 +142,32 @@ def solve(lv, limit=3_000_000, start_state=None, more=False, par=False):
                 yield 'throw', (x, y, d, 0, boxes, keys | {(ax, ay)}, filled), 1
             elif carry == 2 and (ax, ay) in lockpos and (ax, ay) not in filled:
                 yield 'throw', (x, y, d, 0, boxes, keys, filled | {(ax, ay)}), 1
+
+    return start, moves
+
+
+def solve(lv, limit=3_000_000, start_state=None, more=False, par=False):
+    """par=True: a jump over walkable ground costs 2; returns (prog, n, cost)."""
+    goals = tuple(lv['goals']); gset = set(goals)
+    start0, moves = rules(lv, par)
+    start = start_state or start0
+    covered0 = sum(1 for g in goals if g in start[4])
+
+    def h(st):
+        x, y, d, carry, boxes = st[:5]
+        free = [b for b in boxes if b not in gset]
+        if carry == 1:
+            free = free + [(x, y)]
+        t = 0
+        for g in goals:
+            if g not in boxes:
+                t += min(abs(g[0] - b[0]) + abs(g[1] - b[1]) for b in free) if free else 99
+        return (t + 1) // 2 + (1 if t else 0)
+
+    def won(st):
+        if more:                    # greedy step: one more goal covered
+            return sum(1 for g in goals if g in st[4]) > covered0
+        return all(g in st[4] for g in goals)
 
     openq = [(W * h(start), 0, 0, start)]
     best = {start: 0}

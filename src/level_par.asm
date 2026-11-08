@@ -6,6 +6,7 @@ level_par
         !byte  20             ; map12 exact wdsaqazcdwzzdqxzc
         !byte  28             ; map13 exact aqxessaqwaedzqcxqsedqcxzqwdc
         !byte  43             ; map14 exact qwdzzzzawzzzawzzzawzzawzzazac
+        !byte  46             ; map15 exact wqsezqwzzdezqwasexqwzcxzwqsxzwcsxzzawqsazze
         !byte  19             ; map21 exact wwwdwqdwwesdzdqsxe
         !byte  25             ; map22 exact sawqsdwwaedsdzdqssdsdsae
         !byte  21             ; map23 exact dqzdsdsaedwawqdsdwae

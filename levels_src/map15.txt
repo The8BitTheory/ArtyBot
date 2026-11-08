@@ -1,0 +1,16 @@
+map15 Meadow 5, "Bottleneck"
+a narrow forest path with two water channels. Packages only get across in the
+robot's hands (Jump while carrying); a package thrown across lands on the far
+bank and blocks the robot's own landing field. Four packages, three goals at the
+end: park, re-pick and re-order them so the landing fields stay free.
+
+TTTTTTTTTT
+TTTTTTTTTT
+TTTTTTTTTT
+T>.PP~...T
+TTTTTTTT.T
+TTTTTTTT.T
+TGGG.~P.PT
+TTTTTTTTTT
+TTTTTTTTTT
+TTTTTTTTTT

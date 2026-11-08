@@ -161,7 +161,9 @@ str_instr2     !text " How to play (2/2) ",0
                 !byte $FF
 ; --- End screen (title.asm, same charset rules as the title)
 str_end_tag     !text "Congratulations! Every level solved.",0
-str_end_record  !text " Your record ",0
+str_end_hlevel  !text " Level ",0          ; end screen: column heads in the window edge
+str_end_hpar    !text " Par ",0
+str_end_hcmds   !text " Cmds ",0
 str_end_total   !text " Total cmds: ",0
 str_end_key1    !text "Return: title",0
 str_end_key2    !text "F7: back to map",0

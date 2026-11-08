@@ -602,16 +602,22 @@ title_credits
 ; the title (logo, END_CHARSET with a trophy instead of the robot), on the right
 ; the record of every level (runs, fewest commands) as a certificate.
 ; Return: title screen, F7: back onto the map (in front of the gate).
+; At most END_ROWS (14) levels fit; more levels are an assembly error below.
 END_WIN_X     = 18
 END_WIN_Y     = 9
 END_WIN_W     = 21
-END_WIN_H     = 16              ; rows 9-24: header + 13 levels
-END_ROWS      = END_WIN_H - 3   ; level rows that fit
+END_WIN_H     = 16              ; rows 9-24: top edge with the column heads, 14 levels,
+                                ; bottom edge with the total
+END_ROWS      = END_WIN_H - 2   ; level rows that fit
 END_NAME_X    = 20
 END_RUNS_X    = 29
 END_CMDS_X    = 34
 END_KEYS_X    = 2
 END_MEMPTR    = $06             ; screen $C000, charset $D800 (bank 3)
+
+!if plan_level_count > END_ROWS {
+    !error "Abspann: zu viele Levels fuer das Rekord-Fenster (END_ROWS)"
+}
 
 !zone end_mode
 end_mode
@@ -681,31 +687,25 @@ end_draw
         ldy #END_WIN_Y
         lda #END_WIN_H
         jsr draw_window
-        ldx #END_WIN_X+2
+        lda #COL_CYAN           ; column heads in the top edge (one more level row)
+        sta cur_col
+        ldx #END_NAME_X-1
         ldy #END_WIN_Y
         jsr set_cursor
-        lda #<str_end_record
-        ldx #>str_end_record
+        lda #<str_end_hlevel
+        ldx #>str_end_hlevel
         jsr put_str
-        lda #COL_CYAN           ; column heads
-        sta cur_col
-        ldx #END_NAME_X
-        ldy #END_WIN_Y+1
+        ldx #END_RUNS_X-1
+        ldy #END_WIN_Y
         jsr set_cursor
-        lda #<str_stats_level
-        ldx #>str_stats_level
+        lda #<str_end_hpar
+        ldx #>str_end_hpar
         jsr put_str
-        ldx #END_RUNS_X
-        ldy #END_WIN_Y+1
+        ldx #END_CMDS_X-2
+        ldy #END_WIN_Y
         jsr set_cursor
-        lda #<str_stats_par
-        ldx #>str_stats_par
-        jsr put_str
-        ldx #END_CMDS_X-1
-        ldy #END_WIN_Y+1
-        jsr set_cursor
-        lda #<str_stats_cmds
-        ldx #>str_stats_cmds
+        lda #<str_end_hcmds
+        ldx #>str_end_hcmds
         jsr put_str
         lda #0
         sta end_lvl
@@ -717,7 +717,7 @@ end_draw
         cmp #END_ROWS
         beq .total
         clc
-        adc #END_WIN_Y+2
+        adc #END_WIN_Y+1
         sta end_y
         tay
         ldx #END_NAME_X

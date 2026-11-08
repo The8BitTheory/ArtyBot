@@ -40,7 +40,8 @@ PATH = 6
 
 WORLDS = []
 
-# World 1: meadow (levels 1-4). The path winds round the end of the river.
+# World 1: meadow (levels 1-5). The path winds round the end of the river; level 5
+# sits in a clearing at the bottom right.
 WORLDS.append(('meadow', """
 TTTT[]TTTTT~~TTTTTT
 T,1.S..*T,,~~*T,4.T
@@ -49,7 +50,7 @@ T,TT*,.,,T*~~,TT,.T
 TT,....T,*~~,,T,..T
 T*,.TTT,,~~,*T,..,T
 T,..,T*,~~,T,3..T,T
-T,.2*T,,,~*,TT,.,*T
+T,.2*T,,,~*,TT,..5T
 T,..............TTT
 TTTTTTTTTTTTTTTTTTT
 """))
