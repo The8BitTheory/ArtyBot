@@ -2,7 +2,7 @@
 """Pick Up / Drop Off / Jump / Throw command icons (2x2 hires characters = 16x16 pixels, X = pixel set):
 a package with an arrow next to it (up = pick up, down = drop off).
 Prints the !byte blocks for $F0-$F7 (pick up, drop off) and ICON2_CHAR_BASE $90-$97
-(jump, throw) in src/gfx_data.asm (order TL, TR, BL, BR per icon).
+(jump, throw) in platform/cbm/view_vic2/gfx_data.asm (order TL, TR, BL, BR per icon).
 Usage: python -B tools/gen_cmd_icons.py"""
 
 BOX = [

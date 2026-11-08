@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""gen_theme_winter.py - generates src/gfx_winter.asm, the tileset of the winter world.
+"""gen_theme_winter.py - generates platform/cbm/view_vic2/gfx_winter.asm, the tileset of the winter world.
 
-  python -B tools/gen_theme_winter.py                  (writes src/gfx_winter.asm)
+  python -B tools/gen_theme_winter.py                  (writes platform/cbm/view_vic2/gfx_winter.asm)
   python -B tools/gen_theme_winter.py --preview out.png (also draws a preview)
 
 Same cell types and order as the meadow (gen_gfx_run.CELL_ORDER); cells that
@@ -17,7 +17,7 @@ import gen_gfx_run as G
 import gen_plan_tiles as P
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, '..', 'src', 'gfx_winter.asm')
+OUT = os.path.join(HERE, '..', 'platform', 'cbm', 'view_vic2', 'gfx_winter.asm')
 
 C = {}
 # Snow: the meadow grass pattern with the dark specks turned into bluish shadows.

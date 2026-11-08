@@ -41,13 +41,7 @@ COL_DGREY   = 11
 ; --- Spielfeld
 MAP_COLS    = 10            ; planning field interior (tiles)
 MAP_ROWS    = 10
-MAP_SCR_X   = 1             ; screen column of field tile (0,0)
-MAP_SCR_Y   = 2             ; screen row of field tile (0,0)
 
-; --- Info window (right half, under the command list): two text rows
-INFO_X      = 23            ; first text column
-INFO_Y      = 21            ; first text row (second row = INFO_Y+1)
-INFO_W      = 16            ; characters per row
 KEY_F1      = 4             ; F1 matrix code: switch between plan and run mode
 KEY_F7      = 3             ; F7 matrix code; Shift+F7 = F8: exit (both modes)
 

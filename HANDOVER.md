@@ -113,8 +113,8 @@ Ein spielbarer Kreislauf **Weltkarte → Planen → Ausführen → Weltkarte** i
 | `src/world.asm` | Themes (`theme_table`, `theme_load`), Welten (`world_table`), Fortschritt, Weltkarten-Bildschirm (`world_mode`) |
 | `src/world_maps.asm` | **generiert** von `tools/gen_world_maps.py` – Weltkarten (Nibble-gepackt) und Knotenlisten |
 | `src/mapdata.asm` | Leveldaten, `load_plan_level`, Kartenzeichnung und Hover-Texte im Planungsmodus |
-| `src/gfx_data.asm` | Befehls-Icons (`gfx_icons`, `gfx_icons2`), Planungs-Tiles, Zeiger-Sprites |
-| `src/gfx_run.asm` | **generiert** von `tools/gen_gfx_run.py` – nicht von Hand ändern |
+| `platform/cbm/view_vic2/gfx_data.asm` | Befehls-Icons (`gfx_icons`, `gfx_icons2`), Planungs-Tiles, Zeiger-Sprites |
+| `platform/cbm/view_vic2/gfx_run.asm` | **generiert** von `tools/gen_gfx_run.py` – nicht von Hand ändern |
 | `src/sound.asm` | SID-Sequenzer und Effekte |
 | `src/music.asm` | Titelmusik-Player (3 Stimmen, IRQ) |
 | `src/music_data.asm` | **generiert** von `tools/gen_music.py` – nicht von Hand ändern |
@@ -123,14 +123,17 @@ Ein spielbarer Kreislauf **Weltkarte → Planen → Ausführen → Weltkarte** i
 | `src/ambient.asm` | Weltkarten-Ambience (Wind/Puls/Sci-Fi-Klänge, prozedural, IRQ) |
 | `tools/sim_ambient.py` | Simulator-Test der Ambience (läuft auf der Karte, Effekte behalten Stimme 1, Stopp im Plan mit Filter/Lautstärke zurück, Neustart mit F7) + WAV-Hörproben Meadow/Winter mit Filter-Näherung: `python -B tools/sim_ambient.py build/roboter.prg build/labels.txt [out.wav] [Sekunden]` (~3 Min.) |
 | `src/input.asm` | Tastaturmatrix, Shift/Repeat, 1351-Maus |
-| `src/video.asm`, `sprites.asm`, `util.asm` | Textausgabe (Zeichenraster), Maus-/Marker-Sprites, Helfer |
-| `tools/sim_regress.py` | **Regressionstest** für Umbauten: fester Ablauf (Titel, Instructions, Credits, Karte, Statistik, Plan, Fehl- und Siegerlauf, Tor, Winter, Eis, Ende, alle Levels) im Simulator, Signatur aus Bild + VIC-Registern pro Haltepunkt; mit Referenzordner vergleichen. Ca. 6 min: `python -B tools/sim_regress.py build/roboter.prg out/neu [out/ref]` (Lösungen werden in `solutions.txt` zwischengespeichert) |
+| `src/util.asm` | Helfer (`memcpy`) |
+| `platform/cbm/view_vic2/` | **VIC-II-View** (C64, C128 40 Zeichen): `view.asm` bindet alles ein; `text.asm` (Textausgabe, früher `src/video.asm`), `pointer.asm` (Maus/Marker-Sprites, früher `src/sprites.asm`), `title.asm`, `world.asm` (inkl. Themes), `plan.asm`, `run.asm`, Grafikdaten `gfx_data.asm`, `gfx_run.asm`/`gfx_winter.asm`/`gfx_title.asm` (generiert) |
+| `tools/check_layers.py` | Prüft, dass die Logik in `src/` keine Grafikhardware, kein Bildschirm-/Farb-RAM, keine Textausgabe und keine Speicherkonfiguration benutzt: `python -B tools/check_layers.py` |
+| `tools/sim_cpuload.py` | CPU-Last pro Frame während eines Levellaufs (Mittel/Maximum, Simulator-Näherung) zum Vergleich vorher/nachher: `python -B tools/sim_cpuload.py build/roboter.prg labels.txt 22` |
+| `tools/sim_regress.py` | **Regressionstest** für Umbauten: Ablauf 1 Tastatur (Titel, Instructions, Credits, Karte, Figur mitten im Schritt, Statistik, Plan, Fehl- und Siegerlauf, Tor, Winter, Eis, Ende), Ablauf 3 Maus (1351 nachgebildet: Menü, Kartenknoten, Feld-Hover, Palette, Liste wählen/verschieben, Scrollpfeile, beide Rückfragen, Fußzeile), Ablauf 2 alle Levels. Signatur aus Bild + VIC-Registern pro Haltepunkt (62); mit Referenzordner vergleichen. Ca. 7 min, `--quick` ohne Ablauf 2 ca. 1 min: `python -B tools/sim_regress.py [--quick] build/roboter.prg out/neu [out/ref]` (Lösungen in `solutions.txt` zwischengespeichert). Referenz immer vom Ausgangs-PRG erzeugen |
 | `src/text.asm` | Alle UI-Texte (englisch) |
 | `inc/defs.inc`, `inc/zp.inc`, `inc/macros.inc` | Konstanten, Zeropage/RAM, Makros |
 | `tools/c64sim.py` | Minimaler C64-Emulator (6502, IRQ, Tastatur, VIC-Renderer) für automatische Tests/Screenshots |
 | `tools/sim_screenshots.py` | Baut einen Testplan per Tastendruck ein, startet ihn, speichert Screenshots (alte Tastenbelegung, s. oben) |
 | `tools/preview_art.py` | Vorschau der Run-Grafik (inkl. Wasser) |
-| `tools/gen_gfx_run.py` | **Generator** von `src/gfx_run.asm` (Run-Zellen inkl. Wasser, UI-Zeichen, Sprites): `python -B tools/gen_gfx_run.py` |
+| `tools/gen_gfx_run.py` | **Generator** von `platform/cbm/view_vic2/gfx_run.asm` (Run-Zellen inkl. Wasser, UI-Zeichen, Sprites): `python -B tools/gen_gfx_run.py` |
 | `tools/gen_plan_tiles.py` | **Generator** der Planungs-Kacheln `$80-$88` (Roboter, Gras, Ziel, Truhe, Baum, Wasser); Ausgabe der `!byte`-Zeilen in `gfx_data.asm` einfügen. |
 | `tools/gen_cmd_icons.py` | **Generator** der Icons Pick Up / Drop Off (`$F0-$F7`) sowie Jump / Throw (`$90-$97`, Block `gfx_icons2`); Ausgabe in `gfx_data.asm` einfügen: `python -B tools/gen_cmd_icons.py` |
 | `tools/gen_world_maps.py` | **Generator** der Weltkarten als ASCII-Art (`.` Weg, `,` Gras, `T` Baum, `*` Blumen, `~` Wasser, `1`–`9` Levelknoten); prüft Größe und Erreichbarkeit aller Knoten: `python -B tools/gen_world_maps.py` |
@@ -139,8 +142,8 @@ Ein spielbarer Kreislauf **Weltkarte → Planen → Ausführen → Weltkarte** i
 | `tools/level_traps.py` | **Fallen-Analyse** eines Levels (06.11.): durchsucht alle erreichbaren Zustände (Regeln aus `solve_levels.rules`) und zählt die **Sackgassen** (Zustände, aus denen das Level nicht mehr lösbar ist), die Paket-Anordnungen und die Züge, die vom lösbaren in einen verlorenen Zustand führen; gibt auch die kürzeste Lösung (Breitensuche) aus. `--trace` zeigt das Feld nach jedem Aufheben/Ablegen/Werfen der Lösung, `--show N` die ersten N Fallen-Anordnungen. Nur für kleine Levels (Gänge, bis ca. 2 Mio. Zustände; offene Felder wie map11 sind zu groß): `python -B tools/level_traps.py levels_src/map15.txt --trace` oder `python -B tools/level_traps.py 15` |
 | `tools/sim_level.py` | Simulator-Test **eines** Levels (06.11.): neues Spiel, schaltet nötige Welten per F2 + Tor frei, läuft auf der Weltkarte zum Knoten, tippt das Programm ein (ohne Angabe: kürzeste Lösung von `solve_levels.py`), führt es aus und prüft den Sieg (`run_state` 4); optional Screenshots Karte/Plan/Run: `python -B tools/sim_level.py build/roboter.prg 15 [PROGRAMM] [out/prefix]` |
 | `src/level_par.asm` | **generiert** von `solve_levels.py --write-par` – Tabelle `level_par` (1 Byte pro Level, Reihenfolge `plan_level_table`). **Nach jeder Leveländerung neu erzeugen!** Der Build prüft nur die Anzahl, nicht den Inhalt |
-| `tools/gen_theme_winter.py` | **Generator** von `src/gfx_winter.asm` (Winter-Zellen + Plan-Kacheln, ASCII-Art); `--preview out.png` zeichnet eine Vorschau: `python -B tools/gen_theme_winter.py` |
-| `src/gfx_winter.asm` | **generiert** von `tools/gen_theme_winter.py` – nicht von Hand ändern |
+| `tools/gen_theme_winter.py` | **Generator** von `platform/cbm/view_vic2/gfx_winter.asm` (Winter-Zellen + Plan-Kacheln, ASCII-Art); `--preview out.png` zeichnet eine Vorschau: `python -B tools/gen_theme_winter.py` |
+| `platform/cbm/view_vic2/gfx_winter.asm` | **generiert** von `tools/gen_theme_winter.py` – nicht von Hand ändern |
 | `tools/sim_winter.py` | Simulator-Durchlauf des ganzen Spiels (Meadow → Tor → Winter → Bogen zurück → Winter-Levels), mit Prüfungen und Screenshots: `python -B tools/sim_winter.py build/roboter.prg out/prefix` (braucht `Test.map`) **Veraltet** (kennt nur 4 Meadow- und 5 Winter-Levels mit alten Programmen); für einzelne Levels `sim_level.py` nehmen |
 | `tools/sim_ice.py` | Simulator-Test der Eis-Regeln (Eis-Levels): Gleiten stoppt am Baum, Jump aufs/vom Eis und Throw aufs Eis brechen es, Drop aufs Eis abgelehnt, Lösungen gewinnen: `python -B tools/sim_ice.py build/roboter.prg out/prefix` (braucht `Test.map`) |
 | `tools/sim_stats.py` | Simulator-Test der Level-Statistik: Runs werden nur bei geändertem Plan gezählt, Befehlszahl nach Sieg, Overlay-Screenshots: `python -B tools/sim_stats.py build/roboter.prg build/labels.txt out/prefix` (Labels mit `acme -l build/labels.txt` erzeugen) |
@@ -155,13 +158,33 @@ Ein spielbarer Kreislauf **Weltkarte → Planen → Ausführen → Weltkarte** i
 Ziel: C128-Port, später MEGA65 und Commander X16. Schrittweise, je ein Branch, jeder Schritt erst fertig, wenn spielbar:
 1. **`platform-layer`** – Plattformschicht, C64 unverändert. ✔ (Regression 0 Abweichungen)
 2. **`c128-vic`** – C128-Modus mit VIC-II, 1 MHz. Im Simulator bildgleich zum C64 (46/46), Test in x128 offen.
-3. Grafik-Code modularisieren (Schnittstelle aus Sicht des VDC).
+3. **`gfx-modular`** – Grafik-Code modularisiert: Logik in `src/`, Darstellung in `platform/cbm/view_vic2/` (Abschnitt „View-Schnittstelle“). Regression 62/62 auf C64 und C128, CPU-Last unverändert.
 4. C128 mit VDC (80 Zeichen).
 
 **Aufbau:** `platform/<ziel>/platform.inc` (Konstanten, vor `defs.inc`) und `platform/<ziel>/platform.asm` (Code, als erster Code, setzt die Startadresse). Gemeinsame Commodore-Chips in `platform/cbm/`. `TARGET` (1 = C64, 2 = C128) setzt die Einstiegsdatei (`src/main.asm` / `src/main128.asm`); der ACME-Fork kennt kein `-D`. `!if TARGET` nur in `main.asm`, nicht in der Spiellogik.
 **Regeln:** Spieldateien (`src/`) benutzen keine CPU-Port-/Bank-/Speicherkonfigurations-Zugriffe. Zeichensatz wechseln nur über `gfx_charset_*`, Theme-Farben über `gfx_theme_colors`, Sprites aus über `gfx_sprites_off`. Noch direkt (für Schritt 3): Sprite-Register in `sprites.asm`, `run.asm` (`run_spr_*`), `world.asm` (Kartenfigur), `title.asm` (Raster-Split `title_split`, Zeiger); Bildschirm-/Farb-RAM-Zugriffe in `video.asm`, `title.asm` (`title_page`, Ganzbild-Kopien) und `run.asm` (`run_paint_goal`, Abstand `COLORRAM - SCREEN`).
 **Test:** nach jedem Umbau `tools/sim_regress.py` gegen eine Referenz vom Ausgangsstand; das C128-PRG läuft im selben Test (`c128sim.py`) und muss dieselben Bilder liefern wie das C64-PRG.
 **C128 (Schritt 2):** Programm für `$1C01` assembliert (endet ca. `$935F`), sonst gleiches Speicherlayout wie C64. Fallen, die nur auf echter Hardware/x128 sichtbar sind: `$01` Bit 2 muss 1 sein, sonst sieht der VIC das Zeichensatz-ROM bei `$D000–$DFFF` der Bank 3 (Titel-/Ende-Zeichensatz kaputt); Bits 0/1 = gleiche Farb-RAM-Bank für CPU und VIC; `$D02F = $FF`, sonst stören die Zusatztasten die Matrix. Die PC-Pfeiltasten kommen in x128 als C128-Pfeiltasten an (Zusatzzeile K2), nicht als C64-CRSR-Tasten – deshalb `key_scan_extra` (gefunden beim ersten x128-Test). „Quit Game“ startet den C128 neu.
+
+## View-Schnittstelle (Schritt 3, 08.11.)
+
+**Trennung:** `src/` = Logik (Regeln, Ablauf, Tasten, Programmliste, Statistik, Fortschritt, Themes nur als Nummer). Die View (`platform/cbm/view_vic2/`, später `platform/c128/view_vdc/`) zeichnet, animiert die Figuren und beantwortet Maus-Treffertests. Die Logik kennt keine Bildschirmkoordinaten; die View liest Logik-Zustand (z. B. `map_work`, `robot_dir`, `run_carry`, `editor_count`, `scroll_offset`) und darf reine Abfragen aufrufen (`level_is_done`, `map_index`, `wm_cell`), aber keinen Zustand ändern. `tools/check_layers.py` prüft die Logik-Seite. Auswahl der View in `main.asm` nach `TARGET`.
+**Koordinaten:** Spielfeld-Positionen der Logik (`run_spx/spy`, `run_fx/fy`) sind Feld-Einheiten, 16 pro Zelle, Ursprung Zelle (0,0); Sprung-/Wurfbogen (`run_arc`, View) in denselben Einheiten. Die Kartenfigur führt die Logik nur als Zelle (`wm_cx/wm_cy` = Ziel) + `wm_steps` (Restframes) + `robot_dir`; die View rechnet die Position. Parameter der View, die die Logik benutzt: `PROGRAM_ROWS` (sichtbare Programmzeilen, Scrollen).
+
+| Bereich | Einstiegspunkte | Bedeutung | VDC-Layout (Mocks) |
+|---|---|---|---|
+| Grundlage | `video_init`, `clear_screen`, `gfx_theme_colors`, `gfx_charset_game/title/end`, `gfx_sprites_off`, `vic2_upload_charsets` (Start) | Bildschirm vorbereiten, Theme-Farben, Zeichensatz wählen, Figuren aus | Bitmap 640×200 + Attribute 8×2 einrichten; Zeichensatzwahl entfällt (Text als Bitmap) |
+| Text | `set_cursor`, `put_char`, `put_str`, `paint`, `draw_window`, `put_level_name(_a)` | Text-/Rahmenausgabe im Zeichenraster | Glyphen ins Bitmap, Farbe über Attribute |
+| Themes | `theme_load` (A = Theme), `theme_table` | Kacheln und Farben einer Welt laden | Kachel-Bitmaps 32×16 + Attribute je Theme |
+| Titel/Ende | `title_draw`, `title_refresh`, `title_split`, `title_pointer`, `title_anim`, `title_mark` (X = alter Punkt), `title_hit` (→ A = Punkt/$FF), `title_page` (A/X = Text, wartet), `title_credits`, `title_leave`, `end_draw` | Titelbild, Menü, Seiten, Endbildschirm | eigene Bildschirme in 640×200 |
+| Weltkarte | `world_draw`, `world_redraw_gates`, `world_init_sprites`, `world_sprites` (pro Frame), `wm_draw_status`, `wm_hit_cell` (→ tmp0/tmp1, Carry) | Karte, Tor, Figur (aus Zelle + Restschritten), Statuszeile, Zelle unter dem Zeiger | 19×10 Zellen à 32×16 = ganzer Bildschirm; Figur als Software-Sprite |
+| Statistik | `stats_layout`, `stats_draw` | Overlay der Level-Statistik | Fenster über der Karte |
+| Planen | `draw_planning_screen`, `draw_title_and_counters`, `draw_map_objects`, `draw_palette_panel`, `draw_program_list`, `draw_program_row` (A = Zeile), `draw_program_counts`, `draw_scrollbar`, `editor_draw_info` (A = Befehl/Hover-Code), `editor_draw_message2`, `editor_clear_palette_interior`, `plan_draw_quit_confirm`, `plan_draw_clear_confirm`, `spr_init`, `spr_update` (Zeiger + Einfügemarke) | Planungsbildschirm | gemeinsamer Bildschirm, 3 Spalten: Feld \| Legende + Befehle \| Programm (20 Zeilen) |
+| Maus Planen | `palette_hit_test`, `list_hit_test`, `arrow_hit_test`, `plan_hit_field` (→ tmp0/tmp1), `plan_hit_footer` (→ 0 Run / 1 Map / 2 Title), `plan_hit_confirm` (→ 0 Ja / 1 Nein); alle Carry = Treffer | Treffertests mit den Koordinaten des Layouts | eigene Tabellen für 640×200 |
+| Run | `draw_run_screen`, `draw_run_field`, `draw_run_cell` (eine Zelle), `draw_run_delivered`, `draw_run_list`, `run_draw_message` (A/X = Text), `run_init_sprites`, `run_set_robot_image`, `run_update_sprites` (pro Frame), `run_goal_anim` (pro Frame) | Feld, Figuren, Liste, Meldung, Zielschimmer | im gemeinsamen Bildschirm: laufender Befehl hervorgehoben, Befehle ausgegraut; Roboter/Kiste als Software-Sprite (Feld-Einheiten ×2 in x) |
+
+**Noch Plattform-Treiber in `src/`** (gleich auf C64/C128/MEGA65, für den X16 auszulagern): `sound.asm`, `music.asm`, `ambient.asm` (SID), `input.asm` (CIA-Matrix, 1351).
+**Für Schritt 4 vorgemerkt:** gemeinsamer Bildschirm ohne Wechsel Plan/Run → Editieren während des Laufs beendet ihn (Schalter `VIEW_UNIFIED` in der Logik, auf dem VIC aus).
 
 ## Werkzeug-Regel (für neue Chats)
 

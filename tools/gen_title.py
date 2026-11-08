@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""gen_title.py - generates src/gfx_title.asm (title screen art).
+"""gen_title.py - generates platform/cbm/view_vic2/gfx_title.asm (title screen art).
 
 Text mode with its own character set (TITLE_CHARSET, $D000 in VIC bank 3): the
 lower/uppercase ROM set plus redefined characters for the big "ARTYBOT" logo
@@ -10,7 +10,7 @@ Style after the title of "Attack of the PETSCII Robots": big logo on top,
 robot on the left, menu window on the right, black background.
 
 Usage:  python -B tools/gen_title.py [--preview out.png]
-Output: src/gfx_title.asm with
+Output: platform/cbm/view_vic2/gfx_title.asm with
   title_screen / title_colors   1000 + 1000 bytes (screen codes, colour RAM)
   title_charset_init            routine: copies the redefined characters
   title_blink                   colour RAM offsets of the antenna light
@@ -24,7 +24,7 @@ import os, sys
 from PIL import Image, ImageDraw
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, '..', 'src', 'gfx_title.asm')
+OUT = os.path.join(HERE, '..', 'platform', 'cbm', 'view_vic2', 'gfx_title.asm')
 
 BG1, BG2 = 11, 15                 # $D022 dark grey, $D023 light grey (robot, rows 8-24)
 LOGO_BG1, LOGO_BG2 = 3, 1         # logo rows 0-7 (raster split): $D022 cyan, $D023 white

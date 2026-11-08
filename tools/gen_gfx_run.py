@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""gen_gfx_run.py - generates src/gfx_run.asm (run screen graphics).
+"""gen_gfx_run.py - generates platform/cbm/view_vic2/gfx_run.asm (run screen graphics).
 
 RPG look (Lykia / NES & SNES Final Fantasy): multicolour 16x16 field cells,
 NES-style window frame, pointing-hand cursor and a multicolour robot sprite
 with a two-frame walk cycle.
 
-Usage:  python tools/gen_gfx_run.py          (writes src/gfx_run.asm)
+Usage:  python tools/gen_gfx_run.py          (writes platform/cbm/view_vic2/gfx_run.asm)
 
 Multicolour character pixels (each is 2 hires pixels wide):
   .  = %00  $D021  background (black, outlines and shadows)
@@ -19,7 +19,7 @@ Multicolour sprite pixels:
 import os, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, '..', 'src', 'gfx_run.asm')
+OUT = os.path.join(HERE, '..', 'platform', 'cbm', 'view_vic2', 'gfx_run.asm')
 
 # ---------------------------------------------------------------- field cells
 # 8 multicolour pixels x 16 rows per cell, split into 4 characters

@@ -867,100 +867,12 @@ map_index
         tax
         rts
 
-; Draw the field layer and the robot from the loaded level. All field characters are
-; multicolour (colour RAM +8) on the shared greens $D022/$D023 of the run screen.
-!zone draw_map_objects
-draw_map_objects
-        lda #0
-        sta ui_row
-.row    lda #0
-        sta ui_col
-.col    lda ui_row
-        sta tmp0
-        asl
-        asl
-        asl
-        clc
-        adc tmp0
-        adc tmp0                ; row * 10
-        clc
-        adc ui_col
-        tax
-        lda map_work,x
-        tax
-        lda map_tile_colors,x
-        sta cur_col
-        lda map_tile_chars,x
-        pha
-        lda ui_col
-        clc
-        adc #MAP_SCR_X
-        tax
-        lda ui_row
-        clc
-        adc #MAP_SCR_Y
-        tay
-        jsr set_cursor
-        pla
-        jsr put_char
-        inc ui_col
-        lda ui_col
-        cmp #MAP_COLS
-        bne .col
-        inc ui_row
-        lda ui_row
-        cmp #MAP_ROWS
-        bne .row
-        lda robot_tx
-        clc
-        adc #MAP_SCR_X
-        tax
-        lda robot_ty
-        clc
-        adc #MAP_SCR_Y
-        tay
-        jsr set_cursor
-        lda theme_plan_robot
-        sta cur_col
-        lda robot_dir
-        clc
-        adc #ROBOT_CHAR_BASE
-        jmp put_char
-
-map_tile_chars                  ; indexed by tile id
-        !byte FLOOR_CHAR, BLOCK_CHAR, PKG_CHAR, GOAL_CHAR, PKG_CHAR, WATER_CHAR, ICE_CHAR, WATER_CHAR
-        !byte KEY_CHAR, LOCK_CHAR, LOCK_CHAR, DOOR_CHAR
-; map_tile_colors (colour RAM per tile id) comes from the theme, see world.asm.
-map_info_colors                 ; help-text colour per tile id
-        !byte COL_WHITE, COL_GREEN, COL_YELLOW, COL_CYAN, COL_YELLOW, COL_CYAN, COL_CYAN, COL_CYAN
-        !byte COL_YELLOW, COL_YELLOW, COL_YELLOW, COL_YELLOW
-
 ; Hover code for the field tile under the mouse, or $FF.
 ;   $50+dir robot, $61 blocker, $62 package, $63 goal, $64 delivered, $65 water
 !zone map_hover_code
 map_hover_code
-        lda mouse_x_hi
-        bne .none
-        lda mouse_x_lo
-        lsr
-        lsr
-        lsr
-        sec
-        sbc #MAP_SCR_X
+        jsr plan_hit_field      ; view: tmp0/tmp1 = field cell under the pointer
         bcc .none
-        cmp #MAP_COLS
-        bcs .none
-        sta tmp0
-        lda mouse_y
-        lsr
-        lsr
-        lsr
-        sec
-        sbc #MAP_SCR_Y
-        bcc .none
-        cmp #MAP_ROWS
-        bcs .none
-        sta tmp1
         lda tmp0
         cmp robot_tx
         bne .tile
@@ -979,52 +891,3 @@ map_hover_code
         rts
 .none   lda #$FF
         rts
-
-; Hover code in A ($50..$63) -> help text in the info row.
-!zone draw_map_info
-draw_map_info
-        cmp #$60
-        bcs .object
-        sec
-        sbc #$50                ; robot direction
-        pha
-        ldx #INFO_X
-        ldy #INFO_Y
-        jsr set_cursor
-        lda #<str_facing
-        ldx #>str_facing
-        jsr put_str
-        pla
-        asl
-        tax
-        lda dir_name_ptrs,x
-        pha
-        lda dir_name_ptrs+1,x
-        tax
-        pla
-        jmp put_str
-.object sec
-        sbc #$60
-        tay
-        lda map_info_colors,y
-        sta cur_col
-        tya
-        asl
-        tax
-        lda map_text_ptrs,x
-        pha
-        lda map_text_ptrs+1,x
-        tax
-        ldy #INFO_Y
-        stx tmp0
-        ldx #INFO_X
-        jsr set_cursor
-        pla
-        ldx tmp0
-        jmp put_str
-
-dir_name_ptrs
-        !word str_dir_right, str_dir_left, str_dir_up, str_dir_down
-map_text_ptrs                   ; indexed by tile id (floor unused)
-        !word 0, str_blocker, str_package, str_target, str_package_done, str_water, str_ice, str_water
-        !word str_key, str_lock, str_lock, str_door

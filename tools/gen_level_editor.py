@@ -121,7 +121,8 @@ def art_blocks(lines, start_label, end_label):
 
 def all_src():
     files = {}
-    for path in sorted(glob.glob(os.path.join(ROOT, 'src', '*.asm'))):
+    for path in sorted(glob.glob(os.path.join(ROOT, 'src', '*.asm')) +
+                       glob.glob(os.path.join(ROOT, 'platform', 'cbm', 'view_vic2', '*.asm'))):
         files[path] = read(path)
     return files
 
@@ -132,14 +133,15 @@ def find_in_sources(src, label):
             return lines, find_label(lines, label)
         except KeyError:
             pass
-    raise KeyError('label not found in src/*.asm: ' + label)
+    raise KeyError('label not found in src/ or the VIC-II view: ' + label)
 
 
 def main():
     consts = {}
     parse_consts(read(os.path.join(ROOT, 'inc', 'defs.inc')), consts)
     src = all_src()
-    world = read(os.path.join(ROOT, 'src', 'world.asm'))
+    world = read(os.path.join(ROOT, 'src', 'world.asm')) + \
+        read(os.path.join(ROOT, 'platform', 'cbm', 'view_vic2', 'world.asm'))   # themes live in the view
     parse_consts(world, consts)
     mapdata = read(os.path.join(ROOT, 'src', 'mapdata.asm'))
     consts.update(ROBOT_DIRS)
