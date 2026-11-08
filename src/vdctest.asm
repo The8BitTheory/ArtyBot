@@ -5,6 +5,10 @@
 ; Ohne 64 KB VDC-RAM: roter Rahmen im Textmodus, Programm bleibt stehen.
 
 !cpu 6510
+TARGET_C64 = 1
+TARGET_C128 = 2
+TARGET_C128VDC = 3
+TARGET = TARGET_C128VDC
 !source "platform/c128/platform.inc"
 
 vdc_src = $E0

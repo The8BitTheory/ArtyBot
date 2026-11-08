@@ -47,7 +47,7 @@ class C64:
         self.ram[load:load+len(prg)-2] = prg[2:]
         self.a = self.x = self.y = 0
         self.sp = 0xFF; self.p = 0x24; self.pc = 0x080D
-        self.cycles = 0; self.next_irq = 19656
+        self.cycles = 0; self.next_irq = 19656; self.frame_cycles = 19656
         self.keys = set()           # pressed key codes (8*PA bit + PB bit)
         self.pra = 0xFF
         self.io[0xD00] = 0x03
@@ -130,7 +130,7 @@ class C64:
         self.nz(t)
     def step(self):
         if self.cycles >= self.next_irq:
-            self.next_irq += 19656
+            self.next_irq += self.frame_cycles
             self.frames += 1
             if self.io[0x1A] & 1:
                 self.io[0x19] |= 0x81

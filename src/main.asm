@@ -9,11 +9,12 @@
 ; --- Zielplattform: TARGET wird von der Einstiegsdatei gesetzt (src/main128.asm = C128),
 ;     ohne Angabe C64. Eigene Einstiegsdatei statt "acme -D", weil der ACME-Fork kein -D kennt.
 TARGET_C64  = 1
-TARGET_C128 = 2
+TARGET_C128 = 2                 ; C128-Modus, VIC-II (40 Zeichen), 1 MHz
+TARGET_C128VDC = 3              ; C128-Modus, VDC-Bitmap 640x200 (80 Zeichen), 2 MHz
 !ifndef TARGET {
     TARGET = TARGET_C64
 }
-!if TARGET != TARGET_C64 & TARGET != TARGET_C128 {
+!if TARGET != TARGET_C64 & TARGET != TARGET_C128 & TARGET != TARGET_C128VDC {
     !error "Unbekanntes TARGET"
 }
 !if TARGET = TARGET_C64 {
@@ -49,6 +50,8 @@ TARGET_C128 = 2
 ; Darstellung (View): Bildschirme, Spielfeld, Sprites, Maus-Treffertests der Zielplattform
 !if TARGET = TARGET_C64 | TARGET = TARGET_C128 {
     !source "platform/cbm/view_vic2/view.asm"
+} else {
+    !source "platform/c128/view_vdc/view.asm"
 }
 
 ; --- Daten

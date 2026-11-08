@@ -228,6 +228,9 @@ mouse_update
         bcs .x_negative
         lsr
         beq .y_axis
+!if MOUSE_X_FAST {
+        asl
+}
         clc
         adc mouse_x_lo
         sta mouse_x_lo
@@ -245,6 +248,9 @@ mouse_update
         eor #$FF
         clc
         adc #1                  ; absolute pixel delta
+!if MOUSE_X_FAST {
+        asl
+}
         sta tmp3
         lda mouse_x_lo
         sec
@@ -257,18 +263,15 @@ mouse_update
         lda #0
         sta mouse_x_hi
         sta mouse_x_lo
-.clamp_x
-        lda mouse_x_hi
-        beq .y_axis
-        cmp #1
-        bcc .y_axis
-        bne .x_max
+.clamp_x                        ; x <= MOUSE_X_MAX (platform: 319, VDC 639)
         lda mouse_x_lo
-        cmp #64
+        cmp #<(MOUSE_X_MAX+1)
+        lda mouse_x_hi
+        sbc #>(MOUSE_X_MAX+1)
         bcc .y_axis
-.x_max  lda #1
+        lda #>MOUSE_X_MAX
         sta mouse_x_hi
-        lda #63
+        lda #<MOUSE_X_MAX
         sta mouse_x_lo
 
 .y_axis

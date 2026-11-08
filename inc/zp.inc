@@ -88,3 +88,27 @@ wm_ix         = $8B             ; wm_cell scratch
 wm_iy         = $8C
 wm_prevx      = $8D             ; cell the robot came from (gate exit position)
 wm_prevy      = $8E
+; --- VDC-Treiber und VDC-View (nur TARGET_C128VDC; platform/c128/vdc.asm, view_vdc/)
+; ($F8-$FD: sound.asm/music.asm)
+vdc_src       = $E0             ; Quelle (RAM oder VRAM), 2 Byte
+vdc_dst       = $E2             ; Ziel im VRAM, 2 Byte
+vdc_cnt       = $E4             ; Zaehler, 2 Byte
+vdc_w         = $E6
+vdc_h         = $E7
+vdc_n         = $E8
+vdc_v         = $E9
+vdc_sv        = $EA             ; 2 Byte
+vdc_tx        = $EC
+vdc_ty        = $ED
+vdc_tc        = $EE
+vt_x          = $C0             ; View-Text: Spalte 0..79
+vt_y          = $C1             ; Pixelzeile (gerade)
+vt_col        = $C2             ; Attribut (hohes Nibble Hintergrund, niedriges Vordergrund)
+vt_wide       = $C3             ; 1 = doppelt breite Glyphen
+vt_len        = $C4
+vt_ptr        = $C5             ; 2 Byte
+vt_tmp        = $C7
+vp_x          = $C8             ; Zeiger: gezeichnete Position (Spalte/Byte, Bit, Zeile), $FF = keiner
+vp_b          = $C9
+vp_y          = $CA
+vt_ptr2       = $CB             ; 2 Byte

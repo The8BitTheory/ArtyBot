@@ -1,4 +1,4 @@
-; platform.inc (C128, C128-Modus mit VIC-II 40 Zeichen) - Register und Speicherlayout
+; platform.inc (C128, C128-Modus: VIC-II 40 Zeichen oder VDC 80 Zeichen) - Register und Speicherlayout
 ; Eingebunden von main.asm vor inc/defs.inc. Gegenstueck: platform/c128/platform.asm (Code).
 
 ; --- CPU (8502-Prozessorport, im C128-Modus andere Bedeutung als beim 6510)
@@ -35,7 +35,17 @@ SPR_PTR0    = SCREEN + $3F8
 SPRITE_BLOCK= (SPRITES - BANK_BASE) >> 6
 SPRITE_BLOCK1 = SPRITE_BLOCK + 1
 SPRITE_BLOCK2 = SPRITE_BLOCK + 2
+!if TARGET = TARGET_C128VDC {
+; VDC-Ziel: der VIC zeigt nichts (Bild aus, 2 MHz), sein Speicher ist frei. Programm bis $CFFF,
+; $D000-$DFFF ist I/O; $E000-$FEFF RAM fuer Daten (Zeichensatz-Kopie, Puffer).
+CODE_LIMIT  = $D000
+VDC_FONT    = $E000             ; 2 KB: Zeichensatz-ROM $D800 (Gross-/Kleinbuchstaben), Index = Screencode
+VDC_SAVE    = $E800             ; Puffer der View (Zeiger-Hintergrund u. a.), bis $FEFF
+MOUSE_X_MAX = 639               ; Mauszeiger ueber die volle VDC-Breite
+MOUSE_X_FAST = 1                ; x-Bewegung doppelt (Pixel sind halb so breit)
+} else {
 CODE_LIMIT  = $C000
+}
 
 GAME_MEMPTR   = $02             ; screen $C000, charset $C800
 TITLE_MEMPTR  = $04             ; screen $C000, charset $D000

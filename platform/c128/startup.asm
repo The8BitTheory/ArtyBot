@@ -1,5 +1,6 @@
 ; startup.asm (C128) - BASIC-7-Stub, MMU-Konfiguration, Vektoren, Hardware-Init
-; Laeuft im C128-Modus mit dem VIC-II (40 Zeichen) bei 1 MHz; der VDC bleibt unbenutzt.
+; C128-Modus. TARGET_C128: VIC-II (40 Zeichen) bei 1 MHz. TARGET_C128VDC: VDC-Bitmap bei 2 MHz,
+; der VIC liefert nur noch den Raster-IRQ (50 Hz).
 
 * = $1C01
         !word .next             ; 10 SYS 7181
@@ -22,7 +23,11 @@ start
         ; Schreibzugriffe landen im RAM (auch unter $C000-$FFFF).
         lda #MMU_CFG_CHARROM
         sta MMU_CR
+!if TARGET = TARGET_C128VDC {
+        jsr vdc_copy_font       ; Zeichensatz-ROM -> VDC_FONT (Text als Bitmap)
+} else {
         jsr vic2_upload_charsets
+}
 
         ; Ab jetzt: nur RAM-Bank 0 und I/O (eigene Vektoren in $FFFA-$FFFF)
         lda #MMU_CFG_RAM_IO
@@ -36,7 +41,13 @@ start
         lda CPU_PORT
         ora #CPU_PORT_VIDEO
         sta CPU_PORT
+!if TARGET = TARGET_C128VDC {
+        lda #$0B                ; VIC-Bild aus (keine Badlines), dann 2 MHz
+        sta VIC_CTRL1
+        lda #1
+} else {
         lda #0                  ; 1 MHz (VIC-II braucht alle Buszyklen)
+}
         sta VIC_CLOCK
         lda #$FF                ; Zusatz-Tastaturzeilen abwaehlen
         sta VIC_KBD

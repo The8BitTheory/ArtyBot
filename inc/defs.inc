@@ -1,3 +1,9 @@
+!ifndef MOUSE_X_MAX {
+MOUSE_X_MAX = 319               ; rightmost pointer x (platform.inc may set it)
+}
+!ifndef MOUSE_X_FAST {
+MOUSE_X_FAST = 0                ; 1: double x movement (narrow pixels)
+}
 ; defs.inc - Spielkonstanten (plattformunabhaengig)
 
 ; Hardware-Register und Speicherlayout kommen aus platform/<ziel>/platform.inc
