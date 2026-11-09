@@ -578,9 +578,12 @@ pr_list_row
 +       sta pr_sh_idx,x
         tya
         sta pr_sh_st,x
-        lda pr_mark             ; Marke in dieser Zeile wird ueberschrieben
-        cmp pr_row
-        bne +
+        lda pr_mark             ; Marke ragt in diese Zeile (Marke = Zeile oder Zeile+1):
+        sec                     ; vorher loeschen, spr_update zeichnet sie neu
+        sbc pr_row
+        cmp #2
+        bcs +
+        jsr pr_mark_erase
         lda #$FF
         sta pr_mark
 +       lda pr_row
@@ -1066,7 +1069,7 @@ spr_init
         lda #$FF
         sta pr_mark
 spr_update
-        lda #$FF                ; Marke: Zeile insert_pos - scroll_offset, beim Verschieben aus
+        lda #$FF                ; Marke: Luecke insert_pos - scroll_offset, beim Verschieben aus
         ldx selection_active
         bne +
         lda insert_pos
@@ -1075,34 +1078,66 @@ spr_update
 +       cmp pr_mark
         beq .ptr
         pha
-        lda pr_mark             ; alte Marke weg
-        cmp #PROGRAM_ROWS
-        bcs +
-        jsr .at
-        lda #' '
-        jsr pr_glyph
-+       pla
+        jsr pr_mark_erase       ; alte Marke weg
+        pla
         sta pr_mark
         cmp #PROGRAM_ROWS
         bcs .ptr
-        jsr .at
+        jsr pr_mark_y
+        lda #<pr_mark_bits
+        jsr pr_mark_put
+        lda #1                  ; Farbe: 3 Attributbloecke (6 Pixelzeilen) ab der ersten Markenzeile
+        sta vdc_w
+        lda #3
+        sta vdc_h
         lda #$0D
-        sta vt_col
-        lda #GL_MARK
-        jsr pr_glyph
+        jsr vt_attr_rect
 .ptr    jmp vp_show
-.at
-spr_mark_at                     ; A = Listenzeile -> vt_x/vt_y der Marke
+
+; Die Marke steht zwischen zwei Listenzeilen wie auf dem C64: Pfeil (5 Pixelzeilen) mit der
+; Spitze auf der Oberkante der Zeile pr_mark, also vor dem Befehl, vor dem eingefuegt wird.
+; Geschrieben werden nur diese 5 Bytes der Spalte PR_MARK_COL (Rahmenlinie darueber bleibt).
+pr_mark_erase                   ; Marke pr_mark (falls sichtbar) loeschen
+        lda pr_mark
+        cmp #PROGRAM_ROWS
+        bcs .r
+        jsr pr_mark_y
+        lda #<pr_mark_zero
+pr_mark_put                     ; A = Low-Byte der 5 Musterbytes (pr_mark_bits/pr_mark_zero)
+        sta .src+1
+        jsr vp_hide
+        ldy #0
+-       sty pr_mk_i
+        tya
+        clc
+        adc vt_y
+        tax
+        lda vl_lo,x
+        clc
+        adc #PR_MARK_COL
+        tay
+        lda vl_hi,x
+        adc #0
+        jsr vdc_addr
+        ldy pr_mk_i
+.src    lda pr_mark_bits,y
+        jsr vdc_wr_data
+        ldy pr_mk_i
+        iny
+        cpy #5
+        bne -
+.r      rts
+pr_mark_y                       ; A = Zeile -> vt_y = erste Pixelzeile der Marke, vt_x
         clc
         adc #PR_LIST_ROW
         asl
         asl
         asl
+        sec
+        sbc #2
         sta vt_y
         lda #PR_MARK_COL
         sta vt_x
-        lda #$0F
-        sta vt_col
         rts
 
 ; ---- Run ---------------------------------------------------------------------------
@@ -1118,13 +1153,8 @@ draw_run_screen
         jsr draw_run_list
         jsr draw_scrollbar
         jsr pr_info_clear
-        lda pr_mark             ; Marke ist im Run aus
-        cmp #PROGRAM_ROWS
-        bcs +
-        jsr spr_mark_at
-        lda #' '
-        jsr pr_glyph
-+       lda #$FF
+        jsr pr_mark_erase       ; Marke ist im Run aus
+        lda #$FF
         sta pr_mark
         rts
 
@@ -1589,7 +1619,11 @@ pr_vis   !byte 0, 0             ; gewuenscht sichtbar: Roboter, Kiste
 pr_dimg  !byte 0, 0             ; gezeichnet mit Bild / Verschiebung
 pr_dsh   !byte 0, 0
 pr_force !byte 0
-pr_mark  !byte $FF              ; Zeile der Einfuegemarke ($FF = keine)
+pr_mark  !byte $FF              ; Luecke der Einfuegemarke ($FF = keine)
+pr_mk_i  !byte 0
+pr_mark_bits !byte %11110000,%11111100,%11111111,%11111100,%11110000
+pr_mark_zero !byte 0,0,0,0,0
+!if >pr_mark_bits != >pr_mark_zero { !error "pr_mark_bits/zero: gleiche Seite noetig" }
 pr_lscr  !byte $FF              ; Lauf-Liste: gezeichnet mit Scrollstand / laufendem Befehl
 pr_lcur  !byte $FF
 pr_sh_idx !fill PROGRAM_ROWS, $FE
