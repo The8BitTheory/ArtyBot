@@ -163,6 +163,12 @@ world_draw
         jsr view_sprites_off
         jsr clear_screen
         jsr ss_forget
+        lda #VW_WORLD
+        sta vw_screen
+        lda #WV_MSG_ROW
+        sta vw_msg_row
+        lda #1
+        sta vw_msg_rows
         lda #0
         sta wv_gold
         lda #WV_FRAME
@@ -468,16 +474,27 @@ run_draw_message
         jmp vt_print
 
 wv_msg_clear
-        lda #WV_MSG_ROW*8
+        lda vw_msg_row
+        asl
+        asl
+        asl
         sta vt_y
         lda #2
         sta vt_x
         lda #76
         sta vdc_w
-        lda #8
+        lda vw_msg_rows
+        asl
+        asl
+        asl
         sta vdc_h
         lda #$00
         jsr vt_clear
+        lda vw_msg_row          ; Text in der ersten Meldungszeile ab Spalte 3
+        asl
+        asl
+        asl
+        sta vt_y
         lda #3
         sta vt_x
         lda #$0F

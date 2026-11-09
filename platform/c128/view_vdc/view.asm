@@ -13,7 +13,16 @@ INFO_W       = 16
 !source "platform/c128/view_vdc/title.asm"
 !source "platform/c128/view_vdc/sprite.asm"
 !source "platform/c128/view_vdc/world.asm"
-!source "platform/c128/view_vdc/stubs.asm"        ; noch nicht umgesetzte Bildschirme
+!source "platform/c128/view_vdc/planrun.asm"      ; gemeinsamer Plan-/Run-Bildschirm
+
+; Welcher Bildschirm steht (clear_screen setzt 0): Plan/Run baut nur bei Bedarf neu auf.
+VW_NONE     = 0
+VW_WORLD    = 1
+VW_PLANRUN  = 2
+vw_screen   !byte 0
+vw_mode     !byte 0             ; Plan/Run-Bildschirm: 0 Planen, 1 Lauf
+vw_msg_row  !byte 23            ; Meldungszeile (run_draw_message) und Zahl der Zeilen
+vw_msg_rows !byte 1
 
 ; Alle Software-Figuren und den Zeiger vom Bild nehmen.
 view_sprites_off

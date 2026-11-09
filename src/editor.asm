@@ -213,6 +213,14 @@ editor_handle_input
         bne .not_f1
         jmp editor_run_plan
 .not_f1
+!if VIEW_UNIFIED {
+        cmp #KEY_SPACE          ; shared plan/run screen: Space runs the plan right away
+        bne +
+        ldx key_repeat
+        bne +
+        jmp editor_run_plan
++
+}
         cmp #17                 ; R key (with or without Shift): run plan
         bne .not_run_key
         ldx key_repeat
@@ -348,6 +356,10 @@ editor_handle_input
 editor_run_plan
         lda selection_active
         bne .done
+!if VIEW_UNIFIED {
+        lda #1                  ; same screen: no "ready" stop, start at once
+        sta run_autostart
+}
         jsr run_mode
         lda run_to_map          ; won level left with Space: back to the world map
         beq .stay
@@ -362,6 +374,13 @@ editor_run_plan
         jsr draw_program_list
         jsr draw_program_counts
         jsr spr_init            ; clear_screen wiped the sprite pointers
+!if VIEW_UNIFIED {
+        lda run_redo            ; the run ended because of an edit: do that edit now
+        beq .done
+        lda #0
+        sta run_redo
+        jmp editor_handle_input
+}
 .done   rts
 
 ; Keyboard matrix codes of the digit keys 1..9 = levels 1..9 of the current world.

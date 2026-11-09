@@ -44,6 +44,8 @@ video_init
 !zone clear_screen
 clear_screen
         jsr vp_forget           ; Zeiger ist mit geloescht
+        lda #0
+        sta vw_screen
         lda #<VDC_BITMAP
         sta vdc_dst
         lda #>VDC_BITMAP

@@ -113,6 +113,32 @@ def cells(source, label):
     return out, bad
 
 
+def mini(px):
+    """32x16 -> 16x8 (Mehrheit je 2x2), dann je 8x2-Block zwei Farben."""
+    m = []
+    for y in range(0, len(px) - 1, 2):
+        r = []
+        for x in range(0, len(px[0]), 2):
+            c = [px[y][x], px[y][x + 1], px[y + 1][x], px[y + 1][x + 1]]
+            r.append(max(set(c), key=lambda k: (c.count(k), -k)))
+        m.append(r)
+    return m
+
+
+def minis(cs):
+    return [quantize(mini(px))[:2] for _, _, _, px in cs]
+
+
+def mini_robots():
+    out = []
+    for view in ('right', 'left', 'up', 'down'):     # Reihenfolge wie robot_dir
+        img = RA.robot('right' if view == 'left' else view, 0, 0)
+        if view == 'left': img = RA.mirror(img)
+        px = [[{'.': 0, 'B': 0, 'c': 14}[ch] for ch in r] for r in img[:16]]
+        out.append(quantize(mini(px))[:2])
+    return out
+
+
 def sprites():
     """Figuren aus tools/vdc_robot_art.py (in VDC-Pixeln gezeichnet)."""
     out = []
@@ -216,6 +242,12 @@ def main():
     o.append('        !byte ' + ', '.join(str(h) for _, h, _, _ in sp))
     o.append('vdc_spr_col')
     o.append('        !byte ' + ', '.join(str(c) for _, _, c, _ in sp))
+    o.append('')
+    o.append('; Mini-Zellen fuer die Legende: 16x8 (8 Zeilen x 2 Bytes, dann 4 x 2 Attribute), je 24 Byte')
+    for label, ms in (('vdc_mini_meadow', minis(cm)), ('vdc_mini_winter', minis(cw)), ('vdc_mini_robot', mini_robots())):
+        o.append(label)
+        for bm, at in ms:
+            o.append('        !byte ' + ', '.join(hx(r) for r in bm) + ', ' + ', '.join(hx(r) for r in at))
     o.append('')
     o.append('; Befehls-Icons 0..8 (Fwd, Back, Right, Left, Pick, Drop, Turn 180, Jump, Throw), je 32x16')
     o.append('vdc_icons')

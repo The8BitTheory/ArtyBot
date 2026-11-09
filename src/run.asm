@@ -86,10 +86,25 @@ run_mode
         lda run_msg             ; its message, e.g. why it failed
         ldx run_msg+1
         jsr run_say
+!if VIEW_UNIFIED {
+        lda run_autostart
+        beq +
+        lda #0
+        sta run_autostart
+        jsr run_space           ; stopped snapshot: Space plays again from the start
++
+}
         jmp .loop
 .fresh  lda #<str_run_ready
         ldx #>str_run_ready
         jsr run_say
+!if VIEW_UNIFIED {
+        lda run_autostart       ; shared screen: started from the plan with Space/R/F1
+        beq .loop
+        lda #0
+        sta run_autostart
+        jsr run_space
+}
 .loop   jsr wait_frame
         jsr input_update
         lda run_confirm
@@ -102,6 +117,16 @@ run_mode
         jsr run_update_sprites
         jsr run_goal_anim
         jsr run_won_tick
+!if VIEW_UNIFIED {
+        lda run_confirm
+        bne .no_edit
+        jsr run_edit_event      ; an edit (key or click into the plan) ends the run
+        bcc .no_edit
+        lda #1
+        sta run_redo
+        jmp .leave
+.no_edit
+}
         lda key_new
         cmp #$FF
         beq .loop
@@ -172,6 +197,46 @@ run_mode
         lda level_no            ; plan view shows the untouched level again
         jsr load_plan_level
         rts
+
+!if VIEW_UNIFIED {
+; Shared plan/run screen: carry set if this frame's input edits the plan - a click on
+; the palette, the list, its arrows or the bottom line, or a plan key (command letters,
+; Return, Del, cursor, left arrow). The editor then handles the same input.
+!zone run_edit_event
+run_edit_event
+        lda mouse_click
+        beq .keys
+        jsr palette_hit_test
+        bcs .yes
+        jsr list_hit_test
+        bcs .yes
+        jsr arrow_hit_test
+        bcs .yes
+        jsr plan_hit_footer
+        bcs .yes
+.keys   lda key_new
+        cmp #$FF
+        beq .no
+        ldx key_repeat
+        bne .no
+        cmp #KEY_RETURN
+        beq .yes
+        cmp #0                  ; Del
+        beq .yes
+        cmp #7                  ; cursor up/down
+        beq .yes
+        cmp #KEY_LEFTARROW
+        beq .yes
+        jsr key_to_command      ; Q W E A S D Z X C
+        bcs .yes
+.no     clc
+        rts
+.yes    sec
+        rts
+
+run_autostart   !byte 0         ; 1: run_mode starts playing at once
+run_redo        !byte 0         ; 1: run_mode left because of an edit (editor_run_plan)
+}
 
 ; While the level-won fanfare plays Space is ignored; afterwards the message
 ; points to Space (world map), R (replay) and P (plan).

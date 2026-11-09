@@ -13,6 +13,10 @@ GL_B  = $76
 GL_BR = $77
 GL_HAND = $78                   ; Zeigehand (2 Glyphen breit: $78, $79)
 GL_FULL = $7A                   ; volles Feld
+GL_MARK = $7B                   ; Einfuegemarke (Pfeil nach rechts)
+GL_UP   = $7C                   ; Scrollpfeil hoch
+GL_DOWN = $7D                   ; Scrollpfeil runter
+GL_TRACK = $7E                  ; Spur des Scrollbalkens
 
 ; ASCII -> Screencode (Gross-/Kleinbuchstaben-Satz): a-z -> 1..26, A-Z bleibt $41-$5A.
 !zone ascii2scr
@@ -517,6 +521,10 @@ vt_glyphs
         !byte %00000011,%00000111,%00000111,%11111111,%11111111,%11111111,%01111111,%00111111 ; Hand links
         !byte %00000000,%11111000,%00000000,%11111110,%00000000,%11100000,%11000000,%10000000 ; Hand rechts
         !byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF                                                ; voll
+        !byte %00000000,%11000000,%11110000,%11111100,%11111111,%11111100,%11110000,%11000000 ; Marke
+        !byte %00011000,%00111100,%01111110,%11111111,%00011000,%00011000,%00011000,%00000000 ; hoch
+        !byte %00000000,%00011000,%00011000,%00011000,%11111111,%01111110,%00111100,%00011000 ; runter
+        !byte %00011000,%00011000,%00011000,%00011000,%00011000,%00011000,%00011000,%00011000 ; Spur
 vt_glyphs_end
 
 vt_buf  !fill 80, 0

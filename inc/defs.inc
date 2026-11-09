@@ -1,3 +1,6 @@
+!ifndef VIEW_UNIFIED {
+VIEW_UNIFIED = 0                ; 1: Plan und Run teilen einen Bildschirm (VDC); Editieren beendet den Lauf
+}
 !ifndef MOUSE_X_MAX {
 MOUSE_X_MAX = 319               ; rightmost pointer x (platform.inc may set it)
 }

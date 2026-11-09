@@ -28,7 +28,9 @@ ST_SAVE     = ST_SPR + ST_SPR_N
 ST_SAVE_B   = 5*18 + 5*9                        ; Bitmap + Attribute unter einem Sprite
 ST_PSAVE    = ST_SAVE + 2*ST_SAVE_B             ; unter dem Mauszeiger: 3 x 8 Bitmap + 3 x 4 Attribute
 ST_ICONS    = ST_PSAVE + 3*8 + 3*4
-ST_FREE     = ST_ICONS + 9*64
+ST_MINI     = ST_ICONS + 9*64                   ; Legende: 2 x 16 Mini-Zellen + 4 Mini-Roboter, je 24 Byte
+ST_MINI_B   = 24
+ST_FREE     = ST_MINI + (2*16+4)*ST_MINI_B
 
 ; Titelbilder: in dieser Reihenfolge, solange sie ganz hineinpassen (Adresse 0 = nicht abgelegt)
 !if ST_FREE + vti_logo_n <= $10000 {
@@ -296,6 +298,7 @@ vs_init
         bne .ink
         ; Icons
         +vs_up vdc_icons, ST_ICONS, 9*64
+        +vs_up vdc_mini_meadow, ST_MINI, (2*16+4)*ST_MINI_B    ; meadow, winter, robot liegen hintereinander
         ; Titelbilder, soweit abgelegt
 !if vti_logo_st {
         +vs_unpack vti_logo, vti_logo_st, vti_logo_n
