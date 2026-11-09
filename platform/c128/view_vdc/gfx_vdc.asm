@@ -1,103 +1,12 @@
-; gfx_vdc.asm - VDC-Grafik. GENERIERT von tools/gen_vdc_gfx.py - nicht von Hand aendern.
-; Zellen: je 64 Byte Bitmap (16 Zeilen x 4) + 32 Byte Attribute (8 x 4, hi = Hintergrund).
-; Reihenfolge gen_gfx_run.CELL_ORDER: grass, tree, chest, goal, flowers, water, path, gate_l, gate_r, arch, ice, broken, key, lock, lock_full, door.
+; gfx_vdc.asm - VDC-Grafik (Programmteil). GENERIERT von tools/gen_vdc_gfx.py - nicht von Hand aendern.
+; Was nur im VRAM gebraucht wird (Zellen, Figurentinte, Icons, Mini-Zellen), steht in
+; res_vdc_gfx.asm (Ressource-Datei artybot.gfx, RAM-Bank 1). Hier bleibt, was die CPU liest.
+; Zellen-Reihenfolge gen_gfx_run.CELL_ORDER: grass, tree, chest, goal, flowers, water, path, gate_l, gate_r, arch, ice, broken, key, lock, lock_full, door, dann Kiste in Gold.
 VDC_CELL_BYTES = 96
 VDC_SPR_W = 5
 VDC_SPR_COUNT = 18
 
-vdc_cells_meadow
-; grass
-        !byte $FF,$FF,$FF,$00
-        !byte $FF,$FF,$FF,$F0
-        !byte $FF,$FF,$0F,$0F
-        !byte $FF,$FF,$00,$00
-        !byte $F0,$00,$FF,$FF
-        !byte $0F,$F0,$FF,$FF
-        !byte $F0,$F0,$FF,$FF
-        !byte $00,$00,$FF,$FF
-        !byte $FF,$FF,$FF,$00
-        !byte $FF,$FF,$FF,$0F
-        !byte $FF,$00,$0F,$FF
-        !byte $FF,$0F,$F0,$FF
-        !byte $FF,$0F,$0F,$FF
-        !byte $FF,$00,$00,$FF
-        !byte $00,$F0,$FF,$FF
-        !byte $0F,$00,$FF,$FF
-        !byte $44,$44,$44,$45
-        !byte $44,$44,$45,$45
-        !byte $54,$45,$44,$44
-        !byte $40,$40,$44,$44
-        !byte $44,$44,$44,$40
-        !byte $44,$45,$54,$44
-        !byte $44,$40,$40,$44
-        !byte $40,$45,$44,$44
-; tree
-        !byte $00,$00,$00,$00
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$F0,$00,$0F
-        !byte $0F,$00,$F0,$0F
-        !byte $0F,$0F,$FF,$F0
-        !byte $0F,$00,$FF,$00
-        !byte $0F,$FF,$0F,$0F
-        !byte $0F,$FF,$F0,$0F
-        !byte $0F,$00,$00,$0F
-        !byte $0F,$F0,$0F,$0F
-        !byte $FF,$00,$00,$FF
-        !byte $FF,$F0,$F0,$FF
-        !byte $FF,$F0,$0F,$00
-        !byte $FF,$00,$00,$F0
-        !byte $FF,$00,$FF,$F0
-        !byte $FF,$F0,$FF,$00
-        !byte $40,$05,$04,$40
-        !byte $05,$45,$45,$40
-        !byte $05,$45,$44,$04
-        !byte $04,$44,$40,$40
-        !byte $40,$40,$40,$04
-        !byte $44,$04,$0C,$44
-        !byte $44,$04,$C0,$40
-        !byte $44,$04,$00,$40
-; chest
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $00,$00,$00,$00
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$00,$00,$0F
-        !byte $0F,$FF,$FF,$0F
-        !byte $0F,$00,$00,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$F0,$0F
-        !byte $0F,$0F,$F0,$0F
-        !byte $0F,$00,$00,$0F
-        !byte $0F,$00,$00,$0F
-        !byte $0F,$FF,$FF,$0F
-        !byte $0F,$FF,$FF,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $44,$44,$44,$44
-        !byte $40,$0C,$0C,$40
-        !byte $0C,$C0,$C0,$C0
-        !byte $0C,$C0,$C0,$0C
-        !byte $0C,$C0,$0C,$C0
-        !byte $0C,$C0,$C0,$C0
-        !byte $0C,$0C,$0C,$C0
-        !byte $40,$00,$00,$40
-; goal
-        !byte $FF,$00,$00,$FF
-        !byte $FF,$0F,$F0,$FF
-        !byte $00,$0F,$0F,$00
-        !byte $0F,$F0,$F0,$F0
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$0F,$F0
-        !byte $00,$F0,$F0,$00
-        !byte $FF,$0F,$F0,$FF
-        !byte $FF,$00,$00,$FF
+vdc_goal_attr_meadow    ; Attribute der Zielzelle (run_goal_anim)
         !byte $44,$40,$40,$44
         !byte $40,$07,$70,$40
         !byte $07,$07,$70,$70
@@ -106,400 +15,7 @@ vdc_cells_meadow
         !byte $07,$07,$70,$70
         !byte $40,$70,$07,$40
         !byte $44,$40,$40,$44
-; flowers
-        !byte $FF,$00,$FF,$FF
-        !byte $FF,$F0,$FF,$FF
-        !byte $0F,$F0,$FF,$FF
-        !byte $00,$0F,$FF,$FF
-        !byte $FF,$FF,$00,$0F
-        !byte $FF,$FF,$0F,$F0
-        !byte $FF,$FF,$0F,$0F
-        !byte $FF,$FF,$00,$00
-        !byte $FF,$00,$FF,$FF
-        !byte $FF,$F0,$FF,$FF
-        !byte $0F,$0F,$00,$0F
-        !byte $00,$00,$0F,$F0
-        !byte $FF,$FF,$FF,$F0
-        !byte $FF,$FF,$FF,$00
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $44,$4D,$44,$44
-        !byte $4D,$D0,$44,$44
-        !byte $44,$44,$45,$54
-        !byte $44,$44,$40,$40
-        !byte $44,$45,$44,$44
-        !byte $45,$45,$4D,$D4
-        !byte $44,$44,$44,$4D
-        !byte $44,$44,$44,$44
-; water
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $00,$00,$00,$FF
-        !byte $0F,$FF,$F0,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$FF,$0F,$0F
-        !byte $FF,$FF,$F0,$F0
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $0F,$0F,$FF,$FF
-        !byte $F0,$F0,$FF,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$00,$00,$00
-        !byte $FF,$0F,$FF,$F0
-        !byte $22,$22,$22,$22
-        !byte $20,$02,$20,$22
-        !byte $22,$22,$22,$22
-        !byte $22,$22,$20,$02
-        !byte $22,$22,$22,$22
-        !byte $20,$02,$22,$22
-        !byte $22,$22,$22,$22
-        !byte $22,$20,$02,$20
-; path
-        !byte $FF,$FF,$00,$FF
-        !byte $FF,$FF,$0F,$FF
-        !byte $00,$FF,$FF,$FF
-        !byte $0F,$FF,$FF,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$FF,$F0,$FF
-        !byte $FF,$FF,$00,$FF
-        !byte $FF,$00,$FF,$FF
-        !byte $FF,$F0,$FF,$FF
-        !byte $FF,$FF,$FF,$00
-        !byte $FF,$FF,$FF,$F0
-        !byte $00,$FF,$FF,$FF
-        !byte $0F,$FF,$FF,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $CC,$CC,$C0,$CC
-        !byte $C0,$CC,$CC,$CC
-        !byte $CC,$CC,$CC,$CC
-        !byte $CC,$CC,$C0,$CC
-        !byte $CC,$C0,$CC,$CC
-        !byte $CC,$CC,$CC,$C0
-        !byte $C0,$CC,$CC,$CC
-        !byte $CC,$CC,$CC,$CC
-; gate_l
-        !byte $00,$00,$00,$00
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$00,$00,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $0F,$FF,$0F,$0F
-        !byte $0F,$FF,$0F,$0F
-        !byte $0F,$FF,$F0,$0F
-        !byte $0F,$FF,$00,$0F
-        !byte $0F,$FF,$00,$0F
-        !byte $0F,$FF,$F0,$0F
-        !byte $0F,$FF,$0F,$0F
-        !byte $0F,$FF,$0F,$0F
-        !byte $0F,$00,$0F,$F0
-        !byte $00,$FF,$00,$00
-        !byte $0F,$00,$00,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $0C,$0C,$0C,$0C
-        !byte $0C,$C0,$C0,$0C
-        !byte $0C,$CC,$0C,$C0
-        !byte $0C,$CC,$C0,$C0
-        !byte $0C,$CC,$C0,$C0
-        !byte $0C,$CC,$0C,$C0
-        !byte $0C,$C0,$0C,$0C
-        !byte $0C,$C0,$C0,$0C
-; gate_r
-        !byte $00,$00,$00,$00
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$00,$00,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $0F,$0F,$FF,$0F
-        !byte $0F,$0F,$FF,$0F
-        !byte $0F,$0F,$FF,$0F
-        !byte $0F,$00,$FF,$0F
-        !byte $0F,$00,$FF,$0F
-        !byte $0F,$0F,$FF,$0F
-        !byte $0F,$0F,$FF,$0F
-        !byte $0F,$0F,$FF,$0F
-        !byte $0F,$F0,$00,$F0
-        !byte $00,$00,$FF,$00
-        !byte $0F,$00,$00,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $0C,$0C,$0C,$0C
-        !byte $0C,$C0,$C0,$0C
-        !byte $0C,$C0,$CC,$C0
-        !byte $0C,$C0,$CC,$C0
-        !byte $0C,$C0,$CC,$C0
-        !byte $0C,$C0,$CC,$C0
-        !byte $0C,$0C,$C0,$0C
-        !byte $0C,$C0,$C0,$0C
-; arch
-        !byte $00,$FF,$FF,$00
-        !byte $0F,$FF,$FF,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$FF,$FF,$0F
-        !byte $0F,$FF,$FF,$0F
-        !byte $0F,$FF,$FF,$0F
-        !byte $0F,$FF,$FF,$0F
-        !byte $0F,$FF,$FF,$0F
-        !byte $0F,$FF,$FF,$0F
-        !byte $0F,$FF,$FF,$0F
-        !byte $0F,$FF,$FF,$0F
-        !byte $0F,$00,$00,$0F
-        !byte $0F,$FF,$FF,$0F
-        !byte $0F,$00,$00,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $0F,$FF,$FF,$0F
-        !byte $F0,$00,$00,$F0
-        !byte $F0,$00,$00,$0F
-        !byte $F0,$00,$00,$0F
-        !byte $F0,$00,$00,$0F
-        !byte $F0,$00,$00,$0F
-        !byte $F0,$04,$04,$0F
-        !byte $F4,$4F,$4F,$F4
-; ice
-        !byte $FF,$00,$FF,$FF
-        !byte $FF,$F0,$FF,$FF
-        !byte $0F,$FF,$F0,$FF
-        !byte $00,$FF,$00,$FF
-        !byte $FF,$FF,$00,$F0
-        !byte $FF,$FF,$FF,$00
-        !byte $FF,$00,$FF,$FF
-        !byte $FF,$F0,$FF,$FF
-        !byte $00,$FF,$FF,$FF
-        !byte $0F,$FF,$FF,$FF
-        !byte $F0,$FF,$0F,$FF
-        !byte $00,$FF,$00,$FF
-        !byte $FF,$00,$F0,$FF
-        !byte $FF,$0F,$00,$FF
-        !byte $FF,$F0,$FF,$FF
-        !byte $FF,$00,$FF,$FF
-        !byte $77,$74,$77,$77
-        !byte $74,$77,$75,$77
-        !byte $77,$77,$75,$74
-        !byte $77,$75,$77,$77
-        !byte $74,$77,$77,$77
-        !byte $74,$77,$75,$77
-        !byte $77,$74,$74,$77
-        !byte $77,$75,$77,$77
-; broken
-        !byte $00,$F0,$00,$F0
-        !byte $0F,$00,$FF,$00
-        !byte $F0,$00,$0F,$F0
-        !byte $00,$FF,$F0,$00
-        !byte $0F,$0F,$F0,$F0
-        !byte $00,$00,$00,$00
-        !byte $FF,$00,$00,$00
-        !byte $00,$F0,$0F,$FF
-        !byte $0F,$0F,$0F,$FF
-        !byte $00,$00,$00,$00
-        !byte $0F,$0F,$00,$00
-        !byte $00,$F0,$FF,$F0
-        !byte $00,$0F,$F0,$F0
-        !byte $F0,$0F,$00,$00
-        !byte $00,$0F,$F0,$0F
-        !byte $0F,$0F,$00,$F0
-        !byte $40,$20,$20,$02
-        !byte $20,$20,$04,$05
-        !byte $20,$45,$45,$20
-        !byte $40,$20,$20,$24
-        !byte $45,$02,$20,$04
-        !byte $20,$02,$24,$20
-        !byte $20,$04,$45,$24
-        !byte $45,$02,$02,$24
-; key
-        !byte $FF,$FF,$FF,$00
-        !byte $FF,$FF,$FF,$F0
-        !byte $FF,$FF,$0F,$0F
-        !byte $FF,$FF,$00,$00
-        !byte $F0,$00,$00,$00
-        !byte $0F,$FF,$FF,$FF
-        !byte $0F,$0F,$FF,$FF
-        !byte $0F,$0F,$FF,$FF
-        !byte $0F,$00,$0F,$0F
-        !byte $00,$FF,$00,$00
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$00,$FF,$FF
-        !byte $FF,$F0,$FF,$FF
-        !byte $0F,$0F,$FF,$FF
-        !byte $00,$00,$FF,$FF
-        !byte $44,$44,$44,$45
-        !byte $44,$44,$45,$45
-        !byte $04,$0D,$40,$40
-        !byte $0D,$0D,$DD,$DD
-        !byte $0D,$D0,$0D,$0D
-        !byte $44,$44,$44,$44
-        !byte $44,$45,$44,$44
-        !byte $45,$45,$44,$44
-; lock
-        !byte $00,$00,$00,$00
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$00,$00,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $0F,$00,$00,$F0
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$F0,$0F,$0F
-        !byte $0F,$00,$00,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$00,$00,$F0
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$00,$00,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $40,$40,$40,$40
-        !byte $05,$50,$50,$05
-        !byte $05,$5D,$5D,$05
-        !byte $0D,$0D,$0D,$D0
-        !byte $0D,$D0,$0D,$D0
-        !byte $0D,$D5,$D5,$0D
-        !byte $05,$55,$55,$05
-        !byte $40,$04,$04,$40
-; lock_full
-        !byte $00,$00,$00,$00
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$00,$00,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $0F,$00,$00,$F0
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$F0,$F0,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$F0,$F0,$0F
-        !byte $0F,$00,$00,$F0
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$00,$00,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $40,$40,$40,$40
-        !byte $05,$50,$50,$05
-        !byte $05,$5D,$5D,$05
-        !byte $0D,$D0,$0D,$D0
-        !byte $0D,$0D,$D0,$D0
-        !byte $0D,$D5,$D5,$0D
-        !byte $05,$55,$55,$05
-        !byte $40,$04,$04,$40
-; door
-        !byte $00,$00,$00,$00
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$F0,$0F,$F0
-        !byte $00,$00,$00,$00
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$F0,$0F,$0F
-        !byte $0F,$00,$00,$0F
-        !byte $00,$00,$00,$00
-        !byte $0F,$F0,$0F,$F0
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$00,$00,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $40,$0C,$0C,$40
-        !byte $0C,$C0,$0C,$C0
-        !byte $0C,$0C,$0C,$0C
-        !byte $0C,$C0,$0C,$C0
-        !byte $0C,$05,$05,$C0
-        !byte $0C,$0C,$0C,$0C
-        !byte $0C,$C0,$0C,$C0
-        !byte $0C,$C0,$C0,$0C
-
-vdc_cells_winter
-; grass
-        !byte $FF,$FF,$FF,$00
-        !byte $FF,$FF,$FF,$F0
-        !byte $FF,$FF,$0F,$0F
-        !byte $FF,$FF,$0F,$0F
-        !byte $F0,$00,$FF,$FF
-        !byte $00,$F0,$FF,$FF
-        !byte $F0,$F0,$FF,$FF
-        !byte $00,$00,$FF,$FF
-        !byte $FF,$FF,$FF,$00
-        !byte $FF,$FF,$FF,$0F
-        !byte $FF,$00,$0F,$FF
-        !byte $FF,$0F,$F0,$FF
-        !byte $FF,$0F,$0F,$FF
-        !byte $FF,$00,$00,$FF
-        !byte $00,$0F,$FF,$FF
-        !byte $0F,$F0,$FF,$FF
-        !byte $FF,$FF,$FF,$F3
-        !byte $FF,$FF,$F3,$F3
-        !byte $3F,$F3,$FF,$FF
-        !byte $F3,$F3,$FF,$FF
-        !byte $FF,$FF,$FF,$F3
-        !byte $FF,$F3,$3F,$FF
-        !byte $FF,$F3,$F3,$FF
-        !byte $F3,$3F,$FF,$FF
-; tree
-        !byte $FF,$0F,$0F,$FF
-        !byte $FF,$F0,$F0,$FF
-        !byte $0F,$F0,$0F,$0F
-        !byte $0F,$00,$00,$0F
-        !byte $00,$00,$00,$00
-        !byte $0F,$F0,$FF,$F0
-        !byte $0F,$F0,$0F,$0F
-        !byte $0F,$00,$00,$0F
-        !byte $F0,$00,$00,$0F
-        !byte $00,$F0,$FF,$00
-        !byte $0F,$FF,$FF,$0F
-        !byte $0F,$FF,$FF,$0F
-        !byte $0F,$0F,$F0,$F0
-        !byte $00,$F0,$0F,$00
-        !byte $FF,$0F,$F0,$FF
-        !byte $FF,$00,$00,$FF
-        !byte $FF,$F0,$0F,$FF
-        !byte $F0,$4F,$4F,$0F
-        !byte $F0,$0F,$04,$F0
-        !byte $04,$4F,$4F,$40
-        !byte $0F,$0F,$04,$0F
-        !byte $04,$44,$44,$40
-        !byte $F0,$03,$03,$F0
-        !byte $FF,$F0,$F0,$FF
-; chest
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $00,$00,$00,$00
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$00,$00,$0F
-        !byte $0F,$FF,$FF,$0F
-        !byte $0F,$00,$00,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$F0,$0F
-        !byte $0F,$0F,$F0,$0F
-        !byte $0F,$00,$00,$0F
-        !byte $0F,$00,$00,$0F
-        !byte $0F,$FF,$FF,$0F
-        !byte $0F,$FF,$FF,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $FF,$FF,$FF,$FF
-        !byte $F0,$0C,$0C,$F0
-        !byte $0C,$C0,$C0,$C0
-        !byte $0C,$C0,$C0,$0C
-        !byte $0C,$C0,$0C,$C0
-        !byte $0C,$C0,$C0,$C0
-        !byte $0C,$0C,$0C,$C0
-        !byte $F0,$00,$00,$F0
-; goal
-        !byte $FF,$00,$00,$FF
-        !byte $FF,$0F,$F0,$FF
-        !byte $00,$0F,$0F,$00
-        !byte $0F,$F0,$F0,$F0
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$0F,$F0
-        !byte $00,$F0,$F0,$00
-        !byte $FF,$0F,$F0,$FF
-        !byte $FF,$00,$00,$FF
+vdc_goal_attr_winter    ; Attribute der Zielzelle (run_goal_anim)
         !byte $FF,$F0,$F0,$FF
         !byte $F0,$07,$70,$F0
         !byte $07,$07,$70,$70
@@ -508,329 +24,11 @@ vdc_cells_winter
         !byte $07,$07,$70,$70
         !byte $F0,$70,$07,$F0
         !byte $FF,$F0,$F0,$FF
-; flowers
-        !byte $FF,$00,$FF,$FF
-        !byte $FF,$F0,$FF,$FF
-        !byte $FF,$F0,$00,$FF
-        !byte $FF,$00,$F0,$FF
-        !byte $FF,$0F,$FF,$FF
-        !byte $FF,$00,$FF,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$FF,$00,$FF
-        !byte $FF,$FF,$0F,$FF
-        !byte $FF,$FF,$00,$0F
-        !byte $FF,$FF,$0F,$00
-        !byte $FF,$00,$FF,$F0
-        !byte $FF,$0F,$FF,$00
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$F3,$FF,$FF
-        !byte $FF,$7F,$F7,$FF
-        !byte $FF,$F7,$FF,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$FF,$F3,$FF
-        !byte $FF,$FF,$F7,$7F
-        !byte $FF,$F3,$FF,$F7
-        !byte $FF,$FF,$FF,$FF
-; water
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $00,$00,$0F,$FF
-        !byte $0F,$FF,$00,$FF
-        !byte $FF,$00,$F0,$FF
-        !byte $FF,$FF,$00,$FF
-        !byte $FF,$00,$00,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$FF,$F0,$0F
-        !byte $FF,$FF,$0F,$00
-        !byte $FF,$FF,$0F,$F0
-        !byte $FF,$FF,$00,$00
-        !byte $FF,$00,$00,$FF
-        !byte $FF,$F0,$0F,$FF
-        !byte $22,$22,$22,$22
-        !byte $2F,$F3,$32,$22
-        !byte $22,$F2,$23,$22
-        !byte $22,$20,$20,$22
-        !byte $22,$22,$22,$22
-        !byte $22,$22,$F2,$F0
-        !byte $22,$22,$2F,$2F
-        !byte $22,$20,$20,$22
-; path
-        !byte $FF,$FF,$00,$FF
-        !byte $FF,$FF,$0F,$FF
-        !byte $00,$FF,$FF,$FF
-        !byte $0F,$FF,$FF,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$FF,$F0,$FF
-        !byte $FF,$FF,$00,$FF
-        !byte $FF,$00,$FF,$FF
-        !byte $FF,$F0,$FF,$FF
-        !byte $FF,$FF,$FF,$00
-        !byte $FF,$FF,$FF,$F0
-        !byte $00,$FF,$FF,$FF
-        !byte $0F,$FF,$FF,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $CC,$CC,$C0,$CC
-        !byte $C0,$CC,$CC,$CC
-        !byte $CC,$CC,$CC,$CC
-        !byte $CC,$CC,$C0,$CC
-        !byte $CC,$C0,$CC,$CC
-        !byte $CC,$CC,$CC,$C0
-        !byte $C0,$CC,$CC,$CC
-        !byte $CC,$CC,$CC,$CC
-; gate_l
-        !byte $00,$00,$00,$00
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$00,$00,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $0F,$FF,$0F,$0F
-        !byte $0F,$FF,$0F,$0F
-        !byte $0F,$FF,$F0,$0F
-        !byte $0F,$FF,$00,$0F
-        !byte $0F,$FF,$00,$0F
-        !byte $0F,$FF,$F0,$0F
-        !byte $0F,$FF,$0F,$0F
-        !byte $0F,$FF,$0F,$0F
-        !byte $0F,$00,$0F,$F0
-        !byte $00,$FF,$00,$00
-        !byte $0F,$00,$00,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $0C,$0C,$0C,$0C
-        !byte $0C,$C0,$C0,$0C
-        !byte $0C,$CC,$0C,$C0
-        !byte $0C,$CC,$C0,$C0
-        !byte $0C,$CC,$C0,$C0
-        !byte $0C,$CC,$0C,$C0
-        !byte $0C,$C0,$0C,$0C
-        !byte $0C,$C0,$C0,$0C
-; gate_r
-        !byte $00,$00,$00,$00
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$00,$00,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $0F,$0F,$FF,$0F
-        !byte $0F,$0F,$FF,$0F
-        !byte $0F,$0F,$FF,$0F
-        !byte $0F,$00,$FF,$0F
-        !byte $0F,$00,$FF,$0F
-        !byte $0F,$0F,$FF,$0F
-        !byte $0F,$0F,$FF,$0F
-        !byte $0F,$0F,$FF,$0F
-        !byte $0F,$F0,$00,$F0
-        !byte $00,$00,$FF,$00
-        !byte $0F,$00,$00,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $0C,$0C,$0C,$0C
-        !byte $0C,$C0,$C0,$0C
-        !byte $0C,$C0,$CC,$C0
-        !byte $0C,$C0,$CC,$C0
-        !byte $0C,$C0,$CC,$C0
-        !byte $0C,$C0,$CC,$C0
-        !byte $0C,$0C,$C0,$0C
-        !byte $0C,$C0,$C0,$0C
-; arch
-        !byte $00,$FF,$FF,$00
-        !byte $0F,$FF,$FF,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$FF,$FF,$0F
-        !byte $0F,$FF,$FF,$0F
-        !byte $0F,$FF,$FF,$0F
-        !byte $0F,$FF,$FF,$0F
-        !byte $0F,$FF,$FF,$0F
-        !byte $0F,$FF,$FF,$0F
-        !byte $0F,$FF,$FF,$0F
-        !byte $0F,$FF,$FF,$0F
-        !byte $0F,$00,$00,$0F
-        !byte $0F,$FF,$FF,$0F
-        !byte $0F,$00,$00,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $07,$77,$77,$07
-        !byte $70,$00,$00,$70
-        !byte $70,$00,$00,$07
-        !byte $70,$00,$00,$07
-        !byte $70,$00,$00,$07
-        !byte $70,$00,$00,$07
-        !byte $70,$0F,$0F,$07
-        !byte $7F,$F7,$F7,$7F
-; ice
-        !byte $FF,$00,$FF,$FF
-        !byte $FF,$F0,$FF,$FF
-        !byte $0F,$FF,$F0,$FF
-        !byte $00,$FF,$00,$FF
-        !byte $FF,$FF,$00,$F0
-        !byte $FF,$FF,$F0,$00
-        !byte $FF,$00,$FF,$FF
-        !byte $FF,$F0,$FF,$FF
-        !byte $00,$FF,$FF,$FF
-        !byte $0F,$FF,$FF,$FF
-        !byte $F0,$FF,$0F,$FF
-        !byte $00,$FF,$00,$FF
-        !byte $FF,$00,$F0,$FF
-        !byte $FF,$0F,$00,$FF
-        !byte $FF,$F0,$FF,$FF
-        !byte $FF,$00,$FF,$FF
-        !byte $77,$7F,$77,$77
-        !byte $7F,$77,$73,$77
-        !byte $77,$77,$73,$7F
-        !byte $77,$73,$77,$77
-        !byte $7F,$77,$77,$77
-        !byte $7F,$77,$73,$77
-        !byte $77,$7F,$7F,$77
-        !byte $77,$73,$77,$77
-; broken
-        !byte $00,$F0,$00,$F0
-        !byte $0F,$00,$F0,$F0
-        !byte $F0,$00,$0F,$F0
-        !byte $00,$F0,$F0,$F0
-        !byte $0F,$0F,$F0,$F0
-        !byte $00,$F0,$0F,$00
-        !byte $FF,$00,$00,$00
-        !byte $00,$F0,$0F,$FF
-        !byte $0F,$0F,$0F,$FF
-        !byte $F0,$F0,$00,$00
-        !byte $0F,$0F,$00,$00
-        !byte $00,$F0,$FF,$F0
-        !byte $00,$0F,$F0,$F0
-        !byte $F0,$0F,$0F,$00
-        !byte $00,$0F,$F0,$0F
-        !byte $0F,$0F,$0F,$F0
-        !byte $F0,$20,$20,$02
-        !byte $20,$20,$0F,$03
-        !byte $20,$F3,$F3,$20
-        !byte $F0,$20,$20,$2F
-        !byte $F3,$02,$20,$0F
-        !byte $20,$02,$2F,$20
-        !byte $20,$0F,$F3,$2F
-        !byte $F3,$02,$02,$2F
-; key
-        !byte $FF,$FF,$FF,$00
-        !byte $FF,$FF,$FF,$F0
-        !byte $FF,$FF,$0F,$0F
-        !byte $FF,$FF,$00,$00
-        !byte $F0,$00,$00,$00
-        !byte $0F,$FF,$FF,$FF
-        !byte $0F,$0F,$FF,$FF
-        !byte $0F,$0F,$FF,$FF
-        !byte $0F,$00,$0F,$0F
-        !byte $F0,$FF,$F0,$F0
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$00,$FF,$FF
-        !byte $FF,$F0,$FF,$FF
-        !byte $0F,$0F,$FF,$FF
-        !byte $00,$00,$FF,$FF
-        !byte $FF,$FF,$FF,$F3
-        !byte $FF,$FF,$F3,$F3
-        !byte $0F,$0D,$F0,$F0
-        !byte $0D,$0D,$DD,$DD
-        !byte $0D,$D0,$0D,$0D
-        !byte $FF,$FF,$FF,$FF
-        !byte $FF,$F3,$FF,$FF
-        !byte $F3,$F3,$FF,$FF
-; lock
-        !byte $00,$00,$00,$00
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$00,$00,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $0F,$00,$00,$F0
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$F0,$0F,$0F
-        !byte $0F,$00,$00,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$00,$00,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$00,$00,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $F0,$F0,$F0,$F0
-        !byte $03,$30,$30,$03
-        !byte $03,$3D,$3D,$03
-        !byte $0D,$0D,$0D,$D0
-        !byte $0D,$D0,$0D,$D0
-        !byte $0D,$D3,$D3,$0D
-        !byte $03,$33,$33,$03
-        !byte $F0,$0F,$0F,$F0
-; lock_full
-        !byte $00,$00,$00,$00
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$00,$00,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $0F,$00,$00,$F0
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$F0,$F0,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$F0,$F0,$0F
-        !byte $0F,$00,$00,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$00,$00,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $F0,$F0,$F0,$F0
-        !byte $03,$30,$30,$03
-        !byte $03,$3D,$3D,$03
-        !byte $0D,$D0,$0D,$D0
-        !byte $0D,$0D,$D0,$D0
-        !byte $0D,$D3,$D3,$0D
-        !byte $03,$33,$33,$03
-        !byte $F0,$0F,$0F,$F0
-; door
-        !byte $00,$00,$00,$00
-        !byte $0F,$FF,$FF,$F0
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$F0,$0F,$F0
-        !byte $00,$00,$00,$00
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$F0,$0F,$0F
-        !byte $0F,$00,$00,$0F
-        !byte $00,$00,$00,$00
-        !byte $0F,$F0,$0F,$F0
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$0F,$0F,$0F
-        !byte $0F,$00,$00,$F0
-        !byte $00,$FF,$FF,$00
-        !byte $F0,$0C,$0C,$F0
-        !byte $0C,$C0,$0C,$C0
-        !byte $0C,$0C,$0C,$0C
-        !byte $0C,$C0,$0C,$C0
-        !byte $0C,$03,$03,$C0
-        !byte $0C,$0C,$0C,$0C
-        !byte $0C,$C0,$0C,$C0
-        !byte $0C,$C0,$C0,$0C
-
-; Sprites: Masken (1 = Koerperpixel), 5 Byte breit, Verschiebung 0 und 4 Pixel
-; danach je Blockzeile 5 Attribute: $FF leer; 0 Randblock: Figurfarbe auf der Grundfarbe der Kachel;
-; $80 Randblock: schwarz (Kontur) auf der Grundfarbe; sonst fertiges Attribut (schwarz hinterlegt)
+vdc_grass_attr !byte $44,$FF   ; erstes Attribut der Wiese je Theme (Grundfarbe)
+; Figuren: je Bild und Verschiebung Block-Codes (H/2 Zeilen x 5): $FF leer; 0 Figurfarbe auf der
+; Grundfarbe; $80 schwarz auf der Grundfarbe; sonst fertiges Attribut. Laeufe: 9 Bytes k0 | Laenge<<4.
+; Tinte: Ressource (vdc_ink), Adresse in der VRAM-Ablage = ST_SPR + Versatz (vdc_ink_lo/hi).
 vdc_spr_0_s0    ; robot right
-        !byte $00,$07,$E0,$00,$00
-        !byte $00,$01,$80,$00,$00
-        !byte $03,$00,$00,$F0,$00
-        !byte $03,$3F,$FF,$F0,$00
-        !byte $03,$3F,$C3,$F0,$00
-        !byte $03,$3F,$C3,$F0,$00
-        !byte $03,$3F,$FF,$F0,$00
-        !byte $03,$3F,$F0,$F0,$00
-        !byte $03,$FF,$FF,$F0,$00
-        !byte $00,$1F,$F8,$00,$00
-        !byte $03,$00,$00,$F0,$00
-        !byte $03,$3C,$3F,$F0,$00
-        !byte $03,$3C,$3F,$F0,$00
-        !byte $03,$3C,$00,$F0,$00
-        !byte $03,$00,$FF,$F0,$00
-        !byte $00,$0F,$C0,$00,$00
-        !byte $00,$3F,$C0,$00,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$80,$80,$FF,$FF
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$0E,$80,$FF
@@ -840,25 +38,8 @@ vdc_spr_0_s0    ; robot right
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$80,$80,$FF
         !byte $FF,$80,$80,$FF,$FF
+vdc_spr_0_s0_span !byte $21,$40,$40,$40,$40,$40,$40,$40,$21
 vdc_spr_0_s4    ; robot right
-        !byte $00,$00,$7E,$00,$00
-        !byte $00,$00,$18,$00,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$03,$FF,$F0,$00
-        !byte $00,$03,$FC,$30,$00
-        !byte $00,$03,$FC,$30,$00
-        !byte $00,$03,$FF,$F0,$00
-        !byte $00,$03,$FF,$00,$00
-        !byte $00,$3F,$FF,$FF,$00
-        !byte $00,$01,$FF,$80,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$03,$C3,$F0,$00
-        !byte $00,$03,$C3,$F0,$00
-        !byte $00,$03,$C0,$00,$00
-        !byte $00,$3F,$00,$FF,$00
-        !byte $00,$03,$F0,$00,$00
-        !byte $00,$03,$FC,$00,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$FF,$80,$FF,$FF
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$0E,$0E,$0E,$FF
@@ -868,25 +49,8 @@ vdc_spr_0_s4    ; robot right
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$80,$0E,$80,$FF
         !byte $FF,$80,$80,$FF,$FF
+vdc_spr_0_s4_span !byte $12,$31,$31,$31,$31,$31,$31,$31,$21
 vdc_spr_1_s0    ; robot left
-        !byte $00,$07,$E0,$00,$00
-        !byte $00,$01,$80,$00,$00
-        !byte $0F,$00,$00,$C0,$00
-        !byte $0F,$FF,$FC,$C0,$00
-        !byte $0F,$C3,$FC,$C0,$00
-        !byte $0F,$C3,$FC,$C0,$00
-        !byte $0F,$FF,$FC,$C0,$00
-        !byte $0F,$0F,$FC,$C0,$00
-        !byte $0F,$FF,$FF,$C0,$00
-        !byte $00,$1F,$F8,$00,$00
-        !byte $0F,$00,$00,$C0,$00
-        !byte $0F,$FC,$3C,$C0,$00
-        !byte $0F,$FC,$3C,$C0,$00
-        !byte $0F,$00,$3C,$C0,$00
-        !byte $0F,$FF,$00,$C0,$00
-        !byte $00,$03,$F0,$00,$00
-        !byte $00,$03,$FC,$00,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$80,$80,$FF,$FF
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$0E,$80,$FF
@@ -896,25 +60,8 @@ vdc_spr_1_s0    ; robot left
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$80,$0E,$80,$FF
         !byte $FF,$80,$80,$FF,$FF
+vdc_spr_1_s0_span !byte $21,$40,$40,$40,$40,$40,$40,$40,$21
 vdc_spr_1_s4    ; robot left
-        !byte $00,$00,$7E,$00,$00
-        !byte $00,$00,$18,$00,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$0F,$FF,$C0,$00
-        !byte $00,$0C,$3F,$C0,$00
-        !byte $00,$0C,$3F,$C0,$00
-        !byte $00,$0F,$FF,$C0,$00
-        !byte $00,$00,$FF,$C0,$00
-        !byte $00,$FF,$FF,$FC,$00
-        !byte $00,$01,$FF,$80,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$0F,$C3,$C0,$00
-        !byte $00,$0F,$C3,$C0,$00
-        !byte $00,$00,$03,$C0,$00
-        !byte $00,$FF,$00,$FC,$00
-        !byte $00,$00,$0F,$C0,$00
-        !byte $00,$00,$3F,$C0,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$FF,$80,$FF,$FF
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$0E,$0E,$0E,$FF
@@ -924,25 +71,8 @@ vdc_spr_1_s4    ; robot left
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$80,$0E,$80,$FF
         !byte $FF,$FF,$80,$80,$FF
+vdc_spr_1_s4_span !byte $12,$31,$31,$31,$31,$31,$31,$31,$22
 vdc_spr_2_s0    ; robot up
-        !byte $00,$07,$E0,$00,$00
-        !byte $00,$01,$80,$00,$00
-        !byte $0F,$00,$00,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$FC,$3F,$F0,$00
-        !byte $0F,$FC,$3F,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $00,$1F,$F8,$00,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $30,$FF,$FF,$0C,$00
-        !byte $30,$F0,$0F,$0C,$00
-        !byte $00,$FF,$FF,$00,$00
-        !byte $0F,$00,$00,$F0,$00
-        !byte $00,$30,$0C,$00,$00
-        !byte $00,$FC,$3F,$00,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$80,$80,$FF,$FF
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$0E,$80,$FF
@@ -952,25 +82,8 @@ vdc_spr_2_s0    ; robot up
         !byte $0E,$0E,$0E,$0E,$FF
         !byte $80,$0E,$0E,$80,$FF
         !byte $FF,$80,$80,$FF,$FF
+vdc_spr_2_s0_span !byte $21,$40,$40,$40,$40,$40,$40,$40,$21
 vdc_spr_2_s4    ; robot up
-        !byte $00,$00,$7E,$00,$00
-        !byte $00,$00,$18,$00,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$0F,$C3,$F0,$00
-        !byte $00,$0F,$C3,$F0,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$FF,$FF,$FF,$00
-        !byte $00,$01,$FF,$80,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $03,$0F,$FF,$F0,$C0
-        !byte $03,$0F,$00,$F0,$C0
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$00,$FF,$00,$00
-        !byte $00,$03,$C3,$C0,$00
-        !byte $00,$0F,$C3,$F0,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$FF,$80,$FF,$FF
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$0E,$0E,$0E,$FF
@@ -980,25 +93,8 @@ vdc_spr_2_s4    ; robot up
         !byte $0E,$0E,$0E,$0E,$0E
         !byte $FF,$0E,$80,$0E,$FF
         !byte $FF,$80,$80,$80,$FF
+vdc_spr_2_s4_span !byte $12,$31,$31,$31,$31,$50,$50,$31,$31
 vdc_spr_3_s0    ; robot down
-        !byte $00,$07,$E0,$00,$00
-        !byte $00,$01,$80,$00,$00
-        !byte $0F,$00,$00,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$C3,$C3,$F0,$00
-        !byte $0F,$C3,$C3,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$F0,$0F,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $00,$1F,$F8,$00,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $30,$FF,$FF,$0C,$00
-        !byte $30,$F0,$0F,$0C,$00
-        !byte $00,$FF,$FF,$00,$00
-        !byte $0F,$00,$00,$F0,$00
-        !byte $00,$30,$0C,$00,$00
-        !byte $00,$FC,$3F,$00,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$80,$80,$FF,$FF
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$0E,$80,$FF
@@ -1008,25 +104,8 @@ vdc_spr_3_s0    ; robot down
         !byte $0E,$0E,$0E,$0E,$FF
         !byte $80,$0E,$0E,$80,$FF
         !byte $FF,$80,$80,$FF,$FF
+vdc_spr_3_s0_span !byte $21,$40,$40,$40,$40,$40,$40,$40,$21
 vdc_spr_3_s4    ; robot down
-        !byte $00,$00,$7E,$00,$00
-        !byte $00,$00,$18,$00,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$0C,$3C,$30,$00
-        !byte $00,$0C,$3C,$30,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$0F,$00,$F0,$00
-        !byte $00,$FF,$FF,$FF,$00
-        !byte $00,$01,$FF,$80,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $03,$0F,$FF,$F0,$C0
-        !byte $03,$0F,$00,$F0,$C0
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$00,$FF,$00,$00
-        !byte $00,$03,$C3,$C0,$00
-        !byte $00,$0F,$C3,$F0,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$FF,$80,$FF,$FF
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$0E,$0E,$0E,$FF
@@ -1036,25 +115,8 @@ vdc_spr_3_s4    ; robot down
         !byte $0E,$0E,$0E,$0E,$0E
         !byte $FF,$0E,$80,$0E,$FF
         !byte $FF,$80,$80,$80,$FF
+vdc_spr_3_s4_span !byte $12,$31,$31,$31,$31,$50,$50,$31,$31
 vdc_spr_4_s0    ; robot right, carrying
-        !byte $00,$07,$E0,$00,$00
-        !byte $00,$01,$80,$00,$00
-        !byte $03,$00,$00,$F0,$00
-        !byte $03,$3F,$FF,$F0,$00
-        !byte $03,$3F,$C3,$F0,$00
-        !byte $03,$3F,$C3,$F0,$00
-        !byte $03,$3F,$FF,$F0,$00
-        !byte $03,$3F,$F0,$F0,$00
-        !byte $03,$FF,$FF,$F0,$00
-        !byte $00,$1F,$F8,$00,$00
-        !byte $03,$00,$00,$F0,$00
-        !byte $03,$3F,$FF,$F0,$00
-        !byte $03,$3F,$FF,$F0,$00
-        !byte $03,$3F,$FF,$F0,$00
-        !byte $03,$00,$FF,$F0,$00
-        !byte $00,$0F,$C0,$00,$00
-        !byte $00,$3F,$C0,$00,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$80,$80,$FF,$FF
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$0E,$80,$FF
@@ -1064,25 +126,8 @@ vdc_spr_4_s0    ; robot right, carrying
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$80,$80,$FF
         !byte $FF,$80,$80,$FF,$FF
+vdc_spr_4_s0_span !byte $21,$40,$40,$40,$40,$40,$40,$40,$21
 vdc_spr_4_s4    ; robot right, carrying
-        !byte $00,$00,$7E,$00,$00
-        !byte $00,$00,$18,$00,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$03,$FF,$F0,$00
-        !byte $00,$03,$FC,$30,$00
-        !byte $00,$03,$FC,$30,$00
-        !byte $00,$03,$FF,$F0,$00
-        !byte $00,$03,$FF,$00,$00
-        !byte $00,$3F,$FF,$FF,$00
-        !byte $00,$01,$FF,$80,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$03,$FF,$F0,$00
-        !byte $00,$03,$FF,$F0,$00
-        !byte $00,$03,$FF,$F0,$00
-        !byte $00,$3F,$00,$FF,$00
-        !byte $00,$03,$F0,$00,$00
-        !byte $00,$03,$FC,$00,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$FF,$80,$FF,$FF
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$0E,$0E,$0E,$FF
@@ -1092,25 +137,8 @@ vdc_spr_4_s4    ; robot right, carrying
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$80,$0E,$80,$FF
         !byte $FF,$80,$80,$FF,$FF
+vdc_spr_4_s4_span !byte $12,$31,$31,$31,$31,$31,$31,$31,$21
 vdc_spr_5_s0    ; robot left, carrying
-        !byte $00,$07,$E0,$00,$00
-        !byte $00,$01,$80,$00,$00
-        !byte $0F,$00,$00,$C0,$00
-        !byte $0F,$FF,$FC,$C0,$00
-        !byte $0F,$C3,$FC,$C0,$00
-        !byte $0F,$C3,$FC,$C0,$00
-        !byte $0F,$FF,$FC,$C0,$00
-        !byte $0F,$0F,$FC,$C0,$00
-        !byte $0F,$FF,$FF,$C0,$00
-        !byte $00,$1F,$F8,$00,$00
-        !byte $0F,$00,$00,$C0,$00
-        !byte $0F,$FF,$FC,$C0,$00
-        !byte $0F,$FF,$FC,$C0,$00
-        !byte $0F,$FF,$FC,$C0,$00
-        !byte $0F,$FF,$00,$C0,$00
-        !byte $00,$03,$F0,$00,$00
-        !byte $00,$03,$FC,$00,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$80,$80,$FF,$FF
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$0E,$80,$FF
@@ -1120,25 +148,8 @@ vdc_spr_5_s0    ; robot left, carrying
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$80,$0E,$80,$FF
         !byte $FF,$80,$80,$FF,$FF
+vdc_spr_5_s0_span !byte $21,$40,$40,$40,$40,$40,$40,$40,$21
 vdc_spr_5_s4    ; robot left, carrying
-        !byte $00,$00,$7E,$00,$00
-        !byte $00,$00,$18,$00,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$0F,$FF,$C0,$00
-        !byte $00,$0C,$3F,$C0,$00
-        !byte $00,$0C,$3F,$C0,$00
-        !byte $00,$0F,$FF,$C0,$00
-        !byte $00,$00,$FF,$C0,$00
-        !byte $00,$FF,$FF,$FC,$00
-        !byte $00,$01,$FF,$80,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$0F,$FF,$C0,$00
-        !byte $00,$0F,$FF,$C0,$00
-        !byte $00,$0F,$FF,$C0,$00
-        !byte $00,$FF,$00,$FC,$00
-        !byte $00,$00,$0F,$C0,$00
-        !byte $00,$00,$3F,$C0,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$FF,$80,$FF,$FF
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$0E,$0E,$0E,$FF
@@ -1148,25 +159,8 @@ vdc_spr_5_s4    ; robot left, carrying
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$80,$0E,$80,$FF
         !byte $FF,$FF,$80,$80,$FF
+vdc_spr_5_s4_span !byte $12,$31,$31,$31,$31,$31,$31,$31,$22
 vdc_spr_6_s0    ; robot up, carrying
-        !byte $00,$07,$E0,$00,$00
-        !byte $00,$01,$80,$00,$00
-        !byte $0F,$00,$00,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$FC,$3F,$F0,$00
-        !byte $0F,$FC,$3F,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $00,$1F,$F8,$00,$00
-        !byte $0F,$00,$00,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$F0,$0F,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$00,$00,$F0,$00
-        !byte $00,$30,$0C,$00,$00
-        !byte $00,$FC,$3F,$00,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$80,$80,$FF,$FF
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$0E,$80,$FF
@@ -1176,25 +170,8 @@ vdc_spr_6_s0    ; robot up, carrying
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$0E,$80,$FF
         !byte $FF,$80,$80,$FF,$FF
+vdc_spr_6_s0_span !byte $21,$40,$40,$40,$40,$40,$40,$40,$21
 vdc_spr_6_s4    ; robot up, carrying
-        !byte $00,$00,$7E,$00,$00
-        !byte $00,$00,$18,$00,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$0F,$C3,$F0,$00
-        !byte $00,$0F,$C3,$F0,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$FF,$FF,$FF,$00
-        !byte $00,$01,$FF,$80,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$0F,$00,$F0,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$00,$FF,$00,$00
-        !byte $00,$03,$C3,$C0,$00
-        !byte $00,$0F,$C3,$F0,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$FF,$80,$FF,$FF
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$0E,$0E,$0E,$FF
@@ -1204,25 +181,8 @@ vdc_spr_6_s4    ; robot up, carrying
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$0E,$80,$0E,$FF
         !byte $FF,$80,$80,$80,$FF
+vdc_spr_6_s4_span !byte $12,$31,$31,$31,$31,$31,$31,$31,$31
 vdc_spr_7_s0    ; robot down, carrying
-        !byte $00,$07,$E0,$00,$00
-        !byte $00,$01,$80,$00,$00
-        !byte $0F,$00,$00,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$C3,$C3,$F0,$00
-        !byte $0F,$C3,$C3,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$F0,$0F,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $00,$1F,$F8,$00,$00
-        !byte $0F,$00,$00,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$F0,$0F,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$00,$00,$F0,$00
-        !byte $00,$30,$0C,$00,$00
-        !byte $00,$FC,$3F,$00,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$80,$80,$FF,$FF
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$0E,$80,$FF
@@ -1232,25 +192,8 @@ vdc_spr_7_s0    ; robot down, carrying
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$0E,$80,$FF
         !byte $FF,$80,$80,$FF,$FF
+vdc_spr_7_s0_span !byte $21,$40,$40,$40,$40,$40,$40,$40,$21
 vdc_spr_7_s4    ; robot down, carrying
-        !byte $00,$00,$7E,$00,$00
-        !byte $00,$00,$18,$00,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$0C,$3C,$30,$00
-        !byte $00,$0C,$3C,$30,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$0F,$00,$F0,$00
-        !byte $00,$FF,$FF,$FF,$00
-        !byte $00,$01,$FF,$80,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$0F,$00,$F0,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$00,$FF,$00,$00
-        !byte $00,$03,$C3,$C0,$00
-        !byte $00,$0F,$C3,$F0,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$FF,$80,$FF,$FF
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$0E,$0E,$0E,$FF
@@ -1260,25 +203,8 @@ vdc_spr_7_s4    ; robot down, carrying
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$0E,$80,$0E,$FF
         !byte $FF,$80,$80,$80,$FF
+vdc_spr_7_s4_span !byte $12,$31,$31,$31,$31,$31,$31,$31,$31
 vdc_spr_8_s0    ; robot right, step
-        !byte $00,$07,$E0,$00,$00
-        !byte $00,$01,$80,$00,$00
-        !byte $03,$00,$00,$F0,$00
-        !byte $03,$3F,$FF,$F0,$00
-        !byte $03,$3F,$C3,$F0,$00
-        !byte $03,$3F,$C3,$F0,$00
-        !byte $03,$3F,$FF,$F0,$00
-        !byte $03,$3F,$F0,$F0,$00
-        !byte $03,$FF,$FF,$F0,$00
-        !byte $00,$1F,$F8,$00,$00
-        !byte $03,$00,$00,$F0,$00
-        !byte $03,$3C,$3F,$F0,$00
-        !byte $03,$3C,$3F,$F0,$00
-        !byte $03,$3C,$00,$F0,$00
-        !byte $03,$00,$00,$F0,$00
-        !byte $01,$60,$18,$00,$00
-        !byte $01,$F8,$7E,$00,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$80,$80,$FF,$FF
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$0E,$80,$FF
@@ -1288,25 +214,8 @@ vdc_spr_8_s0    ; robot right, step
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$80,$80,$FF,$FF
+vdc_spr_8_s0_span !byte $21,$40,$40,$40,$40,$40,$40,$40,$30
 vdc_spr_8_s4    ; robot right, step
-        !byte $00,$00,$7E,$00,$00
-        !byte $00,$00,$18,$00,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$03,$FF,$F0,$00
-        !byte $00,$03,$FC,$30,$00
-        !byte $00,$03,$FC,$30,$00
-        !byte $00,$03,$FF,$F0,$00
-        !byte $00,$03,$FF,$00,$00
-        !byte $00,$3F,$FF,$FF,$00
-        !byte $00,$01,$FF,$80,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$03,$C3,$F0,$00
-        !byte $00,$03,$C3,$F0,$00
-        !byte $00,$03,$C0,$00,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$06,$01,$80,$00
-        !byte $00,$1F,$87,$E0,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$FF,$80,$FF,$FF
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$0E,$0E,$0E,$FF
@@ -1316,25 +225,8 @@ vdc_spr_8_s4    ; robot right, step
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$80,$80,$80,$FF
+vdc_spr_8_s4_span !byte $12,$31,$31,$31,$31,$31,$31,$31,$31
 vdc_spr_9_s0    ; robot left, step
-        !byte $00,$07,$E0,$00,$00
-        !byte $00,$01,$80,$00,$00
-        !byte $0F,$00,$00,$C0,$00
-        !byte $0F,$FF,$FC,$C0,$00
-        !byte $0F,$C3,$FC,$C0,$00
-        !byte $0F,$C3,$FC,$C0,$00
-        !byte $0F,$FF,$FC,$C0,$00
-        !byte $0F,$0F,$FC,$C0,$00
-        !byte $0F,$FF,$FF,$C0,$00
-        !byte $00,$1F,$F8,$00,$00
-        !byte $0F,$00,$00,$C0,$00
-        !byte $0F,$FC,$3C,$C0,$00
-        !byte $0F,$FC,$3C,$C0,$00
-        !byte $0F,$00,$3C,$C0,$00
-        !byte $0F,$00,$00,$C0,$00
-        !byte $00,$18,$06,$80,$00
-        !byte $00,$7E,$1F,$80,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$80,$80,$FF,$FF
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$0E,$80,$FF
@@ -1344,25 +236,8 @@ vdc_spr_9_s0    ; robot left, step
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$0E,$80,$FF
         !byte $FF,$80,$80,$80,$FF
+vdc_spr_9_s0_span !byte $21,$40,$40,$40,$40,$40,$40,$40,$31
 vdc_spr_9_s4    ; robot left, step
-        !byte $00,$00,$7E,$00,$00
-        !byte $00,$00,$18,$00,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$0F,$FF,$C0,$00
-        !byte $00,$0C,$3F,$C0,$00
-        !byte $00,$0C,$3F,$C0,$00
-        !byte $00,$0F,$FF,$C0,$00
-        !byte $00,$00,$FF,$C0,$00
-        !byte $00,$FF,$FF,$FC,$00
-        !byte $00,$01,$FF,$80,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$0F,$C3,$C0,$00
-        !byte $00,$0F,$C3,$C0,$00
-        !byte $00,$00,$03,$C0,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$01,$80,$60,$00
-        !byte $00,$07,$E1,$F8,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$FF,$80,$FF,$FF
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$0E,$0E,$0E,$FF
@@ -1372,25 +247,8 @@ vdc_spr_9_s4    ; robot left, step
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$80,$80,$80,$FF
+vdc_spr_9_s4_span !byte $12,$31,$31,$31,$31,$31,$31,$31,$31
 vdc_spr_10_s0    ; robot up, step
-        !byte $00,$07,$E0,$00,$00
-        !byte $00,$01,$80,$00,$00
-        !byte $0F,$00,$00,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$FC,$3F,$F0,$00
-        !byte $0F,$FC,$3F,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $00,$1F,$F8,$00,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $30,$FF,$FF,$0C,$00
-        !byte $30,$F0,$0F,$0C,$00
-        !byte $00,$FF,$FF,$00,$00
-        !byte $0F,$00,$FF,$F0,$00
-        !byte $00,$30,$00,$00,$00
-        !byte $00,$FC,$0C,$00,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$80,$80,$FF,$FF
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$0E,$80,$FF
@@ -1400,25 +258,8 @@ vdc_spr_10_s0    ; robot up, step
         !byte $0E,$0E,$0E,$0E,$FF
         !byte $80,$0E,$80,$80,$FF
         !byte $FF,$80,$0E,$FF,$FF
+vdc_spr_10_s0_span !byte $21,$40,$40,$40,$40,$40,$40,$40,$21
 vdc_spr_10_s4    ; robot up, step
-        !byte $00,$00,$7E,$00,$00
-        !byte $00,$00,$18,$00,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$0F,$C3,$F0,$00
-        !byte $00,$0F,$C3,$F0,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$FF,$FF,$FF,$00
-        !byte $00,$01,$FF,$80,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $03,$0F,$FF,$F0,$C0
-        !byte $03,$0F,$00,$F0,$C0
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$00,$FF,$FF,$00
-        !byte $00,$03,$C0,$00,$00
-        !byte $00,$0F,$C3,$C0,$00
-        !byte $00,$00,$03,$00,$00
         !byte $FF,$FF,$80,$FF,$FF
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$0E,$0E,$0E,$FF
@@ -1428,25 +269,8 @@ vdc_spr_10_s4    ; robot up, step
         !byte $0E,$0E,$0E,$0E,$0E
         !byte $FF,$0E,$80,$80,$FF
         !byte $FF,$80,$80,$0E,$FF
+vdc_spr_10_s4_span !byte $12,$31,$31,$31,$31,$50,$50,$31,$31
 vdc_spr_11_s0    ; robot down, step
-        !byte $00,$07,$E0,$00,$00
-        !byte $00,$01,$80,$00,$00
-        !byte $0F,$00,$00,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$C3,$C3,$F0,$00
-        !byte $0F,$C3,$C3,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$F0,$0F,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $00,$1F,$F8,$00,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $30,$FF,$FF,$0C,$00
-        !byte $30,$F0,$0F,$0C,$00
-        !byte $00,$FF,$FF,$00,$00
-        !byte $0F,$00,$FF,$F0,$00
-        !byte $00,$30,$00,$00,$00
-        !byte $00,$FC,$0C,$00,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$80,$80,$FF,$FF
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$0E,$80,$FF
@@ -1456,25 +280,8 @@ vdc_spr_11_s0    ; robot down, step
         !byte $0E,$0E,$0E,$0E,$FF
         !byte $80,$0E,$80,$80,$FF
         !byte $FF,$80,$0E,$FF,$FF
+vdc_spr_11_s0_span !byte $21,$40,$40,$40,$40,$40,$40,$40,$21
 vdc_spr_11_s4    ; robot down, step
-        !byte $00,$00,$7E,$00,$00
-        !byte $00,$00,$18,$00,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$0C,$3C,$30,$00
-        !byte $00,$0C,$3C,$30,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$0F,$00,$F0,$00
-        !byte $00,$FF,$FF,$FF,$00
-        !byte $00,$01,$FF,$80,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $03,$0F,$FF,$F0,$C0
-        !byte $03,$0F,$00,$F0,$C0
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$00,$FF,$FF,$00
-        !byte $00,$03,$C0,$00,$00
-        !byte $00,$0F,$C3,$C0,$00
-        !byte $00,$00,$03,$00,$00
         !byte $FF,$FF,$80,$FF,$FF
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$0E,$0E,$0E,$FF
@@ -1484,25 +291,8 @@ vdc_spr_11_s4    ; robot down, step
         !byte $0E,$0E,$0E,$0E,$0E
         !byte $FF,$0E,$80,$80,$FF
         !byte $FF,$80,$80,$0E,$FF
+vdc_spr_11_s4_span !byte $12,$31,$31,$31,$31,$50,$50,$31,$31
 vdc_spr_12_s0    ; robot right, carrying, step
-        !byte $00,$07,$E0,$00,$00
-        !byte $00,$01,$80,$00,$00
-        !byte $03,$00,$00,$F0,$00
-        !byte $03,$3F,$FF,$F0,$00
-        !byte $03,$3F,$C3,$F0,$00
-        !byte $03,$3F,$C3,$F0,$00
-        !byte $03,$3F,$FF,$F0,$00
-        !byte $03,$3F,$F0,$F0,$00
-        !byte $03,$FF,$FF,$F0,$00
-        !byte $00,$1F,$F8,$00,$00
-        !byte $03,$00,$00,$F0,$00
-        !byte $03,$3F,$FF,$F0,$00
-        !byte $03,$3F,$FF,$F0,$00
-        !byte $03,$3F,$FF,$F0,$00
-        !byte $03,$00,$00,$F0,$00
-        !byte $01,$60,$18,$00,$00
-        !byte $01,$F8,$7E,$00,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$80,$80,$FF,$FF
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$0E,$80,$FF
@@ -1512,25 +302,8 @@ vdc_spr_12_s0    ; robot right, carrying, step
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$80,$80,$FF,$FF
+vdc_spr_12_s0_span !byte $21,$40,$40,$40,$40,$40,$40,$40,$30
 vdc_spr_12_s4    ; robot right, carrying, step
-        !byte $00,$00,$7E,$00,$00
-        !byte $00,$00,$18,$00,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$03,$FF,$F0,$00
-        !byte $00,$03,$FC,$30,$00
-        !byte $00,$03,$FC,$30,$00
-        !byte $00,$03,$FF,$F0,$00
-        !byte $00,$03,$FF,$00,$00
-        !byte $00,$3F,$FF,$FF,$00
-        !byte $00,$01,$FF,$80,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$03,$FF,$F0,$00
-        !byte $00,$03,$FF,$F0,$00
-        !byte $00,$03,$FF,$F0,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$06,$01,$80,$00
-        !byte $00,$1F,$87,$E0,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$FF,$80,$FF,$FF
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$0E,$0E,$0E,$FF
@@ -1540,25 +313,8 @@ vdc_spr_12_s4    ; robot right, carrying, step
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$80,$80,$80,$FF
+vdc_spr_12_s4_span !byte $12,$31,$31,$31,$31,$31,$31,$31,$31
 vdc_spr_13_s0    ; robot left, carrying, step
-        !byte $00,$07,$E0,$00,$00
-        !byte $00,$01,$80,$00,$00
-        !byte $0F,$00,$00,$C0,$00
-        !byte $0F,$FF,$FC,$C0,$00
-        !byte $0F,$C3,$FC,$C0,$00
-        !byte $0F,$C3,$FC,$C0,$00
-        !byte $0F,$FF,$FC,$C0,$00
-        !byte $0F,$0F,$FC,$C0,$00
-        !byte $0F,$FF,$FF,$C0,$00
-        !byte $00,$1F,$F8,$00,$00
-        !byte $0F,$00,$00,$C0,$00
-        !byte $0F,$FF,$FC,$C0,$00
-        !byte $0F,$FF,$FC,$C0,$00
-        !byte $0F,$FF,$FC,$C0,$00
-        !byte $0F,$00,$00,$C0,$00
-        !byte $00,$18,$06,$80,$00
-        !byte $00,$7E,$1F,$80,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$80,$80,$FF,$FF
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$0E,$80,$FF
@@ -1568,25 +324,8 @@ vdc_spr_13_s0    ; robot left, carrying, step
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$0E,$80,$FF
         !byte $FF,$80,$80,$80,$FF
+vdc_spr_13_s0_span !byte $21,$40,$40,$40,$40,$40,$40,$40,$31
 vdc_spr_13_s4    ; robot left, carrying, step
-        !byte $00,$00,$7E,$00,$00
-        !byte $00,$00,$18,$00,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$0F,$FF,$C0,$00
-        !byte $00,$0C,$3F,$C0,$00
-        !byte $00,$0C,$3F,$C0,$00
-        !byte $00,$0F,$FF,$C0,$00
-        !byte $00,$00,$FF,$C0,$00
-        !byte $00,$FF,$FF,$FC,$00
-        !byte $00,$01,$FF,$80,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$0F,$FF,$C0,$00
-        !byte $00,$0F,$FF,$C0,$00
-        !byte $00,$0F,$FF,$C0,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$01,$80,$60,$00
-        !byte $00,$07,$E1,$F8,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$FF,$80,$FF,$FF
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$0E,$0E,$0E,$FF
@@ -1596,25 +335,8 @@ vdc_spr_13_s4    ; robot left, carrying, step
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$80,$80,$80,$FF
+vdc_spr_13_s4_span !byte $12,$31,$31,$31,$31,$31,$31,$31,$31
 vdc_spr_14_s0    ; robot up, carrying, step
-        !byte $00,$07,$E0,$00,$00
-        !byte $00,$01,$80,$00,$00
-        !byte $0F,$00,$00,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$FC,$3F,$F0,$00
-        !byte $0F,$FC,$3F,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $00,$1F,$F8,$00,$00
-        !byte $0F,$00,$00,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$F0,$0F,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$00,$FF,$F0,$00
-        !byte $00,$30,$00,$00,$00
-        !byte $00,$FC,$0C,$00,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$80,$80,$FF,$FF
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$0E,$80,$FF
@@ -1624,25 +346,8 @@ vdc_spr_14_s0    ; robot up, carrying, step
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$80,$80,$FF
         !byte $FF,$80,$0E,$FF,$FF
+vdc_spr_14_s0_span !byte $21,$40,$40,$40,$40,$40,$40,$40,$21
 vdc_spr_14_s4    ; robot up, carrying, step
-        !byte $00,$00,$7E,$00,$00
-        !byte $00,$00,$18,$00,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$0F,$C3,$F0,$00
-        !byte $00,$0F,$C3,$F0,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$FF,$FF,$FF,$00
-        !byte $00,$01,$FF,$80,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$0F,$00,$F0,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$00,$FF,$FF,$00
-        !byte $00,$03,$C0,$00,$00
-        !byte $00,$0F,$C3,$C0,$00
-        !byte $00,$00,$03,$00,$00
         !byte $FF,$FF,$80,$FF,$FF
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$0E,$0E,$0E,$FF
@@ -1652,25 +357,8 @@ vdc_spr_14_s4    ; robot up, carrying, step
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$0E,$80,$80,$FF
         !byte $FF,$80,$80,$0E,$FF
+vdc_spr_14_s4_span !byte $12,$31,$31,$31,$31,$31,$31,$31,$31
 vdc_spr_15_s0    ; robot down, carrying, step
-        !byte $00,$07,$E0,$00,$00
-        !byte $00,$01,$80,$00,$00
-        !byte $0F,$00,$00,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$C3,$C3,$F0,$00
-        !byte $0F,$C3,$C3,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$F0,$0F,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $00,$1F,$F8,$00,$00
-        !byte $0F,$00,$00,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$F0,$0F,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$00,$FF,$F0,$00
-        !byte $00,$30,$00,$00,$00
-        !byte $00,$FC,$0C,$00,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$80,$80,$FF,$FF
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$0E,$80,$FF
@@ -1680,25 +368,8 @@ vdc_spr_15_s0    ; robot down, carrying, step
         !byte $80,$0E,$0E,$80,$FF
         !byte $80,$0E,$80,$80,$FF
         !byte $FF,$80,$0E,$FF,$FF
+vdc_spr_15_s0_span !byte $21,$40,$40,$40,$40,$40,$40,$40,$21
 vdc_spr_15_s4    ; robot down, carrying, step
-        !byte $00,$00,$7E,$00,$00
-        !byte $00,$00,$18,$00,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$0C,$3C,$30,$00
-        !byte $00,$0C,$3C,$30,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$0F,$00,$F0,$00
-        !byte $00,$FF,$FF,$FF,$00
-        !byte $00,$01,$FF,$80,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$0F,$00,$F0,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$00,$FF,$FF,$00
-        !byte $00,$03,$C0,$00,$00
-        !byte $00,$0F,$C3,$C0,$00
-        !byte $00,$00,$03,$00,$00
         !byte $FF,$FF,$80,$FF,$FF
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$0E,$0E,$0E,$FF
@@ -1708,50 +379,40 @@ vdc_spr_15_s4    ; robot down, carrying, step
         !byte $FF,$0E,$0E,$0E,$FF
         !byte $FF,$0E,$80,$80,$FF
         !byte $FF,$80,$80,$0E,$FF
+vdc_spr_15_s4_span !byte $12,$31,$31,$31,$31,$31,$31,$31,$31
 vdc_spr_16_s0    ; package (chest) carried above the head
-        !byte $0F,$00,$00,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$00,$00,$F0,$00
-        !byte $0F,$FC,$3F,$F0,$00
-        !byte $0F,$FF,$FF,$F0,$00
-        !byte $0F,$00,$00,$F0,$00
         !byte $80,$0C,$0C,$80,$FF
         !byte $80,$0C,$0C,$80,$FF
         !byte $80,$0C,$0C,$80,$FF
+vdc_spr_16_s0_span !byte $40,$40,$40,$00,$00,$00,$00,$00,$00
 vdc_spr_16_s4    ; package (chest) carried above the head
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$00,$00,$00,$00
-        !byte $00,$0F,$C3,$F0,$00
-        !byte $00,$0F,$FF,$F0,$00
-        !byte $00,$00,$00,$00,$00
         !byte $FF,$0C,$0C,$0C,$FF
         !byte $FF,$0C,$0C,$0C,$FF
         !byte $FF,$0C,$0C,$0C,$FF
+vdc_spr_16_s4_span !byte $31,$31,$31,$00,$00,$00,$00,$00,$00
 vdc_spr_17_s0    ; key carried above the head
-        !byte $00,$00,$00,$00,$00
-        !byte $0F,$F0,$00,$00,$00
-        !byte $0C,$30,$00,$00,$00
-        !byte $0C,$3F,$FF,$C0,$00
-        !byte $0F,$F0,$30,$C0,$00
-        !byte $00,$00,$00,$00,$00
         !byte $0D,$0D,$FF,$FF,$FF
         !byte $0D,$0D,$0D,$0D,$FF
         !byte $0D,$0D,$0D,$0D,$FF
+vdc_spr_17_s0_span !byte $20,$40,$40,$00,$00,$00,$00,$00,$00
 vdc_spr_17_s4    ; key carried above the head
-        !byte $00,$00,$00,$00,$00
-        !byte $03,$FF,$C0,$00,$00
-        !byte $03,$C3,$00,$00,$00
-        !byte $03,$C3,$FF,$FC,$00
-        !byte $03,$FF,$03,$0C,$00
-        !byte $00,$00,$00,$00,$00
         !byte $80,$0D,$80,$FF,$FF
         !byte $80,$0D,$0D,$0D,$FF
         !byte $80,$0D,$0D,$0D,$FF
+vdc_spr_17_s4_span !byte $30,$40,$40,$00,$00,$00,$00,$00,$00
+VDC_INK_N = 1940          ; Bytes Tinte in der Ressource
 vdc_spr_lo
         !byte <vdc_spr_0_s0, <vdc_spr_0_s4, <vdc_spr_1_s0, <vdc_spr_1_s4, <vdc_spr_2_s0, <vdc_spr_2_s4, <vdc_spr_3_s0, <vdc_spr_3_s4, <vdc_spr_4_s0, <vdc_spr_4_s4, <vdc_spr_5_s0, <vdc_spr_5_s4, <vdc_spr_6_s0, <vdc_spr_6_s4, <vdc_spr_7_s0, <vdc_spr_7_s4, <vdc_spr_8_s0, <vdc_spr_8_s4, <vdc_spr_9_s0, <vdc_spr_9_s4, <vdc_spr_10_s0, <vdc_spr_10_s4, <vdc_spr_11_s0, <vdc_spr_11_s4, <vdc_spr_12_s0, <vdc_spr_12_s4, <vdc_spr_13_s0, <vdc_spr_13_s4, <vdc_spr_14_s0, <vdc_spr_14_s4, <vdc_spr_15_s0, <vdc_spr_15_s4, <vdc_spr_16_s0, <vdc_spr_16_s4, <vdc_spr_17_s0, <vdc_spr_17_s4
 vdc_spr_hi
         !byte >vdc_spr_0_s0, >vdc_spr_0_s4, >vdc_spr_1_s0, >vdc_spr_1_s4, >vdc_spr_2_s0, >vdc_spr_2_s4, >vdc_spr_3_s0, >vdc_spr_3_s4, >vdc_spr_4_s0, >vdc_spr_4_s4, >vdc_spr_5_s0, >vdc_spr_5_s4, >vdc_spr_6_s0, >vdc_spr_6_s4, >vdc_spr_7_s0, >vdc_spr_7_s4, >vdc_spr_8_s0, >vdc_spr_8_s4, >vdc_spr_9_s0, >vdc_spr_9_s4, >vdc_spr_10_s0, >vdc_spr_10_s4, >vdc_spr_11_s0, >vdc_spr_11_s4, >vdc_spr_12_s0, >vdc_spr_12_s4, >vdc_spr_13_s0, >vdc_spr_13_s4, >vdc_spr_14_s0, >vdc_spr_14_s4, >vdc_spr_15_s0, >vdc_spr_15_s4, >vdc_spr_16_s0, >vdc_spr_16_s4, >vdc_spr_17_s0, >vdc_spr_17_s4
+vdc_span_lo
+        !byte <vdc_spr_0_s0_span, <vdc_spr_0_s4_span, <vdc_spr_1_s0_span, <vdc_spr_1_s4_span, <vdc_spr_2_s0_span, <vdc_spr_2_s4_span, <vdc_spr_3_s0_span, <vdc_spr_3_s4_span, <vdc_spr_4_s0_span, <vdc_spr_4_s4_span, <vdc_spr_5_s0_span, <vdc_spr_5_s4_span, <vdc_spr_6_s0_span, <vdc_spr_6_s4_span, <vdc_spr_7_s0_span, <vdc_spr_7_s4_span, <vdc_spr_8_s0_span, <vdc_spr_8_s4_span, <vdc_spr_9_s0_span, <vdc_spr_9_s4_span, <vdc_spr_10_s0_span, <vdc_spr_10_s4_span, <vdc_spr_11_s0_span, <vdc_spr_11_s4_span, <vdc_spr_12_s0_span, <vdc_spr_12_s4_span, <vdc_spr_13_s0_span, <vdc_spr_13_s4_span, <vdc_spr_14_s0_span, <vdc_spr_14_s4_span, <vdc_spr_15_s0_span, <vdc_spr_15_s4_span, <vdc_spr_16_s0_span, <vdc_spr_16_s4_span, <vdc_spr_17_s0_span, <vdc_spr_17_s4_span
+vdc_span_hi
+        !byte >vdc_spr_0_s0_span, >vdc_spr_0_s4_span, >vdc_spr_1_s0_span, >vdc_spr_1_s4_span, >vdc_spr_2_s0_span, >vdc_spr_2_s4_span, >vdc_spr_3_s0_span, >vdc_spr_3_s4_span, >vdc_spr_4_s0_span, >vdc_spr_4_s4_span, >vdc_spr_5_s0_span, >vdc_spr_5_s4_span, >vdc_spr_6_s0_span, >vdc_spr_6_s4_span, >vdc_spr_7_s0_span, >vdc_spr_7_s4_span, >vdc_spr_8_s0_span, >vdc_spr_8_s4_span, >vdc_spr_9_s0_span, >vdc_spr_9_s4_span, >vdc_spr_10_s0_span, >vdc_spr_10_s4_span, >vdc_spr_11_s0_span, >vdc_spr_11_s4_span, >vdc_spr_12_s0_span, >vdc_spr_12_s4_span, >vdc_spr_13_s0_span, >vdc_spr_13_s4_span, >vdc_spr_14_s0_span, >vdc_spr_14_s4_span, >vdc_spr_15_s0_span, >vdc_spr_15_s4_span, >vdc_spr_16_s0_span, >vdc_spr_16_s4_span, >vdc_spr_17_s0_span, >vdc_spr_17_s4_span
+vdc_ink_lo
+        !byte <(ST_SPR+0), <(ST_SPR+64), <(ST_SPR+112), <(ST_SPR+176), <(ST_SPR+224), <(ST_SPR+288), <(ST_SPR+346), <(ST_SPR+410), <(ST_SPR+468), <(ST_SPR+532), <(ST_SPR+580), <(ST_SPR+644), <(ST_SPR+692), <(ST_SPR+756), <(ST_SPR+806), <(ST_SPR+870), <(ST_SPR+920), <(ST_SPR+986), <(ST_SPR+1036), <(ST_SPR+1102), <(ST_SPR+1152), <(ST_SPR+1216), <(ST_SPR+1274), <(ST_SPR+1338), <(ST_SPR+1396), <(ST_SPR+1462), <(ST_SPR+1512), <(ST_SPR+1578), <(ST_SPR+1628), <(ST_SPR+1692), <(ST_SPR+1742), <(ST_SPR+1806), <(ST_SPR+1856), <(ST_SPR+1880), <(ST_SPR+1898), <(ST_SPR+1918)
+vdc_ink_hi
+        !byte >(ST_SPR+0), >(ST_SPR+64), >(ST_SPR+112), >(ST_SPR+176), >(ST_SPR+224), >(ST_SPR+288), >(ST_SPR+346), >(ST_SPR+410), >(ST_SPR+468), >(ST_SPR+532), >(ST_SPR+580), >(ST_SPR+644), >(ST_SPR+692), >(ST_SPR+756), >(ST_SPR+806), >(ST_SPR+870), >(ST_SPR+920), >(ST_SPR+986), >(ST_SPR+1036), >(ST_SPR+1102), >(ST_SPR+1152), >(ST_SPR+1216), >(ST_SPR+1274), >(ST_SPR+1338), >(ST_SPR+1396), >(ST_SPR+1462), >(ST_SPR+1512), >(ST_SPR+1578), >(ST_SPR+1628), >(ST_SPR+1692), >(ST_SPR+1742), >(ST_SPR+1806), >(ST_SPR+1856), >(ST_SPR+1880), >(ST_SPR+1898), >(ST_SPR+1918)
 vdc_spr_h
         !byte 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 6, 6
 vdc_spr_col

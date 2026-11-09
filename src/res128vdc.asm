@@ -14,6 +14,7 @@ RES_MAGIC = $A7                 ; erstes Byte: Kennung (falscher/alter Stand erk
 res_table
         !word vti_logo_d, vti_robot_d, vti_chest_d, vti_trophy_d
         !word vdc_icons, vdc_mini_meadow
+        !word vdc_cells_meadow, vdc_cells_winter, vdc_ink
 RES_COUNT = (* - res_table) / 2
 
 !source "platform/c128/view_vdc/res_vdc_title.asm"   ; tools/gen_vdc_title.py

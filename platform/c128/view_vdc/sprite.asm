@@ -15,7 +15,7 @@
 SS_MAX   = 2
 SS_W     = 5
 
-ss_p     = $90                  ; RAM-Bild (Codes ab H*5)
+ss_p     = $90                  ; Block-Codes im RAM (gfx_vdc.asm)
 ss_ra    = $92                  ; laufende Zeilenadresse im VRAM
 ss_q     = $94                  ; Laeufe der Blockzeilen
 ss_c     = $9C                  ; Codes im RAM-Bild ($9C/$9D)
@@ -152,13 +152,13 @@ ss_draw stx ss_cur
         sta ss_p
         lda vdc_spr_hi,y
         sta ss_p+1
-        lda ss_st_lo,y
+        lda vdc_ink_lo,y        ; Tinte in der VRAM-Ablage
         sta ss_ink
-        lda ss_st_hi,y
+        lda vdc_ink_hi,y
         sta ss_ink+1
-        lda ss_span_lo,y        ; Laeufe der Blockzeilen (vs_init)
+        lda vdc_span_lo,y       ; Laeufe der Blockzeilen (generiert)
         sta ss_q
-        lda ss_span_hi,y
+        lda vdc_span_hi,y
         sta ss_q+1
         ldy ss_img,x
         lda vdc_spr_h,y
@@ -219,11 +219,8 @@ ss_draw stx ss_cur
         bne -
         ; 3. neue Attribute: Grundfarbe (hohes Nibble darunter) + Code
         lda ss_p                ; ss_c = Codes im RAM-Bild
-        clc
-        adc ss_h5
         sta ss_c
         lda ss_p+1
-        adc #0
         sta ss_c+1
         +ss_row_at
         lda ss_h
@@ -403,6 +400,3 @@ ss_sv    !word 0
 ss_ink   !word 0
 ss_sat   !fill 5*9, 0
 ss_ix    !byte 0
-ss_span_lo !fill 2*18, 0      ; je Bild*2+Verschiebung: Zeiger auf 9 Lauf-Bytes (vs_init)
-ss_span_hi !fill 2*18, 0
-ss_spans !fill 2*18*9, 0

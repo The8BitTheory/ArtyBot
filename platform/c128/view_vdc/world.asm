@@ -10,13 +10,13 @@ WV_MSG_ROW  = 23
 WV_CELL_B   = 96                ; Bytes je Zelle (64 Bitmap + 32 Attribute)
 WV_ROBOT_DY = 2                 ; Roboter 18 Zeilen hoch: 2 Zeilen ueber der Zelle
 WV_FRAME    = $0F               ; Rahmenfarbe Weltkarte (weiss)
-wv_cells    = $96               ; Zeropage: Zellen des Themes ($96/$97)
+wv_cells    = $96               ; Zeropage: Ziel-Attribute des Themes ($96/$97)
 wv_p        = $98               ; Zellendaten ($98/$99)
 
 ; ---- Themes ------------------------------------------------------------------
-theme_table                     ; nur fuer die Anzahl (Logik); Daten in wv_theme_*
-        !word vdc_cells_meadow
-        !word vdc_cells_winter
+theme_table                     ; je Theme: Attribute der Zielzelle (die Zellen selbst liegen nur im VRAM)
+        !word vdc_goal_attr_meadow
+        !word vdc_goal_attr_winter
 theme_count = (* - theme_table) / 2
 
 ; A = Theme
@@ -26,16 +26,13 @@ theme_load
         asl
         tax
         lda theme_table,x
-        sta wv_cells
+        sta wv_cells            ; Zeiger auf die Ziel-Attribute (run_goal_anim)
         lda theme_table+1,x
         sta wv_cells+1
         ldx wv_theme
-        lda wv_digit_fg,x       ; Ziffern der Level: Grundfarbe der Wiese + Kontrastfarbe
-        sta tmp3
-        ldy #64
-        lda (wv_cells),y
+        lda vdc_grass_attr,x    ; Ziffern der Level: Grundfarbe der Wiese + Kontrastfarbe
         and #$F0
-        ora tmp3
+        ora wv_digit_fg,x
         sta wv_digit_attr
         rts
 

@@ -211,46 +211,94 @@ def hx(row):
     return ','.join('$%02X' % v for v in row)
 
 
+CELL_NAMES = None
+
+
 def main():
+    global CELL_NAMES
+    CELL_NAMES = list(G.CELL_ORDER)
     cm, bad_m = cells(G.CELLS, 'theme_meadow')
     cw, bad_w = cells(GW.C, 'theme_winter')
     sp = sprites()
     ic = icons()
-    o = ['; gfx_vdc.asm - VDC-Grafik. GENERIERT von tools/gen_vdc_gfx.py - nicht von Hand aendern.',
-         '; Zellen: je 64 Byte Bitmap (16 Zeilen x 4) + 32 Byte Attribute (8 x 4, hi = Hintergrund).',
-         '; Reihenfolge gen_gfx_run.CELL_ORDER: ' + ', '.join(G.CELL_ORDER) + '.',
+    o = ['; gfx_vdc.asm - VDC-Grafik (Programmteil). GENERIERT von tools/gen_vdc_gfx.py - nicht von Hand aendern.',
+         '; Was nur im VRAM gebraucht wird (Zellen, Figurentinte, Icons, Mini-Zellen), steht in',
+         '; res_vdc_gfx.asm (Ressource-Datei artybot.gfx, RAM-Bank 1). Hier bleibt, was die CPU liest.',
+         '; Zellen-Reihenfolge gen_gfx_run.CELL_ORDER: ' + ', '.join(G.CELL_ORDER) + ', dann Kiste in Gold.',
          'VDC_CELL_BYTES = 96', 'VDC_SPR_W = 5', 'VDC_SPR_COUNT = %d' % len(sp), '']
-    for label, cs in (('vdc_cells_meadow', cm), ('vdc_cells_winter', cw)):
-        o.append(label)
+    r = ['; res_vdc_gfx.asm - GENERIERT von tools/gen_vdc_gfx.py - nicht von Hand aendern.',
+         '; Teil der Ressource-Datei artybot.gfx (src/res128vdc.asm), wird beim Start in den VRAM kopiert.', '']
+    def gold(a):
+        lo, hi = a & 15, a >> 4
+        return ((13 if hi == 12 else hi) << 4) | (13 if lo == 12 else lo)
+    goal = CELL_NAMES.index('goal')
+    grass = []
+    for theme, cs in (('meadow', cm), ('winter', cw)):
+        r.append('vdc_cells_%s        ; 16 Zellen + Kiste in Gold, je 64 Byte Bitmap + 32 Attribute' % theme)
         for name, bm, at, _ in cs:
-            o.append('; ' + name)
-            for r in bm: o.append('        !byte ' + hx(r))
-            for r in at: o.append('        !byte ' + hx(r))
-        o.append('')
-    o.append('; Sprites: Masken (1 = Koerperpixel), 5 Byte breit, Verschiebung 0 und 4 Pixel')
-    o.append('; danach je Blockzeile 5 Attribute: $FF leer; 0 Randblock: Figurfarbe auf der Grundfarbe der Kachel;')
-    o.append('; $80 Randblock: schwarz (Kontur) auf der Grundfarbe; sonst fertiges Attribut (schwarz hinterlegt)')
+            r.append('; ' + name)
+            for row in bm: r.append('        !byte ' + hx(row))
+            for row in at: r.append('        !byte ' + hx(row))
+        name, bm, at, _ = cs[CELL_NAMES.index('chest')]
+        r.append('; chest (gold)')
+        for row in bm: r.append('        !byte ' + hx(row))
+        for row in at: r.append('        !byte ' + hx([gold(a) for a in row]))
+        # Programmteil: Attribute des Ziels (Schimmer) und Grundfarbe der Wiese (Ziffern)
+        o.append('vdc_goal_attr_%s    ; Attribute der Zielzelle (run_goal_anim)' % theme)
+        for row in cs[goal][2]: o.append('        !byte ' + hx(row))
+        grass.append(cs[0][2][0][0])
+    o.append('vdc_grass_attr !byte %s   ; erstes Attribut der Wiese je Theme (Grundfarbe)' % ','.join('$%02X' % g for g in grass))
+    r.append('')
+    # Figuren: Tinte lueckenlos (je Zeile nur die belegten Bloecke) in der Ressource; Codes, Laeufe,
+    # Hoehe, Farbe im Programm
+    o.append('; Figuren: je Bild und Verschiebung Block-Codes (H/2 Zeilen x 5): $FF leer; 0 Figurfarbe auf der')
+    o.append('; Grundfarbe; $80 schwarz auf der Grundfarbe; sonst fertiges Attribut. Laeufe: 9 Bytes k0 | Laenge<<4.')
+    o.append('; Tinte: Ressource (vdc_ink), Adresse in der VRAM-Ablage = ST_SPR + Versatz (vdc_ink_lo/hi).')
+    r.append('vdc_ink              ; Figurentinte, lueckenlos')
+    off, offs = 0, []
     for i, (n, h, col, shifts) in enumerate(sp):
-        for s, (rows, att) in zip((0, 4), shifts):
-            o.append('vdc_spr_%d_s%d    ; %s' % (i, s, n))
-            for r in rows: o.append('        !byte ' + hx(r))
-            for r in att: o.append('        !byte ' + hx(r))
+        for sft, (rows, att) in zip((0, 4), shifts):
+            lab = 'vdc_spr_%d_s%d' % (i, sft)
+            o.append('%s    ; %s' % (lab, n))
+            for row in att: o.append('        !byte ' + hx(row))
+            spans = []
+            for ar in att:
+                used = [k for k in range(5) if ar[k] != 0xFF]
+                spans.append((used[0] | len(used) << 4) if used else 0)
+            spans += [0] * (9 - len(spans))
+            o.append('%s_span !byte %s' % (lab, ','.join('$%02X' % v for v in spans)))
+            offs.append(off)
+            ink = []
+            for y in range(h):
+                v = spans[y // 2]
+                if v: ink += rows[y][v & 15:(v & 15) + (v >> 4)]
+            r.append('; %s' % lab)
+            if ink: r.append('        !byte ' + hx(ink))
+            off += len(ink)
+    o.append('VDC_INK_N = %d          ; Bytes Tinte in der Ressource' % off)
     o.append('vdc_spr_lo')
     o.append('        !byte ' + ', '.join('<vdc_spr_%d_s0, <vdc_spr_%d_s4' % (i, i) for i in range(len(sp))))
     o.append('vdc_spr_hi')
     o.append('        !byte ' + ', '.join('>vdc_spr_%d_s0, >vdc_spr_%d_s4' % (i, i) for i in range(len(sp))))
+    o.append('vdc_span_lo')
+    o.append('        !byte ' + ', '.join('<vdc_spr_%d_s0_span, <vdc_spr_%d_s4_span' % (i, i) for i in range(len(sp))))
+    o.append('vdc_span_hi')
+    o.append('        !byte ' + ', '.join('>vdc_spr_%d_s0_span, >vdc_spr_%d_s4_span' % (i, i) for i in range(len(sp))))
+    o.append('vdc_ink_lo')
+    o.append('        !byte ' + ', '.join('<(ST_SPR+%d)' % x for x in offs))
+    o.append('vdc_ink_hi')
+    o.append('        !byte ' + ', '.join('>(ST_SPR+%d)' % x for x in offs))
     o.append('vdc_spr_h')
     o.append('        !byte ' + ', '.join(str(h) for _, h, _, _ in sp))
     o.append('vdc_spr_col')
     o.append('        !byte ' + ', '.join(str(c) for _, _, c, _ in sp))
     o.append('')
     o.append('; Icons und Mini-Zellen: res_vdc_gfx.asm (Ressource-Datei, nur im VRAM)')
-    r = ['; res_vdc_gfx.asm - GENERIERT von tools/gen_vdc_gfx.py - nicht von Hand aendern.', '']
     r.append('; Mini-Zellen fuer die Legende: 16x8 (8 Zeilen x 2 Bytes, dann 4 x 2 Attribute), je 24 Byte')
     for label, ms in (('vdc_mini_meadow', minis(cm)), ('vdc_mini_winter', minis(cw)), ('vdc_mini_robot', mini_robots())):
         r.append(label)
         for bm, at in ms:
-            r.append('        !byte ' + ', '.join(hx(r) for r in bm) + ', ' + ', '.join(hx(r) for r in at))
+            r.append('        !byte ' + ', '.join(hx(x) for x in bm) + ', ' + ', '.join(hx(x) for x in at))
     r.append('')
     r.append('; Befehls-Icons 0..8 (Fwd, Back, Right, Left, Pick, Drop, Turn 180, Jump, Throw), je 32x16')
     r.append('vdc_icons')

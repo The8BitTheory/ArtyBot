@@ -13,6 +13,9 @@ RES_CHEST   = 2
 RES_TROPHY  = 3
 RES_ICONS   = 4
 RES_MINI    = 5
+RES_CELLS_M = 6
+RES_CELLS_W = 7
+RES_INK     = 8
 MMU_CFG_BANK1 = $7E             ; wie MMU_CFG_RAM_IO, aber RAM-Bank 1
 
 KERNAL_SETBNK = $FF68

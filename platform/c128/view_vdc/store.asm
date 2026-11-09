@@ -23,7 +23,7 @@ ST_CELL_B   = 96
 ST_THEME_B  = 17*ST_CELL_B
 ST_CELL_GOLD = 16
 ST_SPR      = ST_CELLS + 2*ST_THEME_B
-ST_SPR_N    = 16*2*18*5 + 2*2*6*5               ; obere Grenze (lueckenlos abgelegt ist es weniger)
+ST_SPR_N    = VDC_INK_N                         ; Tinte lueckenlos (gfx_vdc.asm)
 ST_SAVE     = ST_SPR + ST_SPR_N
 ST_SAVE_B   = 5*18 + 5*9                        ; Bitmap + Attribute unter einem Sprite
 ST_PSAVE    = ST_SAVE + 2*ST_SAVE_B             ; unter dem Mauszeiger: 3 x 8 Bitmap + 3 x 4 Attribute
@@ -123,155 +123,10 @@ vs_init
         lda vs_n
         cmp #8
         bne .fw
-        ; Kacheln beider Themes, danach je die goldene Kiste
-        lda #<vdc_cells_meadow
-        ldx #>vdc_cells_meadow
-        ldy #0
-        jsr .theme
-        lda #<vdc_cells_winter
-        ldx #>vdc_cells_winter
-        ldy #1
-        jsr .theme
-        ; Laeufe der Blockzeilen je Bild: k0 | Laenge << 4 (0 = leer); der Generator stellt
-        ; sicher, dass die belegten Bloecke einer Blockzeile zusammenhaengen.
-        lda #<ss_spans
-        sta vs_q
-        lda #>ss_spans
-        sta vs_q+1
-        ldx #0
-.spn    stx vs_n
-        lda vs_q
-        sta ss_span_lo,x
-        lda vs_q+1
-        sta ss_span_hi,x
-        txa
-        lsr
-        tay
-        lda vdc_spr_h,y         ; Codes ab H*5
-        sta vs_h
-        asl
-        asl
-        adc vs_h
-        clc
-        adc vdc_spr_lo,x
-        sta vs_p
-        lda vdc_spr_hi,x
-        adc #0
-        sta vs_p+1
-        lsr vs_h                ; Blockzeilen
-        lda #0
-        sta vs_r
-.br     lda #0
-        sta vs_len
-        lda #$FF
-        sta vs_k0
-        ldy #0
-.bk     lda (vs_p),y
-        cmp #$FF
-        beq +
-        inc vs_len
-        lda vs_k0
-        bpl +
-        sty vs_k0
-+       iny
-        cpy #5
-        bne .bk
-        lda vs_len
-        beq +
-        asl
-        asl
-        asl
-        asl
-        ora vs_k0
-+       ldy vs_r
-        sta (vs_q),y
-        lda vs_p
-        clc
-        adc #5
-        sta vs_p
-        bcc +
-        inc vs_p+1
-+       inc vs_r
-        lda vs_r
-        cmp vs_h
-        bne .br
-        lda vs_q                ; naechstes Bild: 9 Bytes weiter
-        clc
-        adc #9
-        sta vs_q
-        bcc +
-        inc vs_q+1
-+       ldx vs_n
-        inx
-        cpx #2*18
-        beq +
-        jmp .spn
-+
-        ; Figuren: Tinte lueckenlos, nur die belegten Bytes jeder Zeile hintereinander. Beim
-        ; Zeichnen laeuft die Quelle damit ueber alle Zeilen von selbst weiter (sprite.asm).
-        lda #>ST_SPR
-        ldy #<ST_SPR
-        sta vs_a+1
-        sty vs_a
-        jsr vdc_addr
-        ldx #0
-.ink    stx vs_n
-        lda vs_a                ; Anfang der Tinte dieses Bildes
-        sta ss_st_lo,x
-        lda vs_a+1
-        sta ss_st_hi,x
-        lda vdc_spr_lo,x        ; RAM-Bild
-        sta vs_p
-        lda vdc_spr_hi,x
-        sta vs_p+1
-        lda ss_span_lo,x        ; Laeufe
-        sta vs_q
-        lda ss_span_hi,x
-        sta vs_q+1
-        txa
-        lsr
-        tay
-        lda vdc_spr_h,y
-        sta vs_h
-        lda #0
-        sta vs_r                ; Zeile
-.ir     lda vs_r
-        lsr
-        tay
-        lda (vs_q),y
-        beq .inext
-        pha
-        and #$0F
-        sta vs_k0
-        pla
-        lsr
-        lsr
-        lsr
-        lsr
-        sta vs_len
-        lda vs_r                ; Quelle: Zeile*5 + k0
-        asl
-        asl
-        adc vs_r
-        adc vs_k0
-        tay
--       lda (vs_p),y
-        +vdc_wait
-        sta VDC_DATA
-        inc vs_a
-        bne +
-        inc vs_a+1
-+       iny
-        dec vs_len
-        bne -
-.inext  inc vs_r
-        lda vs_r
-        cmp vs_h
-        bne .ir
-        ldx vs_n
-        inx
-        cpx #2*18
-        bne .ink
+        ; aus der Ressource (Bank 1): Kacheln beider Themes (mit Kiste in Gold), Figurentinte
+        +vs_res RES_CELLS_M, ST_CELLS, ST_THEME_B
+        +vs_res RES_CELLS_W, ST_CELLS+ST_THEME_B, ST_THEME_B
+        +vs_res RES_INK, ST_SPR, VDC_INK_N
         ; Icons
         +vs_res RES_ICONS, ST_ICONS, 9*64                       ; aus der Ressource (Bank 1)
         +vs_res RES_MINI, ST_MINI, (2*16+4)*ST_MINI_B           ; meadow, winter, robot hintereinander
@@ -306,46 +161,6 @@ vs_init
 +       rts
 
 ; A/X = Zellen eines Themes im RAM, Y = Theme: 16 Zellen + goldene Kiste ablegen
-.theme  sta vdc_src
-        stx vdc_src+1
-        lda vs_theme_lo,y
-        sta vdc_dst
-        lda vs_theme_hi,y
-        sta vdc_dst+1
-        lda #<(16*ST_CELL_B)
-        sta vdc_cnt
-        lda #>(16*ST_CELL_B)
-        sta vdc_cnt+1
-        lda vdc_src             ; Kiste = Zelle 2, Quelle merken
-        clc
-        adc #<(2*ST_CELL_B)
-        sta vs_p
-        lda vdc_src+1
-        adc #>(2*ST_CELL_B)
-        sta vs_p+1
-        jsr vdc_upload
-        ; goldene Kiste: Bitmap unveraendert, Attribute Braun -> Gelb
-        lda vdc_dst
-        clc
-        adc #<(16*ST_CELL_B)
-        tay
-        lda vdc_dst+1
-        adc #>(16*ST_CELL_B)
-        jsr vdc_addr
-        ldy #0
--       lda (vs_p),y
-        cpy #64
-        bcc +
-        jsr wv_goldify
-+       +vdc_wait
-        sta VDC_DATA
-        iny
-        cpy #ST_CELL_B
-        bne -
-        rts
-
-vs_theme_lo !byte <ST_CELLS, <(ST_CELLS+ST_THEME_B)
-vs_theme_hi !byte >ST_CELLS, >(ST_CELLS+ST_THEME_B)
 
 vs_n     !byte 0
 vs_a     !word 0
@@ -354,5 +169,3 @@ vs_r     !byte 0
 vs_len   !byte 0
 vs_k0    !byte 0
 vs_t     !byte 0
-ss_st_lo !fill 2*18, 0          ; VRAM-Adresse der Tinte je Bild*2 + Verschiebung
-ss_st_hi !fill 2*18, 0

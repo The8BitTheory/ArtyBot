@@ -1497,12 +1497,9 @@ pr_paint_goal
 .free   dex
         bpl -
         jsr vp_hide
-        lda wv_cells            ; Attribute der Zielzelle (3) im RAM
-        clc
-        adc #<(3*96+64)
+        lda wv_cells            ; Attribute der Zielzelle des Themes (gfx_vdc.asm)
         sta pr_a
         lda wv_cells+1
-        adc #>(3*96+64)
         sta pr_a+1
         lda pr_gy
         lsr
