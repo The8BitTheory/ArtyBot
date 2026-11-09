@@ -141,6 +141,9 @@ def sprites():
                         seg = im[y][k * 8:k * 8 + 8]
                         rows[y][k] = int(''.join('1' if ch == ink else '0' for ch in seg), 2) if ink else 0
                 att.append(ar)
+            for ar in att:                      # Laeufe ohne Luecke (sprite.asm kopiert je Zeile einen Lauf)
+                used = [k for k in range(5) if ar[k] != 0xFF]
+                assert not used or used == list(range(used[0], used[-1] + 1)), (n, s, ar)
             shifts.append((rows, att))
         out.append((n, h, col, shifts))
     return out

@@ -14,6 +14,7 @@
 ;      gepackten RAM-Bild auf den Bildschirm entpackt (vt_image).
 
 vs_p        = $9A               ; Zeropage $9A/$9B
+vs_q        = $9E               ; Zeropage $9E/$9F
 ST_FONT     = VDC_STORE                         ; $6000, 1 KB
 ST_FONTW    = ST_FONT + 8*128                   ; 2 KB, Seitengrenze
 ST_CELLS    = ST_FONTW + 8*256
@@ -189,6 +190,81 @@ vs_init
         inx
         cpx #2*18
         bne .sp
+        ; Laeufe der Blockzeilen je Bild: k0 | Laenge << 4 (0 = leer); der Generator stellt
+        ; sicher, dass die belegten Bloecke einer Blockzeile zusammenhaengen.
+        lda #<ss_spans
+        sta vs_q
+        lda #>ss_spans
+        sta vs_q+1
+        ldx #0
+.spn    stx vs_n
+        lda vs_q
+        sta ss_span_lo,x
+        lda vs_q+1
+        sta ss_span_hi,x
+        txa
+        lsr
+        tay
+        lda vdc_spr_h,y         ; Codes ab H*5
+        sta vs_h
+        asl
+        asl
+        adc vs_h
+        clc
+        adc vdc_spr_lo,x
+        sta vs_p
+        lda vdc_spr_hi,x
+        adc #0
+        sta vs_p+1
+        lsr vs_h                ; Blockzeilen
+        lda #0
+        sta vs_r
+.br     lda #0
+        sta vs_len
+        lda #$FF
+        sta vs_k0
+        ldy #0
+.bk     lda (vs_p),y
+        cmp #$FF
+        beq +
+        inc vs_len
+        lda vs_k0
+        bpl +
+        sty vs_k0
++       iny
+        cpy #5
+        bne .bk
+        lda vs_len
+        beq +
+        asl
+        asl
+        asl
+        asl
+        ora vs_k0
++       ldy vs_r
+        sta (vs_q),y
+        lda vs_p
+        clc
+        adc #5
+        sta vs_p
+        bcc +
+        inc vs_p+1
++       inc vs_r
+        lda vs_r
+        cmp vs_h
+        bne .br
+        lda vs_q                ; naechstes Bild: 9 Bytes weiter
+        clc
+        adc #9
+        sta vs_q
+        bcc +
+        inc vs_q+1
++       ldx vs_n
+        inx
+        cpx #2*18
+        beq +
+        jmp .spn
++
         ; Icons
         +vs_up vdc_icons, ST_ICONS, 9*64
         ; Titelbilder, soweit abgelegt
@@ -385,6 +461,10 @@ vu_unpack
 +       rts
 
 vs_n     !byte 0
+vs_h     !byte 0
+vs_r     !byte 0
+vs_len   !byte 0
+vs_k0    !byte 0
 vs_t     !byte 0
 vu_cnt   !word 0
 vu_k     !byte 0

@@ -35,11 +35,26 @@ nmi_handler                     ; RESTORE-Taste ignorieren
         rti
 
 !zone wait_frame
+!if TARGET = TARGET_C128VDC {
+; VDC: Takt des Spiels = Bildwechsel des VDC (nicht synchron zum VIC-Raster-IRQ, der weiter
+; Sound/Musik treibt). Rueckkehr am Beginn des unteren Rands (Status-Bit 5: 0 -> 1): danach
+; ist der VDC rund 112 Zeilen lang nicht im sichtbaren Bild, Zeiger und Figuren werden dann
+; ohne Flackern gezeichnet und der VDC ist nach jedem Zugriff schnell wieder bereit.
+wait_frame
+-       lda VDC_STATUS          ; noch im Rand: erst das sichtbare Bild abwarten
+        and #$20
+        bne -
+-       lda VDC_STATUS
+        and #$20
+        beq -
+        rts
+} else {
 wait_frame                      ; wartet auf den naechsten Frame
         lda frame
 .w      cmp frame
         beq .w
         rts
+}
 
 ; Gemeinsamer Abschluss des Startups (C64, C128): Speicherkonfiguration und Vektoren
 ; sind gesetzt. CIA- und VIC-Interrupts aus, Grafik, Sound, Raster-IRQ an, Spiel starten.

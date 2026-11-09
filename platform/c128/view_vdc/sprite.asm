@@ -16,6 +16,9 @@ SS_MAX   = 2
 SS_W     = 5
 
 ss_p     = $90                  ; RAM-Bild (Codes ab H*5)
+ss_ra    = $92                  ; laufende Zeilenadresse im VRAM
+ss_q     = $94                  ; Laeufe der Blockzeilen
+ss_c     = $9C                  ; Codes im RAM-Bild ($9C/$9D)
 
 ; Bildschirm wurde geloescht: kein Sprite steht mehr im Bild
 ss_forget
@@ -45,7 +48,42 @@ ss_save_addr
         sta ss_sv+1
         rts
 
-; X = Sprite: vom Bild nehmen (falls gezeichnet)
+; Zeile weiter: ss_ra += 80
+!macro ss_next {
+        lda ss_ra
+        clc
+        adc #80
+        sta ss_ra
+        bcc +
+        inc ss_ra+1
++
+}
+; ss_ra = Bitmapzeile ss_yy (bzw. Attributzeile ss_yy/2) + Spalte ss_cc
+!macro ss_row_bm {
+        ldx ss_yy
+        lda vl_lo,x
+        clc
+        adc ss_cc
+        sta ss_ra
+        lda vl_hi,x
+        adc #0
+        sta ss_ra+1
+}
+!macro ss_row_at {
+        lda ss_yy
+        lsr
+        tax
+        lda al_lo,x
+        clc
+        adc ss_cc
+        sta ss_ra
+        lda al_hi,x
+        adc #0
+        sta ss_ra+1
+}
+
+; X = Sprite: vom Bild nehmen (falls gezeichnet). Quelle = Sicherung (zaehlt weiter),
+; je Zeile nur Ziel und R30.
 !zone ss_hide
 ss_hide stx ss_cur
         lda ss_drawn,x
@@ -62,36 +100,37 @@ ss_hide stx ss_cur
         jsr ss_ptr_check
         jsr ss_save_addr
         jsr vdc_mode_copy
-        lda ss_sv+1             ; Quelle = Sicherung (laeuft weiter)
-        ldx #32
-        jsr vdc_wr
+        lda ss_sv+1
+        +vwr 32
         lda ss_sv
-        ldx #33
-        jsr vdc_wr
-        lda #0
-        sta ss_i
-.bl     jsr ss_bm_addr
-        jsr ss_copy5
-        inc ss_i
-        lda ss_i
-        cmp ss_h
+        +vwr 33
+        +ss_row_bm
+        lda ss_h
+        sta ss_n
+.bl     lda ss_ra+1
+        +vwr 18
+        lda ss_ra
+        +vwr 19
+        lda #SS_W
+        +vwr 30
+        +ss_next
+        dec ss_n
         bne .bl
-        lda #0
-        sta ss_i
-.al     jsr ss_at_addr
-        jsr ss_copy5
-        inc ss_i
-        lda ss_i
-        asl
-        cmp ss_h
+        +ss_row_at
+        lda ss_h
+        lsr
+        sta ss_n
+.al     lda ss_ra+1
+        +vwr 18
+        lda ss_ra
+        +vwr 19
+        lda #SS_W
+        +vwr 30
+        +ss_next
+        dec ss_n
         bne .al
         ldx ss_cur
         rts
-
-ss_copy5
-        lda #SS_W
-        ldx #30
-        jmp vdc_wr
 
 ; X = Sprite: an ss_col/ss_sh/ss_y,x mit Bild ss_img,x zeichnen (vorher ss_hide!)
 !zone ss_draw
@@ -99,6 +138,7 @@ ss_draw stx ss_cur
         lda ss_img,x            ; Bild*2 + Verschiebung
         asl
         ora ss_sh,x
+        sta ss_ix
         tay
         lda vdc_spr_lo,y
         sta ss_p
@@ -108,6 +148,10 @@ ss_draw stx ss_cur
         sta ss_ink
         lda ss_st_hi,y
         sta ss_ink+1
+        lda ss_span_lo,y        ; Laeufe der Blockzeilen (vs_init)
+        sta ss_q
+        lda ss_span_hi,y
+        sta ss_q+1
         ldy ss_img,x
         lda vdc_spr_h,y
         sta ss_h
@@ -128,39 +172,52 @@ ss_draw stx ss_cur
         sta ss_drawn,x
         jsr ss_ptr_check
         jsr ss_save_addr
-        ; 1. Hintergrund sichern: Ziel = Sicherung (laeuft weiter), Quelle je Zeile
+        ; 1. Hintergrund sichern: Ziel = Sicherung (zaehlt weiter), je Zeile Quelle + R30
         jsr vdc_mode_copy
         lda ss_sv+1
-        ldy ss_sv
-        jsr vdc_addr
-        lda #0
-        sta ss_i
-.sb     jsr ss_bm_src
-        jsr ss_copy5
-        inc ss_i
-        lda ss_i
-        cmp ss_h
+        +vwr 18
+        lda ss_sv
+        +vwr 19
+        +ss_row_bm
+        lda ss_h
+        sta ss_n
+.sb     lda ss_ra+1
+        +vwr 32
+        lda ss_ra
+        +vwr 33
+        lda #SS_W
+        +vwr 30
+        +ss_next
+        dec ss_n
         bne .sb
-        lda #0
-        sta ss_i
-.sa     jsr ss_at_src
-        jsr ss_copy5
-        inc ss_i
-        lda ss_i
-        asl
-        cmp ss_h
+        +ss_row_at
+        lda ss_h
+        lsr
+        sta ss_n
+.sa     lda ss_ra+1
+        +vwr 32
+        lda ss_ra
+        +vwr 33
+        lda #SS_W
+        +vwr 30
+        +ss_next
+        dec ss_n
         bne .sa
-        ; 2. gesicherte Attribute lesen (stehen hinter der Bitmap-Sicherung)
+        ; 2. gesicherte Attribute lesen (hinter der Bitmap-Sicherung)
         lda ss_sv
         clc
         adc ss_h5
         tay
         lda ss_sv+1
         adc #0
-        jsr vdc_addr
+        +vwr 18
+        tya
+        +vwr 19
+        ldx #31
+        stx VDC_REG
         lda ss_h5
-        lsr                     ; H/2*5 Attribute
-        sta ss_n
+        lsr
+        sta ss_n                ; H/2*5
         ldx #0
 -       +vdc_wait
         lda VDC_DATA
@@ -168,91 +225,77 @@ ss_draw stx ss_cur
         inx
         cpx ss_n
         bne -
-        ; 3. neue Attribute
-        lda #0
-        sta ss_i
-        sta ss_o
-.wa     jsr ss_at_addr
-        ldx #SS_W
-.wak    ldy ss_o
-        lda ss_sat,y
-        and #$F0
-        sta ss_t                ; Grundfarbe des Blocks
-        tya
+        ; 3. neue Attribute: Grundfarbe (hohes Nibble darunter) + Code
+        lda ss_p                ; ss_c = Codes im RAM-Bild
         clc
         adc ss_h5
-        tay
-        lda (ss_p),y            ; Code
+        sta ss_c
+        lda ss_p+1
+        adc #0
+        sta ss_c+1
+        +ss_row_at
+        lda ss_h
+        lsr
+        sta ss_n
+        ldy #0                  ; Blockindex 0..H/2*5-1
+.wa     lda ss_ra+1
+        +vwr 18
+        lda ss_ra
+        +vwr 19
+        ldx #31
+        stx VDC_REG
+        lda #SS_W
+        sta ss_k
+.wak    lda (ss_c),y
         cmp #$FF
         beq .keep
-        cmp #0
-        beq .edge
         cmp #$80
+        beq .black
+        cmp #0
         bne .put                ; fertiges Attribut
-        lda ss_t                ; schwarz auf der Grundfarbe
-        jmp .put
-.edge   lda ss_t
+        lda ss_sat,y            ; Figurfarbe auf der Grundfarbe
+        and #$F0
         ora ss_fc
         jmp .put
-.keep   ldy ss_o
-        lda ss_sat,y
+.black  lda ss_sat,y
+        and #$F0
+        jmp .put
+.keep   lda ss_sat,y
 .put    +vdc_wait
         sta VDC_DATA
-        inc ss_o
-        dex
+        iny
+        dec ss_k
         bne .wak
-        inc ss_i
-        lda ss_i
-        asl
-        cmp ss_h
+        +ss_next
+        dec ss_n
         bne .wa
-        ; 4. Tinte: je Zeile Laeufe nicht-leerer Bloecke aus der Ablage kopieren
+        ; 4. Tinte: je Zeile ein Lauf (k0, Laenge) aus der Ablage
+        +ss_row_bm
         lda #0
         sta ss_i
-.wb     lda ss_i                ; Code-Index der Blockzeile = H*5 + (Zeile/2)*5
+.wb     lda ss_i
         lsr
-        sta ss_t
-        asl
-        asl
-        adc ss_t
-        adc ss_h5
-        sta ss_t
-        lda #0
-        sta ss_k
-.run    ldy ss_t                ; leere Bloecke ueberspringen
-        lda (ss_p),y
-        cmp #$FF
-        bne .start
-        inc ss_t
-        inc ss_k
-        lda ss_k
-        cmp #SS_W
-        bne .run
-        beq .nextl
-.start  lda ss_k                ; Lauf beginnt bei Block ss_k
+        tay
+        lda (ss_q),y            ; Lauf der Blockzeile: k0 | Laenge << 4
+        beq .nl
+        pha
+        and #$0F
         sta ss_k0
-.len    inc ss_t
-        inc ss_k
-        lda ss_k
-        cmp #SS_W
-        beq .copy
-        ldy ss_t
-        lda (ss_p),y
-        cmp #$FF
-        bne .len
-.copy   jsr ss_ink_run          ; Bloecke ss_k0 .. ss_k-1
-        lda ss_k
-        cmp #SS_W
-        bne .run
-.nextl  inc ss_i
-        lda ss_i
-        cmp ss_h
-        bne .wb
-        ldx ss_cur
-        rts
-
-; Tinte der Zeile ss_i, Bloecke ss_k0..ss_k-1: Ziel und Quelle setzen, R30 = Laenge
-ss_ink_run
+        pla
+        lsr
+        lsr
+        lsr
+        lsr
+        sta ss_k
+        lda ss_ra               ; Ziel = Zeile + k0
+        clc
+        adc ss_k0
+        tay
+        lda ss_ra+1
+        adc #0
+        +vwr 18
+        tya
+        +vwr 19
         lda ss_i                ; Quelle = Tinte + Zeile*5 + k0
         asl
         asl
@@ -260,35 +303,22 @@ ss_ink_run
         adc ss_k0
         clc
         adc ss_ink
-        sta ss_s
+        tay
         lda ss_ink+1
         adc #0
-        ldx #32
-        jsr vdc_wr
-        lda ss_s
-        ldx #33
-        jsr vdc_wr
-        lda ss_yy               ; Ziel = Bildschirmzeile + Spalte + k0
-        clc
-        adc ss_i
-        tax
-        lda vl_lo,x
-        clc
-        adc ss_cc
-        php
-        clc
-        adc ss_k0
-        tay
-        lda vl_hi,x
-        adc #0
-        plp
-        adc #0
-        jsr vdc_addr
+        +vwr 32
+        tya
+        +vwr 33
         lda ss_k
-        sec
-        sbc ss_k0
-        ldx #30
-        jmp vdc_wr
+        +vwr 30
+.nl     +ss_next
+        inc ss_i
+        lda ss_i
+        cmp ss_h
+        beq +
+        jmp .wb
++       ldx ss_cur
+        rts
 
 ; Zeiger nur wegnehmen, wenn er das Rechteck (ss_cc, ss_yy, 5 Spalten, ss_h Zeilen) beruehrt
 ; (sonst flackert er bei jeder Bewegung der Figur).
@@ -394,3 +424,7 @@ ss_fc    !byte 0
 ss_sv    !word 0
 ss_ink   !word 0
 ss_sat   !fill 5*9, 0
+ss_ix    !byte 0
+ss_span_lo !fill 2*18, 0      ; je Bild*2+Verschiebung: Zeiger auf 9 Lauf-Bytes (vs_init)
+ss_span_hi !fill 2*18, 0
+ss_spans !fill 2*18*9, 0
