@@ -3,7 +3,7 @@
 
   python3 -B tools/vice_vdc_plan.py X128 PRG LABELS OUTDIR [VICE-DATA-DIR]
 
-Weltkarte -> Level 1, Befehle tippen, Lauf (F1), waehrend des Laufs editieren, Level loesen.
+Weltkarte -> Level 1, Befehle tippen, Lauf (Space), waehrend des Laufs editieren, Level loesen.
 Bilder in 4:3 (640x480): w01_plan, w02_typed, w03_running, w04_edit, w05_won."""
 import sys, os, subprocess
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -69,7 +69,7 @@ try:
     press(SPACE, after=40); shot('w01_plan')
     for ch in 'wwdw': press(K[ch], after=4)
     shot('w02_typed')
-    press(F1, after=30); shot('w03_running')
+    press(SPACE, after=30); shot('w03_running')
     press(K['q'], after=30); shot('w04_edit')
     sol = sys.argv[6] if len(sys.argv) > 6 else None
     if sol:

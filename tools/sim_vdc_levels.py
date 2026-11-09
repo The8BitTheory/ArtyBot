@@ -3,8 +3,8 @@
 
   python3 -B tools/sim_vdc_levels.py PRG OUTDIR [SOLUTIONS.txt]
 
-Wie Ablauf 2 von sim_regress.py, aber fuer den gemeinsamen Plan-/Run-Bildschirm: F1 startet
-den Lauf sofort (kein Space). Je Level ein Bild in 4:3 (OUTDIR/V<n>.png); Ausgabe WON / NOT won."""
+Wie Ablauf 2 von sim_regress.py, aber fuer den gemeinsamen Plan-/Run-Bildschirm: Space startet
+den Lauf sofort. Je Level ein Bild in 4:3 (OUTDIR/V<n>.png); Ausgabe WON / NOT won."""
 import sys, os
 from collections import deque
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -77,7 +77,7 @@ for label in sorted(LEVELS):
     press(SPACE, after=60)
     for ch in solution(label):
         press(K[ch], 2, 6)
-    press(F1, after=20)
+    press(SPACE, after=20)
     for _ in range(400):
         m.run_frames(10)
         if m.ram[RUN_STATE] in (2, 4): break

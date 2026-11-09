@@ -1012,17 +1012,17 @@ plan_hit_footer
         ldx pr_t
         cpx #PR_FOOT_ROW
         bne .no
-        cmp #1
+        cmp #1                  ; "Space:Go/Pause" 1..14, "F7:Map" 17..22, "F8:Title" 25..32
         bcc .no
-        cmp #12
+        cmp #15
         bcc .run
-        cmp #14
+        cmp #17
         bcc .no
-        cmp #20
+        cmp #23
         bcc .map
-        cmp #22
+        cmp #25
         bcc .no
-        cmp #30
+        cmp #33
         bcs .no
         lda #2
         sec
@@ -1586,7 +1586,7 @@ str_pr_commands !text " Commands ",0
 str_pr_program  !text " Program   /99 ",0
 str_pr_plan     !text " - Plan ",0
 str_pr_run      !text " - Run  ",0
-str_pr_footer   !text "F1:Run/Plan  F7:Map  F8:Title   Space:Go/Pause  R:Restart  Ret:Grab  Del:Delete",0
+str_pr_footer   !text "Space:Go/Pause  F7:Map  F8:Title   R:Restart  Ret:Grab  Del:Delete",0
 
 pr_vis   !byte 0, 0             ; gewuenscht sichtbar: Roboter, Kiste
 pr_dimg  !byte 0, 0             ; gezeichnet mit Bild / Verschiebung

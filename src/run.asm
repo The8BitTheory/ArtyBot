@@ -99,7 +99,7 @@ run_mode
         ldx #>str_run_ready
         jsr run_say
 !if VIEW_UNIFIED {
-        lda run_autostart       ; shared screen: started from the plan with Space/R/F1
+        lda run_autostart       ; shared screen: started from the plan with Space/R
         beq .loop
         lda #0
         sta run_autostart
@@ -144,8 +144,10 @@ run_mode
         beq .next
 .normal cmp #KEY_P
         beq .leave
+!if VIEW_UNIFIED = 0 {
         cmp #KEY_F1             ; F1 (like P): back to the plan
         beq .f1
+}
         cmp #KEY_SPACE
         beq .space
         cmp #KEY_R

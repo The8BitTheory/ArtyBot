@@ -129,7 +129,7 @@ editor_handle_input
 .no_repeat
         jmp .keyboard
 .click
-        jsr plan_hit_footer     ; view: bottom line "F1:Run F7:Map F8:Title"
+        jsr plan_hit_footer     ; view: bottom line "F1:Run F7:Map F8:Title" (0 Run, 1 Map, 2 Title)
         bcc .palette_click
         cmp #1
         bcc .run_click
@@ -205,6 +205,7 @@ editor_handle_input
 .exit_key
         jmp editor_request_exit
 .not_exit_key
+!if VIEW_UNIFIED = 0 {           ; shared screen: Space runs, F1 is not used
         cmp #KEY_F1             ; F1 (unshifted): switch to the run screen
         bne .not_f1
         ldx key_repeat
@@ -213,6 +214,7 @@ editor_handle_input
         bne .not_f1
         jmp editor_run_plan
 .not_f1
+}
 !if VIEW_UNIFIED {
         cmp #KEY_SPACE          ; shared plan/run screen: Space runs the plan right away
         bne +
