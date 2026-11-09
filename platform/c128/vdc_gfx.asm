@@ -27,6 +27,15 @@ video_init
         bcs .ok
         jmp vdc_no_64k
 .ok     jsr vdc_init_bitmap
+        lda #$FD                ; linke Shift-Taste (Zeile 1, Bit 7) gedrueckt: "safe mode",
+        sta CIA1_PRA            ; Refresh bleibt beim KERNAL-Wert
+        lda CIA1_PRB
+        bpl +
+        ldx #36
+        lda #VDC_REFRESH
+        jsr vdc_wr
++       lda #$FF
+        sta CIA1_PRA
         jsr vt_init             ; Rahmen-/Handglyphen in die Zeichensatz-Kopie
         jsr vs_init             ; Zeichensatz, Kacheln, Figuren, Bilder in die VRAM-Ablage
         ; weiter mit clear_screen

@@ -42,6 +42,8 @@ CODE_LIMIT  = $D000
 VDC_FONT    = $E000             ; 2 KB, nur beim Start: Zeichensatz-ROM $D800 (Gross-/Kleinbuchstaben),
                                 ; von dort in die VRAM-Ablage (view_vdc/store.asm). Danach frei.
 VDC_STATUS  = $D600             ; Lesen: Bit 7 bereit, Bit 5 Rand (oben/unten)
+VDC_REFRESH = 0                 ; R36: DRAM-Refresh-Zyklen je Rasterzeile (KERNAL: 5). 0 = mehr
+                                ; Speicherzyklen fuer CPU/Block-Copy; Shift beim Start = KERNAL-Wert
 MOUSE_X_MAX = 639               ; Mauszeiger ueber die volle VDC-Breite
 MOUSE_X_FAST = 1                ; x-Bewegung doppelt (Pixel sind halb so breit)
 } else {
