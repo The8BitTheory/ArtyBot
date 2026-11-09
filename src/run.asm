@@ -106,6 +106,9 @@ run_mode
         jsr run_space
 }
 .loop   jsr wait_frame
+!if VIEW_UNIFIED {
+        jsr run_update_sprites  ; VDC: Software-Sprites gleich am Bildende (Stand des letzten Frames)
+}
         jsr input_update
         lda run_confirm
         bne .sprites
@@ -114,7 +117,9 @@ run_mode
         bne .sprites
         jsr run_tick
 .sprites
+!if VIEW_UNIFIED = 0 {
         jsr run_update_sprites
+}
         jsr run_goal_anim
         jsr run_won_tick
 !if VIEW_UNIFIED {

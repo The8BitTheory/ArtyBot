@@ -1305,6 +1305,8 @@ run_init_sprites
 ; Pro Frame im Run: Roboter (Slot 0) und Kiste/Schluessel (Slot 1, getragen oder im Flug)
 !zone run_update_sprites
 run_update_sprites
+        lda #0                  ; Slot 0: Roboter allein (gemeinsames Sprite s. u.)
+        sta ss_top
         lda run_sunk            ; eingebrochen: beide weg
         beq +
         lda #0
@@ -1340,7 +1342,25 @@ run_update_sprites
         sta pr_vis+1
         lda run_carry
         beq .fly
-        lda ss_col
+        ldx #0                  ; getragen: Roboter und Kiste als ein Sprite (kein Flackern),
+        lda run_walk            ; beim Schritt 2 Zeilen Abstand; passt es oben nicht, zwei Sprites
+        beq +
+        ldx #$40
++       stx pr_t
+        lda ss_y
+        sec
+        sbc #PR_CHEST_DY
+        bcc .two
+        cpx #0
+        beq +
+        sbc #2
+        bcc .two
++       sta ss_y
+        lda ss_img+1
+        ora pr_t
+        sta ss_top
+        jmp pr_sprites_draw
+.two    lda ss_col
         sta ss_col+1
         lda ss_sh
         sta ss_sh+1
@@ -1404,12 +1424,35 @@ pr_sprites_draw
         lda ss_sh,x
         cmp pr_dsh,x
         bne .redo
+        lda ss_top,x
+        cmp pr_dtop,x
+        bne .redo
 +       dex
         bpl -
         jmp vp_show
 .redo   lda #0
         sta pr_force
-        jsr ss_hide_all
+        ldx #0                  ; gemeinsames Sprite vorher zusammensetzen
+        jsr ss_prebuild
+        lda pr_vis+1            ; nur der Roboter (ggf. mit Kiste) und schon im Bild:
+        ora ss_drawn+1          ; flackerfrei verschieben
+        bne .old
+        lda pr_vis
+        beq .old
+        lda ss_drawn
+        beq .old
+        lda ss_top              ; nur mit Kiste/Schluessel (Roboter allein: altes Verfahren)
+        ora pr_dtop             ; (auch beim Ablegen: altes Bild hatte noch die Kiste)
+        beq .old
+        lda ss_img
+        sta pr_dimg
+        lda ss_sh
+        sta pr_dsh
+        lda ss_top
+        sta pr_dtop
+        jsr ss_move
+        jmp vp_show
+.old    jsr ss_hide_all
         ldx #0
 -       stx pr_t
         lda pr_vis,x
@@ -1418,6 +1461,8 @@ pr_sprites_draw
         sta pr_dimg,x
         lda ss_sh,x
         sta pr_dsh,x
+        lda ss_top,x
+        sta pr_dtop,x
         jsr ss_draw
 +       ldx pr_t
         inx
@@ -1618,6 +1663,7 @@ str_pr_footer   !text "Space:Go/Pause  F7:Map  F8:Title   R:Restart  Ret:Grab  D
 pr_vis   !byte 0, 0             ; gewuenscht sichtbar: Roboter, Kiste
 pr_dimg  !byte 0, 0             ; gezeichnet mit Bild / Verschiebung
 pr_dsh   !byte 0, 0
+pr_dtop  !byte 0, 0
 pr_force !byte 0
 pr_mark  !byte $FF              ; Luecke der Einfuegemarke ($FF = keine)
 pr_mk_i  !byte 0
