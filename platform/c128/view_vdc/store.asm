@@ -8,7 +8,8 @@
 ;      Zeilenweise abgelegt, damit das hohe Quellbyte innerhalb einer Textzeile gleich bleibt.
 ;   2. Kacheln: je Theme 17 Zellen zu 96 Byte (16 Zeilen x 4 Bitmap, 8 x 4 Attribute);
 ;      Zelle 16 = Kiste in Gold (geloester Level auf der Karte)
-;   3. Figuren: Tinte H x 5 Byte je Bild und Verschiebung; Sicherung des Hintergrunds je Sprite
+;   3. Figuren: Tinte je Bild und Verschiebung lueckenlos (nur belegte Bytes jeder Zeile);
+;      Sicherung des Hintergrunds je Sprite und unter dem Mauszeiger
 ;   4. Befehls-Icons (9 x 64)
 ;   5. Titelbilder entpackt, nur solange Platz ist; sonst beim Anzeigen direkt aus dem
 ;      gepackten RAM-Bild auf den Bildschirm entpackt (vt_image).
@@ -22,10 +23,11 @@ ST_CELL_B   = 96
 ST_THEME_B  = 17*ST_CELL_B
 ST_CELL_GOLD = 16
 ST_SPR      = ST_CELLS + 2*ST_THEME_B
-ST_SPR_N    = 16*2*18*5 + 2*2*6*5               ; 16 Roboterbilder H=18, Kiste/Schluessel H=6
+ST_SPR_N    = 16*2*18*5 + 2*2*6*5               ; obere Grenze (lueckenlos abgelegt ist es weniger)
 ST_SAVE     = ST_SPR + ST_SPR_N
 ST_SAVE_B   = 5*18 + 5*9                        ; Bitmap + Attribute unter einem Sprite
-ST_ICONS    = ST_SAVE + 2*ST_SAVE_B
+ST_PSAVE    = ST_SAVE + 2*ST_SAVE_B             ; unter dem Mauszeiger: 3 x 8 Bitmap + 3 x 4 Attribute
+ST_ICONS    = ST_PSAVE + 3*8 + 3*4
 ST_FREE     = ST_ICONS + 9*64
 
 ; Titelbilder: in dieser Reihenfolge, solange sie ganz hineinpassen (Adresse 0 = nicht abgelegt)
@@ -152,44 +154,6 @@ vs_init
         ldx #>vdc_cells_winter
         ldy #1
         jsr .theme
-        ; Figuren: Tinte jedes Bildes (beide Verschiebungen), Adressen merken
-        lda #<ST_SPR
-        sta vdc_dst
-        lda #>ST_SPR
-        sta vdc_dst+1
-        ldx #0
-.sp     stx vs_n
-        lda vdc_dst
-        sta ss_st_lo,x
-        lda vdc_dst+1
-        sta ss_st_hi,x
-        lda vdc_spr_lo,x
-        sta vdc_src
-        lda vdc_spr_hi,x
-        sta vdc_src+1
-        txa
-        lsr
-        tay
-        lda vdc_spr_h,y         ; H*5 Byte
-        sta vdc_cnt
-        asl
-        asl
-        adc vdc_cnt
-        sta vdc_cnt
-        sta vs_t
-        lda #0
-        sta vdc_cnt+1
-        jsr vdc_upload
-        lda vdc_dst
-        clc
-        adc vs_t
-        sta vdc_dst
-        bcc +
-        inc vdc_dst+1
-+       ldx vs_n
-        inx
-        cpx #2*18
-        bne .sp
         ; Laeufe der Blockzeilen je Bild: k0 | Laenge << 4 (0 = leer); der Generator stellt
         ; sicher, dass die belegten Bloecke einer Blockzeile zusammenhaengen.
         lda #<ss_spans
@@ -265,6 +229,71 @@ vs_init
         beq +
         jmp .spn
 +
+        ; Figuren: Tinte lueckenlos, nur die belegten Bytes jeder Zeile hintereinander. Beim
+        ; Zeichnen laeuft die Quelle damit ueber alle Zeilen von selbst weiter (sprite.asm).
+        lda #>ST_SPR
+        ldy #<ST_SPR
+        sta vs_a+1
+        sty vs_a
+        jsr vdc_addr
+        ldx #0
+.ink    stx vs_n
+        lda vs_a                ; Anfang der Tinte dieses Bildes
+        sta ss_st_lo,x
+        lda vs_a+1
+        sta ss_st_hi,x
+        lda vdc_spr_lo,x        ; RAM-Bild
+        sta vs_p
+        lda vdc_spr_hi,x
+        sta vs_p+1
+        lda ss_span_lo,x        ; Laeufe
+        sta vs_q
+        lda ss_span_hi,x
+        sta vs_q+1
+        txa
+        lsr
+        tay
+        lda vdc_spr_h,y
+        sta vs_h
+        lda #0
+        sta vs_r                ; Zeile
+.ir     lda vs_r
+        lsr
+        tay
+        lda (vs_q),y
+        beq .inext
+        pha
+        and #$0F
+        sta vs_k0
+        pla
+        lsr
+        lsr
+        lsr
+        lsr
+        sta vs_len
+        lda vs_r                ; Quelle: Zeile*5 + k0
+        asl
+        asl
+        adc vs_r
+        adc vs_k0
+        tay
+-       lda (vs_p),y
+        +vdc_wait
+        sta VDC_DATA
+        inc vs_a
+        bne +
+        inc vs_a+1
++       iny
+        dec vs_len
+        bne -
+.inext  inc vs_r
+        lda vs_r
+        cmp vs_h
+        bne .ir
+        ldx vs_n
+        inx
+        cpx #2*18
+        bne .ink
         ; Icons
         +vs_up vdc_icons, ST_ICONS, 9*64
         ; Titelbilder, soweit abgelegt
@@ -461,6 +490,7 @@ vu_unpack
 +       rts
 
 vs_n     !byte 0
+vs_a     !word 0
 vs_h     !byte 0
 vs_r     !byte 0
 vs_len   !byte 0

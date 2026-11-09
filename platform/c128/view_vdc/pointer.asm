@@ -90,10 +90,103 @@ vp_hide
         tax
 .done   rts
 
-; vp_xor: zeichnen (vp_on = 0) bzw. wegnehmen (vp_on = 1) an (vp_x, vp_b, vp_y)
+; vp_ra = Bitmapzeile vp_y (bzw. Attributzeile vp_y/2) + Spalte vp_x
+vp_row_bm
+        ldx vp_y
+        lda vl_lo,x
+        clc
+        adc vp_x
+        sta vp_ra
+        lda vl_hi,x
+        adc #0
+        sta vp_ra+1
+        rts
+vp_row_at
+        lda vp_y
+        lsr
+        tax
+        lda al_lo,x
+        clc
+        adc vp_x
+        sta vp_ra
+        lda al_hi,x
+        adc #0
+        sta vp_ra+1
+        rts
+
+; vp_c Zeilen ab vp_ra: Adresse (.hi/.lo) + R30 = 3, hohes Byte nur bei Uebertrag (wie ss_rows)
+!macro vp_rows .hi, .lo {
+        lda vp_ra+1
+.full   +vwr .hi
+        lda vp_ra
+.low    +vwr .lo
+        lda #3
+        +vwr 30
+        dec vp_c
+        beq .end
+        lda vp_ra
+        clc
+        adc #80
+        sta vp_ra
+        bcc .low
+        inc vp_ra+1
+        lda vp_ra+1
+        jmp .full
+.end
+}
+
+; vp_xor: zeichnen (vp_on = 0) bzw. wegnehmen (vp_on = 1) an (vp_x, vp_b, vp_y).
+; Hintergrund in der VRAM-Ablage (ST_PSAVE: 24 Bitmap-, dann 12 Attribut-Bytes), Sichern und
+; Zurueckschreiben per Block-Copy, die Ablage-Adresse zaehlt dabei durchgehend weiter.
 !zone vp_xor
 vp_xor
-        lda vp_b                ; Tabellenindex: vp_b * 24
+        jsr vdc_mode_copy
+        lda vp_on
+        bne .rest
+        jmp .draw
+.rest   ; wegnehmen: Quelle = Sicherung, je Zeile Ziel + R30
+        lda #>ST_PSAVE
+        +vwr 32
+        lda #<ST_PSAVE
+        +vwr 33
+        jsr vp_row_bm
+        lda #VP_LINES
+        sta vp_c
+        +vp_rows 18, 19
+        jsr vp_row_at
+        lda #VP_LINES/2
+        sta vp_c
+        +vp_rows 18, 19
+        rts
+.draw   ; sichern: Ziel = Sicherung, je Zeile Quelle + R30
+        lda #>ST_PSAVE
+        +vwr 18
+        lda #<ST_PSAVE
+        +vwr 19
+        jsr vp_row_bm
+        lda #VP_LINES
+        sta vp_c
+        +vp_rows 32, 33
+        jsr vp_row_at
+        lda #VP_LINES/2
+        sta vp_c
+        +vp_rows 32, 33
+        ; gesicherte Attribute lesen
+        lda #>(ST_PSAVE+3*VP_LINES)
+        +vwr 18
+        lda #<(ST_PSAVE+3*VP_LINES)
+        +vwr 19
+        ldx #31
+        stx VDC_REG
+        ldx #0
+-       +vdc_wait
+        lda VDC_DATA
+        sta vp_sat,x
+        inx
+        cpx #3*VP_LINES/2
+        bne -
+        ; Formindex: vp_b * 24
+        lda vp_b
         asl
         asl
         asl
@@ -101,69 +194,9 @@ vp_xor
         asl
         adc vp_t
         sta vp_t
-        lda vp_on
-        beq .draw
-        ; wegnehmen: Bitmap und Attribute zurueck
-        lda #0
-        sta vp_i
-.rb     jsr vp_bm_addr
-        ldx vp_s
-        ldy #3
--       lda vp_save,x
-        +vdc_wait
-        sta VDC_DATA
-        inx
-        dey
-        bne -
-        jsr vp_next
-        bne .rb
-        lda #0
-        sta vp_i
-.ra     jsr vp_at_addr
-        ldx vp_s
-        ldy #3
--       lda vp_sat,x
-        +vdc_wait
-        sta VDC_DATA
-        inx
-        dey
-        bne -
-        jsr vp_next
-        cmp #VP_LINES/2
-        bne .ra
-        rts
-.draw   ; sichern
-        lda #0
-        sta vp_i
-.sb     jsr vp_bm_addr
-        ldx vp_s
-        ldy #3
--       +vdc_wait
-        lda VDC_DATA
-        sta vp_save,x
-        inx
-        dey
-        bne -
-        jsr vp_next
-        bne .sb
-        lda #0
-        sta vp_i
-.sa     jsr vp_at_addr
-        ldx vp_s
-        ldy #3
--       +vdc_wait
-        lda VDC_DATA
-        sta vp_sat,x
-        inx
-        dey
-        bne -
-        jsr vp_next
-        cmp #VP_LINES/2
-        bne .sa
         ; Bloecke unter der Maske: Attribut = Grundfarbe + Kontrast, Merker vp_use
         ldx #0                  ; Block 0..11 (Zeile*3 + Spalte)
-.bk     txa                     ; Maskenzeilen 2*Blockzeile und +1: Index t + (bz*6 + bs)
-        sta vp_c
+.bk     txa
         ldy #0
 -       cmp #3
         bcc +
@@ -203,93 +236,92 @@ vp_xor
         inx
         cpx #3*VP_LINES/2
         bne .bk
-        lda #0                  ; Attribute schreiben
+        ; Attribute schreiben
+        jsr vp_row_at
+        ldy #0
+        lda #VP_LINES/2
         sta vp_i
-.wa     jsr vp_at_addr
-        ldx vp_s
-        ldy #3
--       lda vp_nat,x
+.wa     lda vp_ra+1
+        +vwr 18
+        lda vp_ra
+        +vwr 19
+        ldx #31
+        stx VDC_REG
+        ldx #3
+-       lda vp_nat,y
         +vdc_wait
         sta VDC_DATA
-        inx
-        dey
+        iny
+        dex
         bne -
-        jsr vp_next
-        cmp #VP_LINES/2
+        lda vp_ra
+        clc
+        adc #80
+        sta vp_ra
+        bcc +
+        inc vp_ra+1
++       dec vp_i
         bne .wa
-        lda #0                  ; Bitmap: in benutzten Bloecken nur der Pfeil
+        ; Bitmap: in benutzten Bloecken nur der Pfeil (Laeufe benutzter Bytes je Zeile)
+        jsr vp_row_bm
+        lda #0
         sta vp_i
-.wb     jsr vp_bm_addr
-        lda vp_i                ; Blockindex der Zeile: (Zeile/2)*3
+.wb     lda vp_i                ; Blockindex der Zeile: (Zeile/2)*3
         lsr
         sta vp_c
         asl
         adc vp_c
         sta vp_c
-        ldx vp_s
-        ldy vp_t
-        lda #3
-        sta vp_bs
--       sty vp_bz
-        ldy vp_c
+        lda #0
+        sta vp_bs               ; Spalte 0..2
+        sta vp_bz               ; 1 = Adresse fuer diesen Lauf gesetzt
+.wbk    ldy vp_c
         lda vp_use,y
-        ldy vp_bz
-        cmp #0
-        beq +
+        bne .use
+        sta vp_bz               ; Luecke: naechster Lauf braucht eine neue Adresse
+        jmp .nk
+.use    lda vp_bz
+        bne .wr
+        lda vp_ra               ; Adresse = Zeile + Spalte
+        clc
+        adc vp_bs
+        tay
+        lda vp_ra+1
+        adc #0
+        +vwr 18
+        tya
+        +vwr 19
+        ldx #31
+        stx VDC_REG
+        inc vp_bz
+.wr     lda vp_t
+        clc
+        adc vp_bs
+        tay
         lda vp_shapes,y
-        jmp ++
-+       lda vp_save,x
-++      +vdc_wait
+        +vdc_wait
         sta VDC_DATA
-        inc vp_c
-        iny
-        inx
-        dec vp_bs
-        bne -
-        sty vp_t
-        jsr vp_next
-        bne .wb
-        rts
-
-; Zeile vp_i (Bitmap) bzw. Blockzeile vp_i (Attribute) adressieren, vp_s = Sicherungsindex
-vp_bm_addr
-        lda vp_i
-        asl
-        adc vp_i
-        sta vp_s
-        lda vp_y
+.nk     inc vp_c
+        inc vp_bs
+        lda vp_bs
+        cmp #3
+        bne .wbk
+        lda vp_t
         clc
-        adc vp_i
-        tax
-        lda vl_lo,x
+        adc #3
+        sta vp_t
+        lda vp_ra
         clc
-        adc vp_x
-        tay
-        lda vl_hi,x
-        adc #0
-        jmp vdc_addr
-vp_at_addr
-        lda vp_i
-        asl
-        adc vp_i
-        sta vp_s
-        lda vp_y
-        lsr
-        clc
-        adc vp_i
-        tax
-        lda al_lo,x
-        clc
-        adc vp_x
-        tay
-        lda al_hi,x
-        adc #0
-        jmp vdc_addr
-; vp_i++, A = vp_i, Z = 1 bei VP_LINES
-vp_next inc vp_i
+        adc #80
+        sta vp_ra
+        bcc +
+        inc vp_ra+1
++       inc vp_i
         lda vp_i
         cmp #VP_LINES
-        rts
+        beq +
+        jmp .wb
++       rts
 
 ; Kontrastfarbe zur Grundfarbe (RGBI): hell -> schwarz, dunkel -> weiss
 vp_contrast !byte 15,15,15,0, 15,0,15,0, 15,0,15,0, 15,0,0,0
@@ -321,7 +353,7 @@ vp_ny   !byte 0
 vp_t    !byte 0
 vp_i    !byte 0
 vp_a    !word 0
-vp_save !fill 3*VP_LINES, 0
+vp_ra   !word 0
 vp_sat  !fill 3*VP_LINES/2, 0
 vp_nat  !fill 3*VP_LINES/2, 0
 vp_use  !fill 3*VP_LINES/2, 0

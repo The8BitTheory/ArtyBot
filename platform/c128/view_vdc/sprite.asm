@@ -82,6 +82,30 @@ ss_save_addr
         sta ss_ra+1
 }
 
+; Zeilenschleife: ss_n Zeilen ab ss_ra, je Zeile Adresse .hi/.lo (R18/R19 = Ziel oder R32/R33 =
+; Quelle) und R30 = 5. Das hohe Byte nur, wenn es sich aendert: ss_ra steigt um 80; ohne
+; Uebertrag bleibt das hohe Byte gleich - auch das vom VDC weitergezaehlte (ein Lauf von 5 Byte,
+; der die Seite ueberquert, erzwingt beim naechsten +80 ebenfalls einen Uebertrag).
+!macro ss_rows .hi, .lo {
+        lda ss_ra+1
+.full   +vwr .hi
+        lda ss_ra
+.low    +vwr .lo
+        lda #SS_W
+        +vwr 30
+        dec ss_n
+        beq .end
+        lda ss_ra
+        clc
+        adc #80
+        sta ss_ra
+        bcc .low
+        inc ss_ra+1
+        lda ss_ra+1
+        jmp .full
+.end
+}
+
 ; X = Sprite: vom Bild nehmen (falls gezeichnet). Quelle = Sicherung (zaehlt weiter),
 ; je Zeile nur Ziel und R30.
 !zone ss_hide
@@ -107,28 +131,12 @@ ss_hide stx ss_cur
         +ss_row_bm
         lda ss_h
         sta ss_n
-.bl     lda ss_ra+1
-        +vwr 18
-        lda ss_ra
-        +vwr 19
-        lda #SS_W
-        +vwr 30
-        +ss_next
-        dec ss_n
-        bne .bl
+        +ss_rows 18, 19
         +ss_row_at
         lda ss_h
         lsr
         sta ss_n
-.al     lda ss_ra+1
-        +vwr 18
-        lda ss_ra
-        +vwr 19
-        lda #SS_W
-        +vwr 30
-        +ss_next
-        dec ss_n
-        bne .al
+        +ss_rows 18, 19
         ldx ss_cur
         rts
 
@@ -181,28 +189,12 @@ ss_draw stx ss_cur
         +ss_row_bm
         lda ss_h
         sta ss_n
-.sb     lda ss_ra+1
-        +vwr 32
-        lda ss_ra
-        +vwr 33
-        lda #SS_W
-        +vwr 30
-        +ss_next
-        dec ss_n
-        bne .sb
+        +ss_rows 32, 33
         +ss_row_at
         lda ss_h
         lsr
         sta ss_n
-.sa     lda ss_ra+1
-        +vwr 32
-        lda ss_ra
-        +vwr 33
-        lda #SS_W
-        +vwr 30
-        +ss_next
-        dec ss_n
-        bne .sa
+        +ss_rows 32, 33
         ; 2. gesicherte Attribute lesen (hinter der Bitmap-Sicherung)
         lda ss_sv
         clc
@@ -269,7 +261,11 @@ ss_draw stx ss_cur
         +ss_next
         dec ss_n
         bne .wa
-        ; 4. Tinte: je Zeile ein Lauf (k0, Laenge) aus der Ablage
+        ; 4. Tinte: lueckenlos in der Ablage, Quelle einmal setzen; je Zeile Ziel + Laenge
+        lda ss_ink+1
+        +vwr 32
+        lda ss_ink
+        +vwr 33
         +ss_row_bm
         lda #0
         sta ss_i
@@ -280,44 +276,26 @@ ss_draw stx ss_cur
         beq .nl
         pha
         and #$0F
-        sta ss_k0
-        pla
-        lsr
-        lsr
-        lsr
-        lsr
-        sta ss_k
-        lda ss_ra               ; Ziel = Zeile + k0
         clc
-        adc ss_k0
+        adc ss_ra               ; Ziel = Zeile + k0
         tay
         lda ss_ra+1
         adc #0
         +vwr 18
         tya
         +vwr 19
-        lda ss_i                ; Quelle = Tinte + Zeile*5 + k0
-        asl
-        asl
-        adc ss_i
-        adc ss_k0
-        clc
-        adc ss_ink
-        tay
-        lda ss_ink+1
-        adc #0
-        +vwr 32
-        tya
-        +vwr 33
-        lda ss_k
+        pla
+        lsr
+        lsr
+        lsr
+        lsr
         +vwr 30
 .nl     +ss_next
         inc ss_i
         lda ss_i
         cmp ss_h
-        beq +
-        jmp .wb
-+       ldx ss_cur
+        bne .wb
+        ldx ss_cur
         rts
 
 ; Zeiger nur wegnehmen, wenn er das Rechteck (ss_cc, ss_yy, 5 Spalten, ss_h Zeilen) beruehrt
