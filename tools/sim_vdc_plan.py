@@ -17,7 +17,9 @@ for l in open(labf):
     p = l.split('=')
     if len(p) == 2 and p[1].strip().startswith('$'):
         lab[p[0].strip()] = int(p[1].split(';')[0].strip().lstrip('$'), 16)
-m = C128(open(prg, 'rb').read())
+_resf = os.path.join(os.path.dirname(os.path.abspath(sys.argv[1])), 'artybot.gfx')
+RES = open(_resf, 'rb').read() if os.path.exists(_resf) else None   # Ressource neben dem PRG
+m = C128(open(prg, 'rb').read(), RES)
 K = dict(w=9, s=13, d=18, a=10, q=62, e=14, x=23, z=12, c=20, r=17, p=41)
 SPACE, RETURN, F1, DEL = 60, 1, 4, 0
 

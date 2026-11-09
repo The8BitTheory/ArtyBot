@@ -15,8 +15,14 @@ from c64sim import C64
 
 
 class C128(C64):
-    def __init__(self, prg):
+    def __init__(self, prg, res=None):
+        """res: Ressource-Datei (PRG-Format) fuer RAM-Bank 1. Der KERNAL ist nicht nachgebildet:
+        LOAD ($FFD5) kehrt mit Carry 0 zurueck, die Datei steht dann schon in Bank 1."""
         super().__init__(prg)
+        self.ram1 = bytearray(65536)
+        if res:
+            a = res[0] | res[1] << 8
+            self.ram1[a:a + len(res) - 2] = res[2:]
         self.mmu = [0x00, 0, 0, 0, 0]       # CR = $00 nach dem Reset: System-ROMs + I/O
         self.pc = 0x1C0D
         self.vdc = bytearray(65536)
@@ -36,6 +42,15 @@ class C128(C64):
             return 'char' if hi == 0 else ('ram' if hi == 3 else 'rom')
         return 'ram' if cr & 0x30 == 0x30 else 'rom'
 
+    def bank1(self, addr):
+        """RAM-Zugriff geht nach Bank 1? (CR Bit 6, ausser gemeinsames RAM laut $D506)"""
+        if not self.mmu[0] & 0x40: return False
+        rcr = self.io[0x506]
+        size = (1024, 4096, 8192, 16384)[rcr & 3]
+        if rcr & 4 and addr < size: return False
+        if rcr & 8 and addr >= 0x10000 - size: return False
+        return addr >= 0x200              # Seite 0/1: immer Bank 0 (P0/P1 wie nach dem Reset)
+
     def visible(self, addr):                # fuer Aufrufer aus c64sim
         a = self.area(addr)
         return {'rom': 'kernal'}.get(a, a)
@@ -43,8 +58,10 @@ class C128(C64):
     def rd(self, addr):
         addr &= 0xFFFF
         a = self.area(addr)
-        if a == 'ram': return self.ram[addr]
+        if a == 'ram': return self.ram1[addr] if self.bank1(addr) else self.ram[addr]
         if a == 'mmu': return self.mmu[addr - 0xFF00]
+        if a == 'rom' and addr == 0xFFD5: return 0x18      # KERNAL LOAD: CLC, RTS
+        if a == 'rom' and addr == 0xFFD6: return 0x60
         if a == 'char': return self.chargen[addr - 0xD000]
         if a == 'io':
             if 0xD500 <= addr <= 0xD504: return self.mmu[addr - 0xD500]
@@ -60,6 +77,7 @@ class C128(C64):
             if addr in (0xD600, 0xD601): return self.vdc_wr(addr, val)
             if addr == 0xD030: self.frame_cycles = 39312 if val & 1 else 19656   # 2 MHz
             return self.wr_io(addr, val)
+        if self.bank1(addr): self.ram1[addr] = val; return
         self.ram[addr] = val
 
 

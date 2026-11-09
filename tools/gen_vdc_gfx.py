@@ -32,6 +32,7 @@ import vdc_robot_art as RA
 
 ROOT = os.path.join(HERE, '..')
 OUT = os.path.join(ROOT, 'platform', 'c128', 'view_vdc', 'gfx_vdc.asm')
+OUT_RES = os.path.join(ROOT, 'platform', 'c128', 'view_vdc', 'res_vdc_gfx.asm')  # nur VRAM: Ressource (Bank 1)
 VIEW = os.path.join(ROOT, 'platform', 'cbm', 'view_vic2')
 
 RGBI = [0x000000, 0x555555, 0x0000AA, 0x5555FF, 0x00AA00, 0x55FF55, 0x00AAAA, 0x55FFFF,
@@ -243,19 +244,22 @@ def main():
     o.append('vdc_spr_col')
     o.append('        !byte ' + ', '.join(str(c) for _, _, c, _ in sp))
     o.append('')
-    o.append('; Mini-Zellen fuer die Legende: 16x8 (8 Zeilen x 2 Bytes, dann 4 x 2 Attribute), je 24 Byte')
+    o.append('; Icons und Mini-Zellen: res_vdc_gfx.asm (Ressource-Datei, nur im VRAM)')
+    r = ['; res_vdc_gfx.asm - GENERIERT von tools/gen_vdc_gfx.py - nicht von Hand aendern.', '']
+    r.append('; Mini-Zellen fuer die Legende: 16x8 (8 Zeilen x 2 Bytes, dann 4 x 2 Attribute), je 24 Byte')
     for label, ms in (('vdc_mini_meadow', minis(cm)), ('vdc_mini_winter', minis(cw)), ('vdc_mini_robot', mini_robots())):
-        o.append(label)
+        r.append(label)
         for bm, at in ms:
-            o.append('        !byte ' + ', '.join(hx(r) for r in bm) + ', ' + ', '.join(hx(r) for r in at))
-    o.append('')
-    o.append('; Befehls-Icons 0..8 (Fwd, Back, Right, Left, Pick, Drop, Turn 180, Jump, Throw), je 32x16')
-    o.append('vdc_icons')
+            r.append('        !byte ' + ', '.join(hx(r) for r in bm) + ', ' + ', '.join(hx(r) for r in at))
+    r.append('')
+    r.append('; Befehls-Icons 0..8 (Fwd, Back, Right, Left, Pick, Drop, Turn 180, Jump, Throw), je 32x16')
+    r.append('vdc_icons')
     for k, rows in enumerate(ic):
-        o.append('; Befehl %d' % k)
-        for r in rows: o.append('        !byte ' + hx(r))
+        r.append('; Befehl %d' % k)
+        for row in rows: r.append('        !byte ' + hx(row))
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     open(OUT, 'w').write('\n'.join(o) + '\n')
+    open(OUT_RES, 'w').write('\n'.join(r) + '\n')
     print('gfx_vdc.asm: %d+%d Zellen (%d/%d Bloecke angepasst), %d Sprites, %d Icons' %
           (len(cm), len(cw), bad_m, bad_w, len(sp), len(ic)))
     if '--preview' in sys.argv:

@@ -24,6 +24,8 @@ solf = sys.argv[3] if len(sys.argv) > 3 else None
 SOL = dict(l.split() for l in open(solf)) if solf and os.path.exists(solf) else {}
 MAPS = [W.parse(n, a, i) for i, (n, a) in enumerate(W.WORLDS)]
 LEVELS = sl.parse_levels()
+_resf = os.path.join(os.path.dirname(os.path.abspath(sys.argv[1])), 'artybot.gfx')
+RES = open(_resf, 'rb').read() if os.path.exists(_resf) else None   # Ressource neben dem PRG
 m = None
 
 
@@ -66,7 +68,7 @@ def solution(label):
 won = 0
 for label in sorted(LEVELS):
     world, local = label // 10 - 1, label % 10 - 1
-    m = C128(prg)
+    m = C128(prg, RES)
     m.run_frames(60); press(RETURN, after=60)
     while m.ram[WORLD] < world:
         press(F1, shift=True); m.run_frames(200)

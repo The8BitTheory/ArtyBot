@@ -7,6 +7,7 @@
 !source "platform/cbm/irq.asm"
 !if TARGET = TARGET_C128VDC {
     !source "platform/c128/vdc.asm"
+    !source "platform/c128/bank1.asm"     ; Ressource-Datei in Bank 1 (unter $4000)
     !source "platform/c128/vdc_gfx.asm"
 } else {
     !source "platform/cbm/vic2_gfx.asm"

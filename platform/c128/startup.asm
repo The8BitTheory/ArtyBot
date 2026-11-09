@@ -14,6 +14,9 @@ start
         !if start != 7181 {
             !error "start muss bei $1C0D (SYS 7181) liegen"
         }
+!if TARGET = TARGET_C128VDC {
+        jsr res_load            ; noch mit KERNAL: Ressource "artybot.gfx" nach Bank 1
+}
         sei
         cld
         ldx #$FF
@@ -51,6 +54,9 @@ start
         sta VIC_CLOCK
         lda #$FF                ; Zusatz-Tastaturzeilen abwaehlen
         sta VIC_KBD
+!if TARGET = TARGET_C128VDC {
+        jsr res_ready           ; gemeinsames RAM unten 16 KB, Ressource in Bank 1 da?
+}
 
         lda #<nmi_handler
         sta $FFFA

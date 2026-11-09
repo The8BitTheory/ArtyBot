@@ -17,7 +17,8 @@ from gen_vdc_gfx import C64_TO_VDC, RGB as VDC_RGB
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ART = os.path.join(ROOT, 'tools', 'art')
-OUT = os.path.join(ROOT, 'platform', 'c128', 'view_vdc', 'gfx_vdc_title.asm')
+OUT = os.path.join(ROOT, 'platform', 'c128', 'view_vdc', 'gfx_vdc_title.asm')       # Programm: Koepfe, Groessen
+OUT_RES = os.path.join(ROOT, 'platform', 'c128', 'view_vdc', 'res_vdc_title.asm')   # Ressource (Bank 1): Daten
 
 C64_RGB = [(0, 0, 0), (255, 255, 255), (104, 55, 43), (112, 164, 178), (111, 61, 134), (88, 141, 67),
            (53, 40, 121), (184, 199, 111), (111, 79, 37), (67, 57, 0), (154, 103, 89), (68, 68, 68),
@@ -110,7 +111,10 @@ def unrle(p):
 
 def main():
     lines = ['; gfx_vdc_title.asm - generiert von tools/gen_vdc_title.py, nicht von Hand aendern',
-             '; Je Bild: Breite (Bytes), Hoehe (Zeilen), Bitmap zeilenweise, Attribute je 2 Zeilen', '']
+             '; Je Bild: Kopf (Breite in Bytes, Hoehe in Zeilen) und entpackte Groesse. Die gepackten Daten',
+             '; liegen in der Ressource-Datei (res_vdc_title.asm, Bank 1) und kommen beim Start in den VRAM.', '']
+    res = ['; res_vdc_title.asm - generiert von tools/gen_vdc_title.py, nicht von Hand aendern',
+           '; Gepackte Titelbilder (Bitmap zeilenweise, dann Attribute), Format siehe gen_vdc_title.py.', '']
     previews = []
     for name, src, box in IMAGES:
         px = load(src, box)
@@ -124,8 +128,10 @@ def main():
         assert unrle(packed) == flat
         print('            gepackt %5d Byte' % len(packed))
         flat = packed
+        res.append('%s_d' % name)
         for i in range(0, len(flat), 16):
-            lines.append('        !byte ' + ','.join('$%02X' % b for b in flat[i:i + 16]))
+            res.append('        !byte ' + ','.join('$%02X' % b for b in flat[i:i + 16]))
+        res.append('')
         lines.append('')
         previews.append((name, out))
         if name == 'vti_robot':               # Antennenlicht: gelbe Bloecke oben, blinkt rot
@@ -139,6 +145,7 @@ def main():
             lines.append('')
             print('  Antenne: %d Bloecke' % len(bl))
     open(OUT, 'w', newline='\n').write('\n'.join(lines))
+    open(OUT_RES, 'w', newline='\n').write('\n'.join(res))
     if '--preview' in sys.argv:
         p = sys.argv[sys.argv.index('--preview') + 1]
         W = sum(len(o[0]) for _, o in previews) + 8 * len(previews)

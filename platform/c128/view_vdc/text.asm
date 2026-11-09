@@ -390,9 +390,8 @@ vt_putb pha
         pla
         jmp vdc_put
 
-; Bild A/X (Kopf: Breite in Bytes, Hoehe; dann gepackt), vt_st = Adresse in der Ablage (0 = nicht
-; abgelegt), Ziel vt_x, vt_y (gerade). Abgelegt: je Zeile ein Block-Copy. Sonst wird das RAM-Bild
-; zeilenweise direkt auf den Bildschirm entpackt (Laeufe per Block-Fill, store.asm vu_unpack).
+; Bild A/X (Kopf: Breite in Bytes, Hoehe), vt_st = Adresse in der Ablage, Ziel vt_x, vt_y
+; (gerade): je Zeile ein Block-Copy aus der Ablage (Bitmap-, dann Attributzeilen).
 !zone vt_image
 vt_image
         sta vt_ptr
@@ -404,29 +403,13 @@ vt_image
         iny
         lda (vt_ptr),y
         sta vdc_h
-        lda vt_st+1
-        beq .unpack
-        jsr vdc_mode_copy
+        jsr vdc_mode_copy       ; Quelle: Bild in der Ablage (laeuft weiter)
         lda vt_st+1
         ldx #32
         jsr vdc_wr
         lda vt_st
         ldx #33
         jsr vdc_wr
-        lda #0
-        sta vt_mode
-        beq .go
-.unpack lda vt_ptr
-        clc
-        adc #2
-        tay
-        lda vt_ptr+1
-        adc #0
-        tax
-        tya
-        jsr vu_start
-        lda #1
-        sta vt_mode
 .go     lda vt_y                ; Bitmap: vdc_h Zeilen
         sta vt_tmp
         lda vdc_h
@@ -461,16 +444,9 @@ vt_image
         bne .ar
         rts
 .row    jsr vdc_addr            ; A/Y = Ziel der Zeile
-        lda vt_mode
-        bne .u
         lda vdc_w               ; Copy: Quelle laeuft im VDC weiter
         ldx #30
         jmp vdc_wr
-.u      lda vdc_w
-        sta vu_cnt
-        lda #0
-        sta vu_cnt+1
-        jmp vu_unpack
 
 ; A/X = Text, Y = Textzeile: zentriert in vt_col (normal breit).
 !zone vt_center
@@ -540,13 +516,10 @@ vt_ftop !byte 0
 vt_fbot !byte 0
 vt_hlen !byte 0
 vt_hval !byte 0
-vt_run  !byte 0
 vt_st   !word 0
 vt_mode !byte 0
 vt_cpc  !byte 0
 vt_lbit !byte 0
-vt_lit  !byte 0
-vt_val  !byte 0
 vt_sy   !byte 0
 
 ; ---- Zeilenpuffer: Text in vt_buf zusammensetzen, dann vt_print_buf ------------------

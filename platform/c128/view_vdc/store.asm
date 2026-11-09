@@ -32,41 +32,18 @@ ST_MINI     = ST_ICONS + 9*64                   ; Legende: 2 x 16 Mini-Zellen + 
 ST_MINI_B   = 24
 ST_FREE     = ST_MINI + (2*16+4)*ST_MINI_B
 
-; Titelbilder: in dieser Reihenfolge, solange sie ganz hineinpassen (Adresse 0 = nicht abgelegt)
-!if ST_FREE + vti_logo_n <= $10000 {
-    vti_logo_st = ST_FREE
-    ST_T1 = ST_FREE + vti_logo_n
-} else {
-    vti_logo_st = 0
-    ST_T1 = ST_FREE
-}
-!if ST_T1 + vti_robot_n <= $10000 {
-    vti_robot_st = ST_T1
-    ST_T2 = ST_T1 + vti_robot_n
-} else {
-    vti_robot_st = 0
-    ST_T2 = ST_T1
-}
-!if ST_T2 + vti_chest_n <= $10000 {
-    vti_chest_st = ST_T2
-    ST_T3 = ST_T2 + vti_chest_n
-} else {
-    vti_chest_st = 0
-    ST_T3 = ST_T2
-}
-!if ST_T3 + vti_trophy_n <= $10000 {
-    vti_trophy_st = ST_T3
-    ST_END = ST_T3 + vti_trophy_n
-} else {
-    vti_trophy_st = 0
-    ST_END = ST_T3
+; Titelbilder: alle in der Ablage (sie liegen nur noch in der Ressource, nicht im Programm)
+vti_logo_st   = ST_FREE
+vti_robot_st  = vti_logo_st + vti_logo_n
+vti_chest_st  = vti_robot_st + vti_robot_n
+vti_trophy_st = vti_chest_st + vti_chest_n
+ST_END        = vti_trophy_st + vti_trophy_n
+!if ST_END > $10000 {
+    !error "VRAM-Ablage voll"
 }
 
-!macro vs_up .src, .dst, .n {
-        lda #<.src
-        sta vdc_src
-        lda #>.src
-        sta vdc_src+1
+; Teil .item der Ressource (Bank 1): .n Bytes ungepackt bzw. gepackt nach VRAM .dst
+!macro vs_res .item, .dst, .n {
         lda #<.dst
         sta vdc_dst
         lda #>.dst
@@ -75,21 +52,20 @@ ST_FREE     = ST_MINI + (2*16+4)*ST_MINI_B
         sta vdc_cnt
         lda #>.n
         sta vdc_cnt+1
-        jsr vdc_upload
+        lda #.item
+        jsr res_upload
 }
-
-!macro vs_unpack .img, .dst, .n {
-        lda #<(.img+2)
-        ldx #>(.img+2)
-        jsr vu_start
+!macro vs_unres .item, .dst, .n {
+        lda #<.dst
+        sta vdc_dst
         lda #>.dst
-        ldy #<.dst
-        jsr vdc_addr
+        sta vdc_dst+1
         lda #<.n
         sta vu_cnt
         lda #>.n
         sta vu_cnt+1
-        jsr vu_unpack
+        lda #.item
+        jsr res_unpack
 }
 
 ; ---- Hochladen beim Start (nach vt_init: Zeichensatz-Kopie in VDC_FONT) ------------
@@ -297,21 +273,13 @@ vs_init
         cpx #2*18
         bne .ink
         ; Icons
-        +vs_up vdc_icons, ST_ICONS, 9*64
-        +vs_up vdc_mini_meadow, ST_MINI, (2*16+4)*ST_MINI_B    ; meadow, winter, robot liegen hintereinander
+        +vs_res RES_ICONS, ST_ICONS, 9*64                       ; aus der Ressource (Bank 1)
+        +vs_res RES_MINI, ST_MINI, (2*16+4)*ST_MINI_B           ; meadow, winter, robot hintereinander
         ; Titelbilder, soweit abgelegt
-!if vti_logo_st {
-        +vs_unpack vti_logo, vti_logo_st, vti_logo_n
-}
-!if vti_robot_st {
-        +vs_unpack vti_robot, vti_robot_st, vti_robot_n
-}
-!if vti_chest_st {
-        +vs_unpack vti_chest, vti_chest_st, vti_chest_n
-}
-!if vti_trophy_st {
-        +vs_unpack vti_trophy, vti_trophy_st, vti_trophy_n
-}
+        +vs_unres RES_LOGO, vti_logo_st, vti_logo_n
+        +vs_unres RES_ROBOT, vti_robot_st, vti_robot_n
+        +vs_unres RES_CHEST, vti_chest_st, vti_chest_n
+        +vs_unres RES_TROPHY, vti_trophy_st, vti_trophy_n
         rts
 
 ; Zeichen 0..127 von Zeile vs_n: X = Zeichen, A = Glyphbyte; .next: X+1, Z = 1 nach 128
@@ -379,119 +347,6 @@ vs_init
 vs_theme_lo !byte <ST_CELLS, <(ST_CELLS+ST_THEME_B)
 vs_theme_hi !byte >ST_CELLS, >(ST_CELLS+ST_THEME_B)
 
-; ---- Entpacken ins VRAM ----------------------------------------------------------
-; Format (tools/gen_vdc_title.py): c < $80: c+1 Bytes folgen; c >= $80: naechstes Byte (c-$7D)-mal.
-; Laeufe ab VU_FILL Bytes per Block-Fill: erstes Byte ueber R31, Rest mit R30 = n-1.
-;
-; Rechnung (Zyklen bei 2 MHz, VDC bereit): ein Byte ueber R31 in der Schleife kostet etwa
-; 15 Zyklen (warten 6, sta 4, Zaehler/Sprung 5). Block-Fill: erstes Byte 15, R30 waehlen +
-; Zaehler schreiben + R31 wieder waehlen etwa 20, dazu ca. 2 Zyklen je weiteres Byte, die der
-; VDC selbst schreibt (die CPU wartet beim naechsten Zugriff). Byteweise: 15*n, Fill: 35+2*(n-1).
-; Gleichstand bei n = 2,5 -> ab 3 gleichen Bytes lohnt sich der Fill (= kuerzester Lauf im Format).
-VU_FILL = 3
-
-; A/X = gepackte Daten: Zustand zuruecksetzen
-vu_start
-        sta vt_ptr
-        stx vt_ptr+1
-        lda #0
-        sta vt_run
-        sta vt_lit
-        rts
-
-; vu_cnt (16 Bit) Bytes an die aktuelle Schreibadresse (R31 gewaehlt) entpacken. Ein Lauf darf
-; ueber das Ende hinausgehen (Rest bleibt fuer den naechsten Aufruf in vt_run).
-!zone vu_unpack
-vu_unpack
-        jsr vdc_mode_fill
-        ldx #31
-        stx VDC_REG
-.loop   lda vu_cnt
-        ora vu_cnt+1
-        bne .more
-        rts
-.more   lda vt_run
-        beq .nr
-        ; Lauf: k = min(vt_run, vu_cnt)
-        ldx vu_cnt+1
-        bne .krun
-        cmp vu_cnt
-        bcc .krun
-        lda vu_cnt
-.krun   sta vu_k
-        lda vt_run
-        sec
-        sbc vu_k
-        sta vt_run
-        lda vu_cnt
-        sec
-        sbc vu_k
-        sta vu_cnt
-        bcs +
-        dec vu_cnt+1
-+       lda vt_val
-        ldx vu_k
-        cpx #VU_FILL
-        bcc .bytes
-        +vdc_wait               ; erstes Byte, dann R30 = k-1 mal wiederholen
-        sta VDC_DATA
-        dex
-        txa
-        ldx #30
-        stx VDC_REG
-        +vdc_wait
-        sta VDC_DATA
-        ldx #31
-        stx VDC_REG
-        jmp .loop
-.bytes  +vdc_wait
-        sta VDC_DATA
-        dex
-        bne .bytes
-        jmp .loop
-.nr     lda vt_lit
-        beq .ctl
-        ; Literale: so viele wie da sind und gebraucht werden
-.lit    ldy #0
-        lda (vt_ptr),y
-        +vdc_wait
-        sta VDC_DATA
-        inc vt_ptr
-        bne +
-        inc vt_ptr+1
-+       lda vu_cnt
-        bne +
-        dec vu_cnt+1
-+       dec vu_cnt
-        dec vt_lit
-        bne +
-        jmp .loop
-+       lda vu_cnt
-        ora vu_cnt+1
-        bne .lit
-        rts
-.ctl    ldy #0
-        lda (vt_ptr),y
-        bmi .rep
-        clc
-        adc #1
-        sta vt_lit
-        jsr .inc
-        jmp .loop
-.rep    sec
-        sbc #$7D
-        sta vt_run
-        iny
-        lda (vt_ptr),y
-        sta vt_val
-        jsr .inc
-        jsr .inc
-        jmp .loop
-.inc    inc vt_ptr
-        bne +
-        inc vt_ptr+1
-+       rts
-
 vs_n     !byte 0
 vs_a     !word 0
 vs_h     !byte 0
@@ -499,7 +354,5 @@ vs_r     !byte 0
 vs_len   !byte 0
 vs_k0    !byte 0
 vs_t     !byte 0
-vu_cnt   !word 0
-vu_k     !byte 0
 ss_st_lo !fill 2*18, 0          ; VRAM-Adresse der Tinte je Bild*2 + Verschiebung
 ss_st_hi !fill 2*18, 0
