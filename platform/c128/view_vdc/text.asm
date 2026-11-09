@@ -49,29 +49,29 @@ vt_print
         cpy #80
         bne -
 +       sty vt_len
-; vt_buf[0..vt_len-1] = Screencodes
+; vt_buf[0..vt_len-1] = Screencodes. Glyphen per Block-Copy aus der Ablage (store.asm): je
+; Glyphzeile Ziel und hohes Quellbyte einmal, je Zeichen nur R33 (niedriges Quellbyte) und R30.
+; Codes ab $7F werden Leerzeichen (sonst liefe die Quelle ueber die Seitengrenze).
 vt_print_buf
         lda vt_len
         bne +
         rts
 +       jsr vp_hide
-        ldx #0                  ; Glyphadressen
+        ldx #0
 -       lda vt_buf,x
-        sta vt_tmp
-        lda #0
-        asl vt_tmp
-        rol
-        asl vt_tmp
-        rol
-        asl vt_tmp
-        rol
-        adc #>VDC_FONT
-        sta vt_ghi,x
-        lda vt_tmp
-        sta vt_glo,x
-        inx
+        cmp #$7F
+        bcc +
+        lda #$20
+        sta vt_buf,x
++       inx
         cpx vt_len
         bne -
+        jsr vdc_mode_copy
+        lda #1                  ; Bytes je Zeichen
+        ldx vt_wide
+        beq +
+        lda #2
++       sta vt_cpc
         lda #0
         sta vdc_n               ; Glyphzeile
 .line   lda vt_y
@@ -85,43 +85,43 @@ vt_print_buf
         lda vl_hi,x
         adc #0
         jsr vdc_addr
-        ldx #0
-.ch     lda vt_glo,x
-        sta vt_ptr2
-        lda vt_ghi,x
-        sta vt_ptr2+1
-        ldy vdc_n
-        lda (vt_ptr2),y
-        ldy vt_wide
-        bne .wide
+        lda vt_wide
+        bne .w
+        lda vdc_n               ; normal: hi = >ST_FONT + n/2, lo-Bit 7 = n&1
+        lsr
+        lda #0
+        ror
+        sta vt_lbit
+        lda vdc_n
+        lsr
+        clc
+        adc #>ST_FONT
+        bne .src
+.w      lda vdc_n               ; breit: hi = >ST_FONTW + n
+        clc
+        adc #>ST_FONTW
+.src    ldx #32
+        jsr vdc_wr
+        ldy #0
+.ch     lda vt_buf,y
+        ldx vt_wide
+        bne .cw
+        ora vt_lbit
+        jmp .cs
+.cw     asl
+.cs     ldx #33
+        stx VDC_REG
         +vdc_wait
         sta VDC_DATA
-        inx
-        cpx vt_len
+        lda vt_cpc
+        ldx #30
+        stx VDC_REG
+        +vdc_wait
+        sta VDC_DATA
+        iny
+        cpy vt_len
         bne .ch
-        beq .next
-.wide   tay
-        lsr
-        lsr
-        lsr
-        lsr
-        sta vt_tmp
-        tya
-        and #$0F
-        tay
-        lda vt_dbl,y
-        pha
-        ldy vt_tmp
-        lda vt_dbl,y
-        +vdc_wait
-        sta VDC_DATA
-        pla
-        +vdc_wait
-        sta VDC_DATA
-        inx
-        cpx vt_len
-        bne .ch
-.next   inc vdc_n
+        inc vdc_n
         lda vdc_n
         cmp #8
         bne .line
@@ -190,60 +190,47 @@ vt_clear
         jmp vt_attr_rect
 
 ; Rahmen (Fenster): Spalte vt_x, Textzeile Y (8 Pixel), Breite vt_fw, Hoehe vt_fh Textzeilen,
-; Attribut vt_col. Das Innere wird geleert (Attribut vt_fill).
+; Attribut vt_col. Das Innere wird geleert (Attribut vt_fill). Waagrechte Kanten und Inneres
+; per Block-Fill (eine Zeile = ein Fill), senkrechte Kanten byteweise, Ecken als Glyphen.
 !zone vt_frame
 vt_frame
         sty vt_fy
+        jsr vp_hide             ; (aendert X/Y)
         lda vt_x
         sta vt_fx
-        tya
+        lda vt_fy               ; Pixelzeilen oben / unten
         asl
         asl
         asl
-        sta vt_y
-        lda #GL_TL
-        ldx #GL_T
-        ldy #GL_TR
-        jsr .row
-        lda vt_fh
-        sec
-        sbc #2
-        sta vt_fn
-        beq .bottom
-.mid    lda vt_y
+        sta vt_ftop
+        lda vt_fy
         clc
-        adc #8
-        sta vt_y
-        lda vt_fx
-        sta vt_x
-        lda #GL_L               ; Rand links
-        sta vt_buf
-        lda #1
-        sta vt_len
-        jsr vt_print_buf
-        lda vt_fx               ; Rand rechts
-        clc
-        adc vt_fw
+        adc vt_fh
         sec
         sbc #1
-        sta vt_x
-        lda #GL_R
-        sta vt_buf
-        lda #1
-        sta vt_len
-        jsr vt_print_buf
-        dec vt_fn
-        bne .mid
-        lda vt_fy               ; Inneres leeren
         asl
         asl
         asl
+        sta vt_fbot
+        ; Attribute: ganzes Fenster in Rahmenfarbe, danach das Innere in vt_fill
+        lda vt_ftop
+        sta vt_y
+        lda vt_fw
+        sta vdc_w
+        lda vt_fh
+        asl
+        asl
+        sta vdc_h
+        lda vt_col
+        jsr vt_attr_rect
+        lda vt_fh
+        cmp #3
+        bcc +
+        lda vt_ftop
         clc
         adc #8
         sta vt_y
-        ldx vt_fx
-        inx
-        stx vt_x
+        inc vt_x
         lda vt_fw
         sec
         sbc #2
@@ -253,50 +240,155 @@ vt_frame
         sbc #2
         asl
         asl
-        asl
         sta vdc_h
         lda vt_fill
-        jsr vt_clear
-        lda vt_fy
+        jsr vt_attr_rect
+        dec vt_x
++       ; obere und untere Kante: 8 Zeilen, Mitte gefuellt mit dem Muster von GL_T / GL_B
+        lda vt_fx
         clc
-        adc vt_fh
-        sec
-        sbc #1
-        asl
-        asl
-        asl
-        sta vt_y
-.bottom lda vt_fy
-        clc
-        adc vt_fh
-        sec
-        sbc #1
-        asl
-        asl
-        asl
-        sta vt_y
-        lda #GL_BL
-        ldx #GL_B
-        ldy #GL_BR
-.row    sta vt_buf              ; A links, X Mitte, Y rechts
-        txa
-        ldx vt_fw
-        dex
--       sta vt_buf,x
-        dex
-        bne -
-        ldx vt_fw
-        dex
-        tya
-        sta vt_buf,x
+        adc #1
+        sta vt_x
         lda vt_fw
+        sec
+        sbc #2
+        sta vt_hlen
+        lda #0
+        sta vt_fn
+.hl     ldx vt_fn
+        lda vt_glyphs+(GL_T-GL_TL)*8,x
+        sta vt_hval
+        lda vt_ftop
+        clc
+        adc vt_fn
+        sta vt_y
+        jsr vt_hline
+        ldx vt_fn
+        lda vt_glyphs+(GL_B-GL_TL)*8,x
+        sta vt_hval
+        lda vt_fbot
+        clc
+        adc vt_fn
+        sta vt_y
+        jsr vt_hline
+        inc vt_fn
+        lda vt_fn
+        cmp #8
+        bne .hl
+        ; Inneres leeren (Bitmap): je Zeile ein Fill
+        lda #0
+        sta vt_hval
+        lda vt_ftop
+        clc
+        adc #8
+        sta vt_y
+.il     lda vt_y
+        cmp vt_fbot
+        bcs .sides
+        jsr vt_hline
+        inc vt_y
+        bne .il
+.sides  ; senkrechte Kanten: Muster von GL_L / GL_R in jeder Zeile zwischen den Kanten
+        lda vt_ftop
+        clc
+        adc #8
+        sta vt_y
+.sl     lda vt_y
+        cmp vt_fbot
+        bcs .corners
+        and #7
+        tax
+        lda vt_glyphs+(GL_L-GL_TL)*8,x
+        ldx vt_fx
+        jsr vt_putb
+        lda vt_y
+        and #7
+        tax
+        lda vt_glyphs+(GL_R-GL_TL)*8,x
+        pha
+        lda vt_fx
+        clc
+        adc vt_fw
+        tax
+        dex
+        pla
+        jsr vt_putb
+        inc vt_y
+        bne .sl
+.corners
+        lda #GL_TL              ; vier Ecken als Glyphen
+        ldx vt_fx
+        ldy vt_ftop
+        jsr .corner
+        lda #GL_BL
+        ldx vt_fx
+        ldy vt_fbot
+        jsr .corner
+        lda vt_fx
+        clc
+        adc vt_fw
+        tax
+        dex
+        stx vt_tmp
+        lda #GL_TR
+        ldy vt_ftop
+        jsr .corner
+        lda #GL_BR
+        ldx vt_tmp
+        ldy vt_fbot
+.corner sta vt_buf
+        stx vt_x
+        sty vt_y
+        lda #1
         sta vt_len
+        lda #0
+        sta vt_wide
+        jsr vt_print_buf
         lda vt_fx
         sta vt_x
-        jmp vt_print_buf
+        rts
 
-; Bild aus RAM: A/X = Bild (Breite in Bytes, Hoehe, dann gepackt: Bitmap, Attribute; Format
-; siehe tools/gen_vdc_title.py), Ziel vt_x, vt_y (gerade).
+; Bitmap-Zeile vt_y ab Spalte vt_x: vt_hlen Bytes mit vt_hval (Block-Fill)
+!zone vt_hline
+vt_hline
+        lda vt_hlen
+        beq .done
+        jsr vdc_mode_fill
+        ldx vt_y
+        lda vl_lo,x
+        clc
+        adc vt_x
+        tay
+        lda vl_hi,x
+        adc #0
+        jsr vdc_addr
+        lda vt_hval
+        +vdc_wait
+        sta VDC_DATA
+        ldx vt_hlen
+        dex
+        beq .done
+        txa
+        ldx #30
+        jmp vdc_wr
+.done   rts
+
+; A = Byte an Bitmap-Zeile vt_y, Spalte X
+vt_putb pha
+        txa
+        ldx vt_y
+        clc
+        adc vl_lo,x
+        tay
+        lda vl_hi,x
+        adc #0
+        jsr vdc_addr
+        pla
+        jmp vdc_put
+
+; Bild A/X (Kopf: Breite in Bytes, Hoehe; dann gepackt), vt_st = Adresse in der Ablage (0 = nicht
+; abgelegt), Ziel vt_x, vt_y (gerade). Abgelegt: je Zeile ein Block-Copy. Sonst wird das RAM-Bild
+; zeilenweise direkt auf den Bildschirm entpackt (Laeufe per Block-Fill, store.asm vu_unpack).
 !zone vt_image
 vt_image
         sta vt_ptr
@@ -308,16 +400,30 @@ vt_image
         iny
         lda (vt_ptr),y
         sta vdc_h
-        lda vt_ptr              ; gepackte Daten hinter dem Kopf
+        lda vt_st+1
+        beq .unpack
+        jsr vdc_mode_copy
+        lda vt_st+1
+        ldx #32
+        jsr vdc_wr
+        lda vt_st
+        ldx #33
+        jsr vdc_wr
+        lda #0
+        sta vt_mode
+        beq .go
+.unpack lda vt_ptr
         clc
         adc #2
-        sta vt_ptr
-        bcc +
-        inc vt_ptr+1
-+       lda #0
-        sta vt_run
-        sta vt_lit
-        lda vt_y                ; Bitmap: vdc_h Zeilen
+        tay
+        lda vt_ptr+1
+        adc #0
+        tax
+        tya
+        jsr vu_start
+        lda #1
+        sta vt_mode
+.go     lda vt_y                ; Bitmap: vdc_h Zeilen
         sta vt_tmp
         lda vdc_h
         sta vt_fn
@@ -350,54 +456,17 @@ vt_image
         dec vt_fn
         bne .ar
         rts
-.row    jsr vdc_addr            ; A/Y = Adresse, dann vdc_w Bytes entpacken
-        ldx vdc_w
--       jsr vt_unpack
-        +vdc_wait
-        sta VDC_DATA
-        dex
-        bne -
-        rts
-
-; naechstes entpacktes Byte -> A (X, Y bleiben)
-vt_unpack
-        lda vt_run              ; laufende Wiederholung?
-        beq .nr
-        dec vt_run
-        lda vt_val
-        rts
-.nr     lda vt_lit              ; laufende Literale?
-        beq .ctl
-        dec vt_lit
-        sty vt_sy
-        ldy #0
-        lda (vt_ptr),y
-        ldy vt_sy
-        jmp .adv
-.ctl    sty vt_sy
-        ldy #0
-        lda (vt_ptr),y
-        bmi .rep
-        sta vt_lit              ; c+1 Literale: eines sofort, c weitere
-        jsr .inc
-        lda (vt_ptr),y
-        ldy vt_sy
-        jmp .adv
-.rep    sec
-        sbc #$7E                ; (c-$7D)-mal: eines sofort, Rest in vt_run
-        sta vt_run
-        jsr .inc
-        lda (vt_ptr),y
-        sta vt_val
-        ldy vt_sy
-.adv    inc vt_ptr
-        bne +
-        inc vt_ptr+1
-+       rts
-.inc    inc vt_ptr
-        bne +
-        inc vt_ptr+1
-+       rts
+.row    jsr vdc_addr            ; A/Y = Ziel der Zeile
+        lda vt_mode
+        bne .u
+        lda vdc_w               ; Copy: Quelle laeuft im VDC weiter
+        ldx #30
+        jmp vdc_wr
+.u      lda vdc_w
+        sta vu_cnt
+        lda #0
+        sta vu_cnt+1
+        jmp vu_unpack
 
 ; A/X = Text, Y = Textzeile: zentriert in vt_col (normal breit).
 !zone vt_center
@@ -459,7 +528,15 @@ vt_fw   !byte 0
 vt_fh   !byte 0
 vt_fn   !byte 0
 vt_fill !byte $00
+vt_ftop !byte 0
+vt_fbot !byte 0
+vt_hlen !byte 0
+vt_hval !byte 0
 vt_run  !byte 0
+vt_st   !word 0
+vt_mode !byte 0
+vt_cpc  !byte 0
+vt_lbit !byte 0
 vt_lit  !byte 0
 vt_val  !byte 0
 vt_sy   !byte 0

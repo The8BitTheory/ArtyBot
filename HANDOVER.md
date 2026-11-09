@@ -246,7 +246,8 @@ Nach erfolgreichem Build nur Bescheid geben, **VICE nicht selbst starten** (sieh
 
 ## Schritt 4 – Stand 09.11. (Branch `c128-vdc`)
 
-- **Ziel 3** `src/main128vdc.asm` → `build/artybot128vdc.prg` (Makefile-Ziel noch von Hand anlegen: `acme -f cbm --cpu 6510 -o build/artybot128vdc.prg src/main128vdc.asm`). Programm bis `$CFFF`, `VDC_FONT` `$E000`, `VDC_SAVE` `$E800` (Sicherung der Software-Sprites).
+- **Ziel 3** `src/main128vdc.asm` → `build/artybot128vdc.prg` (Makefile-Ziel noch von Hand anlegen: `acme -f cbm --cpu 6510 -o build/artybot128vdc.prg src/main128vdc.asm`). Programm bis `$CFFF`; `$E000` nur beim Start (Zeichensatz-ROM-Kopie).
+- **VRAM-Ablage** (`view_vdc/store.asm`, ab `$6000`, beim Start gefüllt): Zeichensatz normal und doppelt breit (zeilenweise: Glyphzeile n aller 128 Zeichen hintereinander), Kacheln beider Themes + goldene Kiste, Tinte der Figuren, Sicherungen unter den Figuren, Icons; danach die Titelbilder entpackt, soweit Platz (sonst beim Anzeigen direkt per RLE + Block-Fill auf den Bildschirm). Zeichnen per Block-Copy, R24-Modus gecacht (`vdc_mode_copy/fill`). Gemessen (c128sim, 2 MHz): Weltkarte 34 → 15,6 Frames, Titel 16,7 → 5,2. Block-Fill lohnt ab 3 gleichen Bytes.
 - **Fertig:** Teilschritt 3 (Titel, Anleitung auf einer Seite, Credits, Ende – Bilder aus dem C64-Titel mit doppelter Pixelbreite, RLE, `tools/gen_vdc_title.py`) und Teilschritt 4 (Weltkarte 19×10 zu 32×16, Statistik, Roboter als Software-Sprite `view_vdc/sprite.asm`, Mauszeiger `pointer.asm` mit Kontrastfarbe, Maus x bis 639 doppelt schnell).
 - **Offen:** Teilschritt 5/6 – Planen/Run-Bildschirm (`view_vdc/stubs.asm`), danach Tests. Speicher: noch ca. 9 KB bis `$D000`; falls knapp, Sprite-Verschiebung 4 zur Laufzeit erzeugen (spart 2,4 KB).
 - **Figurenregel:** Randblock mit Körper und Kontur → schwarz hinterlegt (durchsichtige Pixel werden Kontur), nur Kontur → `$80`, nur Körper → `0`.

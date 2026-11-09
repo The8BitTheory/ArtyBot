@@ -1,6 +1,7 @@
 ; gfx_vdc_title.asm - generiert von tools/gen_vdc_title.py, nicht von Hand aendern
 ; Je Bild: Breite (Bytes), Hoehe (Zeilen), Bitmap zeilenweise, Attribute je 2 Zeilen
 
+vti_logo_n = 5250                 ; entpackte Groesse (Bitmap + Attribute)
 vti_logo
         !byte 70, 50
         !byte $C4,$00,$00,$0F,$81,$00,$00,$F0,$80,$00,$00,$0F,$82,$00,$00,$F0
@@ -165,6 +166,7 @@ vti_logo
         !byte $22,$00,$20,$80,$00,$00,$02,$82,$22,$00,$20,$82,$00,$02,$02,$22
         !byte $20,$81,$00
 
+vti_robot_n = 3432                 ; entpackte Groesse (Bitmap + Attribute)
 vti_robot
         !byte 22, 104
         !byte $B2,$00,$03,$0F,$00,$00,$F0,$8F,$00,$03,$0F,$00,$00,$F0,$E7,$00
@@ -273,6 +275,7 @@ vti_blink_dy  !byte 0,0,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5
 vti_blink_on  !byte $99,$99,$09,$99,$09,$99,$99,$99,$99,$99,$99,$99,$99,$09,$99,$99,$09,$99,$99
 vti_blink_off !byte $DD,$DD,$0D,$DD,$0D,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$0D,$DD,$DD,$0D,$DD,$DD
 
+vti_chest_n = 378                 ; entpackte Groesse (Bitmap + Attribute)
 vti_chest
         !byte 9, 28
         !byte $96,$00,$00,$F0,$85,$00,$00,$F0,$85,$00,$00,$F0,$85,$00,$00,$F0
@@ -291,6 +294,7 @@ vti_chest
         !byte $0C,$00,$00,$83,$CC,$02,$0C,$00,$00,$83,$CC,$02,$0C,$00,$00,$83
         !byte $CC,$00,$0C,$87,$00
 
+vti_trophy_n = 4992                 ; entpackte Groesse (Bitmap + Attribute)
 vti_trophy
         !byte 32, 104
         !byte $80,$00,$00,$0F,$9C,$00,$00,$0F,$9B,$00,$00,$0F,$97,$00,$00,$0F

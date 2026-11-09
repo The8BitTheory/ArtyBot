@@ -151,6 +151,10 @@ title_draw
         sta vt_x
         lda #TV_ROBOT_Y
         sta vt_y
+        lda #<vti_robot_st
+        sta vt_st
+        lda #>vti_robot_st
+        sta vt_st+1
         lda #<vti_robot
         ldx #>vti_robot
         jsr vt_image
@@ -158,6 +162,10 @@ title_draw
         sta vt_x
         lda #TV_CHEST_Y
         sta vt_y
+        lda #<vti_chest_st
+        sta vt_st
+        lda #>vti_chest_st
+        sta vt_st+1
         lda #<vti_chest
         ldx #>vti_chest
         jsr vt_image
@@ -195,6 +203,10 @@ title_logo
         sta vt_x
         lda #TV_LOGO_Y
         sta vt_y
+        lda #<vti_logo_st
+        sta vt_st
+        lda #>vti_logo_st
+        sta vt_st+1
         lda #<vti_logo
         ldx #>vti_logo
         jmp vt_image
@@ -540,6 +552,10 @@ end_draw
         sta vt_x
         lda #EV_TROPHY_Y
         sta vt_y
+        lda #<vti_trophy_st
+        sta vt_st
+        lda #>vti_trophy_st
+        sta vt_st+1
         lda #<vti_trophy
         ldx #>vti_trophy
         jsr vt_image

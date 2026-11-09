@@ -75,11 +75,19 @@ vp_hide
         lda vp_x
         cmp #$FF
         beq .done
+        txa                     ; X und Y bleiben erhalten
+        pha
+        tya
+        pha
         lda #1
         sta vp_on
         jsr vp_xor
         lda #$FF
         sta vp_x
+        pla
+        tay
+        pla
+        tax
 .done   rts
 
 ; vp_xor: zeichnen (vp_on = 0) bzw. wegnehmen (vp_on = 1) an (vp_x, vp_b, vp_y)

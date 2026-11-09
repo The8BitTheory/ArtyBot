@@ -24,6 +24,15 @@ VDC_AROWS   = 100               ; Attribut-Blockzeilen (je 2 Pixelzeilen)
         bpl -
 }
 
+; A -> Register .r (ohne Unterprogrammaufruf, fuer enge Schleifen; aendert X)
+!macro vwr .r {
+        ldx #.r
+        stx VDC_REG
+-       bit VDC_REG
+        bpl -
+        sta VDC_DATA
+}
+
 ; ---- Register ------------------------------------------------------------------
 ; X = Register, A = Wert
 !zone vdc_wr
@@ -81,10 +90,7 @@ vdc_cycles
 !zone vdc_fill
 vdc_fill
         pha
-        ldx #24                 ; Block-Write
-        jsr vdc_rd
-        and #$7F
-        jsr vdc_wr_data
+        jsr vdc_mode_fill
         lda vdc_dst+1
         ldy vdc_dst
         jsr vdc_addr
@@ -111,10 +117,29 @@ vdc_copy
         jmp vdc_cycles
 
 vdc_copy_mode
-        ldx #24                 ; Block-Copy
+vdc_mode_copy                   ; R24 Bit 7 = 1: R30 kopiert (R32/R33 -> R18/R19)
+        bit vdc_cmode
+        bmi .c_ok
+        ldx #24
         jsr vdc_rd
         ora #$80
-        jmp vdc_wr_data
+        jsr vdc_wr_data
+        lda #$80
+        sta vdc_cmode
+.c_ok   rts
+
+vdc_mode_fill                   ; R24 Bit 7 = 0: R30 wiederholt das zuletzt geschriebene Byte
+        lda vdc_cmode
+        beq .f_ok
+        ldx #24
+        jsr vdc_rd
+        and #$7F
+        jsr vdc_wr_data
+        lda #0
+        sta vdc_cmode
+.f_ok   rts
+
+vdc_cmode !byte $01             ; zwischengespeicherter Modus: $80 Copy, 0 Fill, sonst unbekannt
 
 vdc_set_src
         ldx #32

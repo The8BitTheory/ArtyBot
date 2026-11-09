@@ -117,6 +117,7 @@ def main():
         bm, at, out, bad = quantize(px)
         w, h = len(bm[0]), len(bm)
         print('%-11s %2d x %3d  %5d Byte  %d Bloecke mit >2 Farben' % (name, w, h, 2 + w * h + w * h // 2, bad))
+        lines.append('%s_n = %d                 ; entpackte Groesse (Bitmap + Attribute)' % (name, w * h + w * h // 2))
         lines.append('%s\n        !byte %d, %d' % (name, w, h))
         flat = [b for r in bm for b in r] + [a for r in at for a in r]
         packed = rle(flat)

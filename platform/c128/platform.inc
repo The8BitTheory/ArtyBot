@@ -39,8 +39,8 @@ SPRITE_BLOCK2 = SPRITE_BLOCK + 2
 ; VDC-Ziel: der VIC zeigt nichts (Bild aus, 2 MHz), sein Speicher ist frei. Programm bis $CFFF,
 ; $D000-$DFFF ist I/O; $E000-$FEFF RAM fuer Daten (Zeichensatz-Kopie, Puffer).
 CODE_LIMIT  = $D000
-VDC_FONT    = $E000             ; 2 KB: Zeichensatz-ROM $D800 (Gross-/Kleinbuchstaben), Index = Screencode
-VDC_SAVE    = $E800             ; Puffer der View (Zeiger-Hintergrund u. a.), bis $FEFF
+VDC_FONT    = $E000             ; 2 KB, nur beim Start: Zeichensatz-ROM $D800 (Gross-/Kleinbuchstaben),
+                                ; von dort in die VRAM-Ablage (view_vdc/store.asm). Danach frei.
 MOUSE_X_MAX = 639               ; Mauszeiger ueber die volle VDC-Breite
 MOUSE_X_FAST = 1                ; x-Bewegung doppelt (Pixel sind halb so breit)
 } else {

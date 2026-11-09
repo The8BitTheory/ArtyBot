@@ -60,98 +60,72 @@ wv_put_cell
         clc
         adc #WV_Y
         sta wv_yy
-; A ist frei; tmp3 = Typ, wv_cc/wv_yy = Ziel (Spalte, Pixelzeile)
+; tmp3 = Typ, wv_cc/wv_yy = Ziel (Spalte, Pixelzeile). Block-Copy aus der Ablage: Quelle einmal,
+; je Zeile nur Ziel und R30 = 4 (die Quelle zaehlt der VDC weiter: 64 Bitmap-, dann 32 Attribut-Bytes).
 wv_put_cell_at
         jsr vp_hide
-        lda tmp3                ; Daten = wv_cells + Typ*96 (Typ*64 + Typ*32)
-        sta wv_p
-        lda #0
-        sta wv_p+1
-        ldx #5
--       asl wv_p
-        rol wv_p+1
-        dex
-        bne -                   ; *32
-        lda wv_p
-        sta wv_t
-        lda wv_p+1
-        sta wv_t+1
-        asl wv_p
-        rol wv_p+1              ; *64
-        lda wv_p
+        jsr vdc_mode_copy       ; (aendert X)
+        ldx tmp3
+        bit wv_gold
+        bpl +
+        ldx #ST_CELL_GOLD
++       lda wv_theme
+        beq +
+        txa
         clc
-        adc wv_t
-        sta wv_p
-        lda wv_p+1
-        adc wv_t+1
-        sta wv_p+1
-        lda wv_p
-        clc
-        adc wv_cells
-        sta wv_p
-        lda wv_p+1
-        adc wv_cells+1
-        sta wv_p+1
-        lda #0
-        sta wv_i
-        tay                     ; Y = Datenindex
-.bl     lda wv_yy
-        clc
-        adc wv_i
+        adc #17
         tax
++       lda wv_cell_hi,x
+        stx wv_t
+        ldx #32
+        jsr vdc_wr
+        ldx wv_t
+        lda wv_cell_lo,x
+        ldx #33
+        jsr vdc_wr
+        ldx wv_yy               ; Ziel der ersten Bitmap-Zeile, dann +80 je Zeile
         lda vl_lo,x
         clc
         adc wv_cc
-        sta wv_t
+        sta wv_a
         lda vl_hi,x
         adc #0
-        sty wv_t+1
-        ldy wv_t
-        jsr vdc_addr
-        ldy wv_t+1
-        ldx #4
--       lda (wv_p),y
-        +vdc_wait
-        sta VDC_DATA
-        iny
-        dex
-        bne -
-        inc wv_i
-        lda wv_i
-        cmp #16
-        bne .bl
-        lda #0
-        sta wv_i
-.al     lda wv_yy
+        sta wv_a+1
+        lda #16
+        jsr .rows
+        lda wv_yy               ; Attribute: 8 Blockzeilen
         lsr
-        clc
-        adc wv_i
         tax
         lda al_lo,x
         clc
         adc wv_cc
-        sta wv_t
+        sta wv_a
         lda al_hi,x
         adc #0
-        sty wv_t+1
-        ldy wv_t
-        jsr vdc_addr
-        ldy wv_t+1
-        ldx #4
--       lda (wv_p),y
-        bit wv_gold
-        bpl +
-        jsr wv_goldify
-+       +vdc_wait
-        sta VDC_DATA
-        iny
-        dex
-        bne -
-        inc wv_i
-        lda wv_i
-        cmp #8
-        bne .al
+        sta wv_a+1
+        lda #8
+.rows   sta wv_i
+.r      lda wv_a+1
+        +vwr 18
+        lda wv_a
+        +vwr 19
+        lda #4
+        +vwr 30
+        lda wv_a
+        clc
+        adc #80
+        sta wv_a
+        bcc +
+        inc wv_a+1
++       dec wv_i
+        bne .r
         rts
+
+; Adressen der Zellen in der Ablage: Theme 0 Zellen 0..16, Theme 1 Zellen 0..16
+wv_cell_lo
+        !for t, 2 { !for c, 17 { !byte <(ST_CELLS + (t-1)*ST_THEME_B + (c-1)*ST_CELL_B) } }
+wv_cell_hi
+        !for t, 2 { !for c, 17 { !byte >(ST_CELLS + (t-1)*ST_THEME_B + (c-1)*ST_CELL_B) } }
 
 ; A = Attribut: Braun (12) -> Gelb (13) in beiden Haelften
 wv_goldify
@@ -768,6 +742,7 @@ wv_cc           !byte 0
 wv_yy           !byte 0
 wv_i            !byte 0
 wv_t            !word 0
+wv_a            !word 0
 vr_img          !byte 0         ; Bild des Roboters (run_set_robot_image)
 stat_lvl        !byte 0
 stat_w          !byte 0

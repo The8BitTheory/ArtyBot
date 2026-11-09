@@ -28,6 +28,7 @@ video_init
         jmp vdc_no_64k
 .ok     jsr vdc_init_bitmap
         jsr vt_init             ; Rahmen-/Handglyphen in die Zeichensatz-Kopie
+        jsr vs_init             ; Zeichensatz, Kacheln, Figuren, Bilder in die VRAM-Ablage
         ; weiter mit clear_screen
 
 ; Ganzer Bildschirm: Bitmap leer, Attribute weiss auf schwarz.
