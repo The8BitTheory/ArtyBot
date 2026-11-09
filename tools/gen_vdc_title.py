@@ -5,8 +5,10 @@ Jedes C64-Pixel wird doppelt so breit (gleiche Proportionen auf 640x200); pro 8x
 haeufigsten Farben (Hintergrund = haeufigste), andere Farben auf die naehere der beiden.
 
 Ausgabe platform/c128/view_vdc/gfx_vdc_title.asm, je Bild:
-  <name>        !byte breite_bytes, hoehe_zeilen ; dann breite*hoehe Bitmap-Bytes zeilenweise,
-                danach breite*hoehe/2 Attribut-Bytes (hohes Nibble Hintergrund, niedriges Vordergrund)
+  <name>        !byte breite_bytes, hoehe_zeilen ; dann gepackt (rle): breite*hoehe Bitmap-Bytes
+                zeilenweise, danach breite*hoehe/2 Attribut-Bytes (hohes Nibble Hintergrund).
+  Packen: Steuerbyte c < $80: c+1 Bytes folgen unveraendert; c >= $80: naechstes Byte (c-$7D)-mal
+  (3..130). Entpacker: vt_image in platform/c128/view_vdc/text.asm.
 python3 tools/gen_vdc_title.py [--preview out.png]"""
 import os, sys
 from PIL import Image
@@ -81,6 +83,31 @@ def quantize(px):
     return bm, at, out, bad
 
 
+def rle(data):
+    out, i, lit = [], 0, []
+    def flush():
+        while lit:
+            n = min(128, len(lit)); out.append(n - 1); out.extend(lit[:n]); del lit[:n]
+    while i < len(data):
+        j = i
+        while j < len(data) and data[j] == data[i] and j - i < 130: j += 1
+        if j - i >= 3:
+            flush(); out += [0x7D + (j - i), data[i]]; i = j
+        else:
+            lit.append(data[i]); i += 1
+    flush()
+    return out
+
+
+def unrle(p):
+    out, i = [], 0
+    while i < len(p):
+        c = p[i]
+        if c < 0x80: out += p[i + 1:i + 2 + c]; i += 2 + c
+        else: out += [p[i + 1]] * (c - 0x7D); i += 2
+    return out
+
+
 def main():
     lines = ['; gfx_vdc_title.asm - generiert von tools/gen_vdc_title.py, nicht von Hand aendern',
              '; Je Bild: Breite (Bytes), Hoehe (Zeilen), Bitmap zeilenweise, Attribute je 2 Zeilen', '']
@@ -92,6 +119,10 @@ def main():
         print('%-11s %2d x %3d  %5d Byte  %d Bloecke mit >2 Farben' % (name, w, h, 2 + w * h + w * h // 2, bad))
         lines.append('%s\n        !byte %d, %d' % (name, w, h))
         flat = [b for r in bm for b in r] + [a for r in at for a in r]
+        packed = rle(flat)
+        assert unrle(packed) == flat
+        print('            gepackt %5d Byte' % len(packed))
+        flat = packed
         for i in range(0, len(flat), 16):
             lines.append('        !byte ' + ','.join('$%02X' % b for b in flat[i:i + 16]))
         lines.append('')

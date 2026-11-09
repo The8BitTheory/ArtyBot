@@ -128,9 +128,9 @@ title_anim
         and #$20
         beq .on
         lda vti_blink_off,x
-        !byte $2C
+        jmp .put
 .on     lda vti_blink_on,x
-        jsr vdc_put
+.put    jsr vdc_put
         inc tmp1
         bne .l
 .done   rts

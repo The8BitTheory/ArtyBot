@@ -1,7 +1,7 @@
-; pointer.asm (VDC-View) - Mauszeiger als Software-Sprite: Pfeil 12x8 Pixel mit 1 Pixel Rand.
-; Zeichnen: Hintergrund (3 Bytes x 8 Zeilen) sichern, dann (alt AND NOT Maske) OR Form;
-; Wegnehmen: gesicherte Bytes zurueck. Farbe = Vordergrund der Bloecke darunter, der Rand ist
-; deren Hintergrund.
+; pointer.asm (VDC-View) - Mauszeiger als Software-Sprite: Pfeil 12x8 Pixel, Zeile gerade.
+; Zeichnen: Hintergrund sichern (3 Bytes x 8 Zeilen, 3 x 4 Attribute). In jedem 8x2-Block, den
+; der Pfeil (mit 1 Pixel Rand) beruehrt, nur der Pfeil auf der Grundfarbe des Blocks, in der
+; Kontrastfarbe (weiss auf dunklem, schwarz auf hellem Grund). Wegnehmen: Sicherung zurueck.
 ; vp_show zeichnet an (mouse_x, mouse_y), vp_hide nimmt ihn weg (vor jedem Zeichnen),
 ; vp_forget nach einem Loeschen des Bildschirms (Zeiger ist schon weg).
 
@@ -25,6 +25,7 @@ vp_show
         and #7
         sta vp_nb
         lda mouse_y
+        and #$FE
         cmp #200-VP_LINES
         bcc +
         lda #200-VP_LINES
@@ -92,55 +93,12 @@ vp_xor
         asl
         adc vp_t
         sta vp_t
+        lda vp_on
+        beq .draw
+        ; wegnehmen: Bitmap und Attribute zurueck
         lda #0
         sta vp_i
-        sta vp_s
-.line   lda vp_y
-        clc
-        adc vp_i
-        tax
-        lda vl_lo,x
-        clc
-        adc vp_x
-        sta vp_a
-        lda vl_hi,x
-        adc #0
-        sta vp_a+1
-        lda vp_on
-        bne .restore
-        lda vp_a+1
-        ldy vp_a
-        jsr vdc_addr            ; Hintergrund lesen und sichern
-        ldx vp_s
-        ldy #3
--       +vdc_wait
-        lda VDC_DATA
-        sta vp_save,x
-        inx
-        dey
-        bne -
-        lda vp_a+1
-        ldy vp_a
-        jsr vdc_addr
-        ldx vp_s
-        ldy vp_t
-        lda #3
-        sta vp_c
--       lda vp_mask,y
-        eor #$FF
-        and vp_save,x
-        ora vp_shapes,y
-        +vdc_wait
-        sta VDC_DATA
-        iny
-        inx
-        dec vp_c
-        bne -
-        jmp .next
-.restore
-        lda vp_a+1
-        ldy vp_a
-        jsr vdc_addr
+.rb     jsr vp_bm_addr
         ldx vp_s
         ldy #3
 -       lda vp_save,x
@@ -149,20 +107,184 @@ vp_xor
         inx
         dey
         bne -
-.next   lda vp_s
-        clc
-        adc #3
+        jsr vp_next
+        bne .rb
+        lda #0
+        sta vp_i
+.ra     jsr vp_at_addr
+        ldx vp_s
+        ldy #3
+-       lda vp_sat,x
+        +vdc_wait
+        sta VDC_DATA
+        inx
+        dey
+        bne -
+        jsr vp_next
+        cmp #VP_LINES/2
+        bne .ra
+        rts
+.draw   ; sichern
+        lda #0
+        sta vp_i
+.sb     jsr vp_bm_addr
+        ldx vp_s
+        ldy #3
+-       +vdc_wait
+        lda VDC_DATA
+        sta vp_save,x
+        inx
+        dey
+        bne -
+        jsr vp_next
+        bne .sb
+        lda #0
+        sta vp_i
+.sa     jsr vp_at_addr
+        ldx vp_s
+        ldy #3
+-       +vdc_wait
+        lda VDC_DATA
+        sta vp_sat,x
+        inx
+        dey
+        bne -
+        jsr vp_next
+        cmp #VP_LINES/2
+        bne .sa
+        ; Bloecke unter der Maske: Attribut = Grundfarbe + Kontrast, Merker vp_use
+        ldx #0                  ; Block 0..11 (Zeile*3 + Spalte)
+.bk     txa                     ; Maskenzeilen 2*Blockzeile und +1: Index t + (bz*6 + bs)
+        sta vp_c
+        ldy #0
+-       cmp #3
+        bcc +
+        sbc #3
+        iny
+        bne -
++       sta vp_bs               ; Spalte im Pfeil
+        tya
+        asl
+        sta vp_bz               ; erste Zeile
+        asl
+        adc vp_bz               ; *6
+        adc vp_bs
+        adc vp_t
+        tay
+        lda vp_mask,y
+        ora vp_mask+3,y
+        beq .no
+        lda vp_sat,x
+        lsr
+        lsr
+        lsr
+        lsr
+        tay
+        lda vp_contrast,y
+        sta vp_bz
+        lda vp_sat,x
+        and #$F0
+        ora vp_bz
+        sta vp_nat,x
+        lda #1
+        bne .set
+.no     lda vp_sat,x
+        sta vp_nat,x
+        lda #0
+.set    sta vp_use,x
+        inx
+        cpx #3*VP_LINES/2
+        bne .bk
+        lda #0                  ; Attribute schreiben
+        sta vp_i
+.wa     jsr vp_at_addr
+        ldx vp_s
+        ldy #3
+-       lda vp_nat,x
+        +vdc_wait
+        sta VDC_DATA
+        inx
+        dey
+        bne -
+        jsr vp_next
+        cmp #VP_LINES/2
+        bne .wa
+        lda #0                  ; Bitmap: in benutzten Bloecken nur der Pfeil
+        sta vp_i
+.wb     jsr vp_bm_addr
+        lda vp_i                ; Blockindex der Zeile: (Zeile/2)*3
+        lsr
+        sta vp_c
+        asl
+        adc vp_c
+        sta vp_c
+        ldx vp_s
+        ldy vp_t
+        lda #3
+        sta vp_bs
+-       sty vp_bz
+        ldy vp_c
+        lda vp_use,y
+        ldy vp_bz
+        cmp #0
+        beq +
+        lda vp_shapes,y
+        jmp ++
++       lda vp_save,x
+++      +vdc_wait
+        sta VDC_DATA
+        inc vp_c
+        iny
+        inx
+        dec vp_bs
+        bne -
+        sty vp_t
+        jsr vp_next
+        bne .wb
+        rts
+
+; Zeile vp_i (Bitmap) bzw. Blockzeile vp_i (Attribute) adressieren, vp_s = Sicherungsindex
+vp_bm_addr
+        lda vp_i
+        asl
+        adc vp_i
         sta vp_s
-        lda vp_t
+        lda vp_y
         clc
-        adc #3
-        sta vp_t
-        inc vp_i
+        adc vp_i
+        tax
+        lda vl_lo,x
+        clc
+        adc vp_x
+        tay
+        lda vl_hi,x
+        adc #0
+        jmp vdc_addr
+vp_at_addr
+        lda vp_i
+        asl
+        adc vp_i
+        sta vp_s
+        lda vp_y
+        lsr
+        clc
+        adc vp_i
+        tax
+        lda al_lo,x
+        clc
+        adc vp_x
+        tay
+        lda al_hi,x
+        adc #0
+        jmp vdc_addr
+; vp_i++, A = vp_i, Z = 1 bei VP_LINES
+vp_next inc vp_i
         lda vp_i
         cmp #VP_LINES
-        beq +
-        jmp .line
-+       rts
+        rts
+
+; Kontrastfarbe zur Grundfarbe (RGBI): hell -> schwarz, dunkel -> weiss
+vp_contrast !byte 15,15,15,0, 15,0,15,0, 15,0,15,0, 15,0,0,0
 
 ; Form (12 Pixel, Spitze oben links; 1 Pixel Rand links frei) und Maske (Form + 1 Pixel ringsum),
 ; je 8 Verschiebungen x 8 Zeilen x 3 Bytes (erzeugt). Der Hotspot liegt 1 Pixel rechts der Spalte.
@@ -192,6 +314,11 @@ vp_t    !byte 0
 vp_i    !byte 0
 vp_a    !word 0
 vp_save !fill 3*VP_LINES, 0
+vp_sat  !fill 3*VP_LINES/2, 0
+vp_nat  !fill 3*VP_LINES/2, 0
+vp_use  !fill 3*VP_LINES/2, 0
+vp_bs   !byte 0
+vp_bz   !byte 0
 vp_s    !byte 0
 vp_c    !byte 0
 vp_on   !byte 0

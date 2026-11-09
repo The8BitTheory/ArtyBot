@@ -131,11 +131,11 @@ def sprites():
                     nB, nc, nT = blk.count('B'), blk.count('c'), blk.count('.')
                     if nT == 16:
                         ar.append(0xFF); ink = ''
-                    elif nT == 0:                            # ganz deckend: schwarz hinterlegt
-                        ar.append(col); ink = 'c'
-                    elif nB >= nc:                           # Rand, ueberwiegend Kontur: schwarz auf Kachel
+                    elif nc and (nB or nT == 0):             # Koerper + Kontur: schwarz hinterlegt
+                        ar.append(col); ink = 'c'            # (durchsichtige Pixel werden Kontur)
+                    elif nB:                                 # nur Kontur: schwarz auf der Kachel
                         ar.append(0x80); ink = 'B'
-                    else:                                    # Rand, ueberwiegend Koerper: Figurfarbe auf Kachel
+                    else:                                    # nur Koerper: Figurfarbe auf der Kachel
                         ar.append(0); ink = 'c'
                     for y in (by, by + 1):
                         seg = im[y][k * 8:k * 8 + 8]

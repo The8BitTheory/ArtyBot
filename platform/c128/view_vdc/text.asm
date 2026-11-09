@@ -295,7 +295,8 @@ vt_frame
         sta vt_x
         jmp vt_print_buf
 
-; Bild aus RAM: A/X = Bild (Breite in Bytes, Hoehe, Bitmap, Attribute), Ziel vt_x, vt_y (gerade).
+; Bild aus RAM: A/X = Bild (Breite in Bytes, Hoehe, dann gepackt: Bitmap, Attribute; Format
+; siehe tools/gen_vdc_title.py), Ziel vt_x, vt_y (gerade).
 !zone vt_image
 vt_image
         sta vt_ptr
@@ -307,67 +308,96 @@ vt_image
         iny
         lda (vt_ptr),y
         sta vdc_h
-        lda vt_ptr              ; Daten hinter dem Kopf
+        lda vt_ptr              ; gepackte Daten hinter dem Kopf
         clc
         adc #2
-        sta vdc_src
-        lda vt_ptr+1
-        adc #0
-        sta vdc_src+1
-        ldx vt_y                ; Bitmap: vdc_h Zeilen
+        sta vt_ptr
+        bcc +
+        inc vt_ptr+1
++       lda #0
+        sta vt_run
+        sta vt_lit
+        lda vt_y                ; Bitmap: vdc_h Zeilen
+        sta vt_tmp
         lda vdc_h
         sta vt_fn
-        jsr .rows
-        lda vt_y                ; Attribute: vdc_h/2 Blockzeilen
-        lsr
-        tax
-        lda vdc_h
-        lsr
-        sta vt_fn
-        lda #1
-        sta vt_attr_mode
-        jsr .rows
-        lda #0
-        sta vt_attr_mode
-        rts
-.rows   stx vt_tmp
-.r      ldx vt_tmp
-        lda vt_attr_mode
-        bne .a
+.br     ldx vt_tmp
         lda vl_lo,x
         clc
         adc vt_x
-        sta vdc_dst
+        tay
         lda vl_hi,x
-        jmp .s
-.a      lda al_lo,x
+        adc #0
+        jsr .row
+        inc vt_tmp
+        dec vt_fn
+        bne .br
+        lda vt_y                ; Attribute: vdc_h/2 Blockzeilen
+        lsr
+        sta vt_tmp
+        lda vdc_h
+        lsr
+        sta vt_fn
+.ar     ldx vt_tmp
+        lda al_lo,x
         clc
         adc vt_x
-        sta vdc_dst
+        tay
         lda al_hi,x
-.s      adc #0
-        sta vdc_dst+1
-        lda vdc_w
-        sta vdc_cnt
-        lda #0
-        sta vdc_cnt+1
-        lda vdc_src
-        pha
-        lda vdc_src+1
-        pha
-        jsr vdc_upload
-        pla
-        sta vdc_src+1
-        pla
-        clc
-        adc vdc_w
-        sta vdc_src
-        bcc +
-        inc vdc_src+1
-+       inc vt_tmp
+        adc #0
+        jsr .row
+        inc vt_tmp
         dec vt_fn
-        bne .r
+        bne .ar
         rts
+.row    jsr vdc_addr            ; A/Y = Adresse, dann vdc_w Bytes entpacken
+        ldx vdc_w
+-       jsr vt_unpack
+        +vdc_wait
+        sta VDC_DATA
+        dex
+        bne -
+        rts
+
+; naechstes entpacktes Byte -> A (X, Y bleiben)
+vt_unpack
+        lda vt_run              ; laufende Wiederholung?
+        beq .nr
+        dec vt_run
+        lda vt_val
+        rts
+.nr     lda vt_lit              ; laufende Literale?
+        beq .ctl
+        dec vt_lit
+        sty vt_sy
+        ldy #0
+        lda (vt_ptr),y
+        ldy vt_sy
+        jmp .adv
+.ctl    sty vt_sy
+        ldy #0
+        lda (vt_ptr),y
+        bmi .rep
+        sta vt_lit              ; c+1 Literale: eines sofort, c weitere
+        jsr .inc
+        lda (vt_ptr),y
+        ldy vt_sy
+        jmp .adv
+.rep    sec
+        sbc #$7E                ; (c-$7D)-mal: eines sofort, Rest in vt_run
+        sta vt_run
+        jsr .inc
+        lda (vt_ptr),y
+        sta vt_val
+        ldy vt_sy
+.adv    inc vt_ptr
+        bne +
+        inc vt_ptr+1
++       rts
+.inc    inc vt_ptr
+        bne +
+        inc vt_ptr+1
++       rts
 
 ; A/X = Text, Y = Textzeile: zentriert in vt_col (normal breit).
 !zone vt_center
@@ -429,7 +459,10 @@ vt_fw   !byte 0
 vt_fh   !byte 0
 vt_fn   !byte 0
 vt_fill !byte $00
-vt_attr_mode !byte 0
+vt_run  !byte 0
+vt_lit  !byte 0
+vt_val  !byte 0
+vt_sy   !byte 0
 
 ; ---- Zeilenpuffer: Text in vt_buf zusammensetzen, dann vt_print_buf ------------------
 vb_reset

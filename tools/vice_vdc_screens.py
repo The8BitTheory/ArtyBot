@@ -4,7 +4,8 @@ x128 (headless, Binary Monitor), Tasten wie in vice_smoke.py ueber den Checkpoin
 
   python3 -B tools/vice_vdc_screens.py X128 PRG LABELS OUTDIR [VICE-DATA-DIR]
 
-Bilder: OUTDIR/v01_title.png, v02_hover.png, v03_instr.png, v04_credits.png, v05_end.png
+Bilder: OUTDIR/v01_title.png, v02_hover.png, v03_instr.png, v04_credits.png, v05_end.png,
+v06_map.png, v07_walk.png, v08_stats.png, v09_map_back.png
 (VDC-Bild, Zeilen verdoppelt)."""
 import sys, os, subprocess
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -86,6 +87,19 @@ try:
     tick(action=to_end)
     wait(20)
     shot('v05_end')
+    RETURN, KEY_D, KEY_S, F1 = 1, 18, 13, 4
+    press(RETURN); wait(20)                  # Ende -> Titel
+    press(RETURN); wait(40)                  # neues Spiel -> Weltkarte
+    mouse(300, 61); wait(3)
+    shot('v06_map')
+    for _ in range(4): tick(KEY_D)
+    shot('v07_walk')
+    wait(30)
+    press(KEY_S); wait(20)
+    press(F1); wait(20)
+    shot('v08_stats')
+    press(KEY_S); wait(40)
+    shot('v09_map_back')
 finally:
     try: bm.quit()
     except Exception: pass

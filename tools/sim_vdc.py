@@ -38,4 +38,17 @@ press(KEY_2); m.run_frames(40); shot('s03_instr')
 press(SPACE); press(KEY_3); m.run_frames(40); shot('s04_credits')
 press(SPACE)
 for i, v in enumerate([18, 0, 0, 0, 0, 18]): m.ram[lab['level_cmds'] + i] = v
+hook = lab['input_update'] + 6           # sicherer Punkt (kein IRQ): sta key_now
+while m.pc != hook: m.step()
 m.pc = lab['end_mode']; m.run_frames(40); shot("s05_end")
+RETURN, KEY_D, KEY_S, F1 = 1, 18, 13, 4
+press(RETURN); m.run_frames(30)               # Ende -> Titel
+press(RETURN); m.run_frames(60); mouse(300, 61); m.run_frames(3); shot('s06_map')
+m.keys.add(KEY_D); m.run_frames(4); shot('s07_walk'); m.keys.discard(KEY_D); m.run_frames(30)
+press(KEY_S); m.run_frames(30); shot('s08_map2')
+press(F1); m.run_frames(40); shot('s09_stats')
+press(KEY_S); m.run_frames(60); shot('s10_map_back')
+F5, LSHIFT = 5, 15
+m.keys.update({LSHIFT, F1}); m.run_frames(3); m.keys.difference_update({LSHIFT, F1}); m.run_frames(150)
+shot('s11_cheat')
+press(9); m.run_frames(120); shot('s12_winter')

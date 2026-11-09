@@ -1,22 +1,9 @@
 ; stubs.asm (VDC-View) - Platzhalter fuer Bildschirme, die noch fehlen (Weltkarte, Planen, Run;
 ; Teilschritte 4-6). Treffertests melden "nichts getroffen" (Carry 0), Zeichnen tut nichts.
 
-; Weltkarte, Statistik
-world_draw
-world_redraw_gates
-world_init_sprites
-wm_draw_status
-stats_layout
-stats_draw
-theme_load
-        rts
-world_sprites
 spr_init
 spr_update
         jmp vp_show
-wm_hit_cell
-        clc
-        rts
 
 ; Planen
 draw_planning_screen
@@ -49,9 +36,7 @@ draw_run_field
 draw_run_cell
 draw_run_delivered
 draw_run_list
-run_draw_message
 run_init_sprites
-run_set_robot_image
 run_update_sprites
 run_goal_anim
         rts
